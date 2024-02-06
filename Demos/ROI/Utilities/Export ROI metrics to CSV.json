@@ -1,0 +1,62 @@
+[ {
+  "defaultTab" : "nodes",
+  "description" : "Prototype: External Analysis CSV population for ROI",
+  "executionEnabled" : true,
+  "group" : "Demos/ROI/Utilities",
+  "id" : "db799fc7-e5aa-4d64-9320-67284c5727fe",
+  "loglevel" : "INFO",
+  "name" : "Export ROI metrics to CSV",
+  "nodeFilterEditable" : false,
+  "options" : [ {
+    "label" : "PAOP Host IP",
+    "name" : "paop_host",
+    "required" : true,
+    "value" : "localhost:4440"
+  }, {
+    "label" : "API Version",
+    "name" : "api_version",
+    "required" : true,
+    "value" : "45"
+  }, {
+    "label" : "API Token",
+    "name" : "api_token",
+    "required" : true,
+    "secure" : true,
+    "storagePath" : "keys/project/brunosandbox/apiKey",
+    "valueExposed" : true
+  }, {
+    "description" : "Needs to be full file path, including file name.",
+    "label" : "CSV File Path",
+    "name" : "csv_file_path"
+  } ],
+  "plugins" : {
+    "ExecutionLifecycle" : { }
+  },
+  "runnerSelector" : {
+    "runnerFilterMode" : "LOCAL",
+    "runnerFilterType" : "LOCAL_RUNNER"
+  },
+  "scheduleEnabled" : true,
+  "schedules" : [ ],
+  "sequence" : {
+    "commands" : [ {
+      "description" : "Api Calls and Query Builder",
+      "plugins" : {
+        "LogFilter" : [ {
+          "config" : {
+            "invalidKeyPattern" : "\\s|\\$|\\{|\\}|\\\\",
+            "logData" : "true",
+            "name" : "fullquery",
+            "regex" : "^FULLQUERY:(.+)$",
+            "replaceFilteredResult" : "false"
+          },
+          "type" : "key-value-data"
+        } ]
+      },
+      "script" : "#!/bin/bash\n\npaop_host=@option.paop_host@\napi_token=@option.api_token@\napi_version=@option.api_version@\nexecution_history=180n\nlatestExecID=0\n#latestStoredID=@data.maxid@\nlatestStoredID=1\noutput_csv=@option.csv_file_path@\n\ndebug=true\n\nlist_projects () {\n    projects_output=`curl -sS --request GET $paop_host/api/$api_version/projects \\\n                      --header 'X-Rundeck-Auth-Token: '$api_token'' \\\n                      --header 'Content-Type: application/json' \\\n                      --header 'Accept: application/json'`\n  \n    if \"$debug\" == \"true\"; then \n        echo \"Project List\"\n        echo $projects_output\n    fi\n    \n    while read i; do\n        list_executions $i\n    done <<< $(echo $projects_output | jq -r '.[].name')\n    \n    if \"$debug\" == \"true\"; then \n        echo \"Ending Project Loop\"\n    fi\n}\n\nlist_executions () {\n    executions_list=`curl -sS --request GET $paop_host'/api/'$api_version'/project/'$1'/executions?max=1000&recentFilter='$execution_history\\\n                     --header 'X-Rundeck-Auth-Token: '$api_token \\\n                     --header 'Content-Type: application/json' \\\n                     --header 'Accept: application/json'`\n    \n    if \"$debug\" == \"true\"; then\n        echo \"Execution List\"\n        echo \"$executions_list\"\n    fi\n    \n    latestExecID=`echo $executions_list | jq '.executions | max_by(.id) | .id'`\n    echo \"latestExecID: $latestExecID\"\n}\n\nget_roi () {\n    echo \"exec_id,project_name,job_name,job_id,execution_start_time,execution_duration_secs,minutes_saved\" > $output_csv\n    \n    for (( exec_id=$latestStoredID+1; exec_id<=$latestExecID; exec_id++ )); do\n\n        roi_data=`curl -sS --request GET $paop_host'/api/'$api_version'/execution/'$exec_id'/roimetrics/data' \\\n                 --header 'X-Rundeck-Auth-Token: '$api_token \\\n                 --header 'Content-Type: application/json' \\\n                 --header 'Accept: application/json'`\n                 \n        has_roi_data=`echo \"$roi_data\" | jq -c 'if .job_execution_id then true else false end'`\n        \n        if \"$debug\" == \"true\"; then\n            echo \"$execution_id ROI Data: $has_roi_data\"\n        fi\n        \n        if [[ \"$has_roi_data\" == \"true\" ]] ; then\n            exec_info=`curl -sS --request GET $paop_host'/api/'$api_version'/execution/'$exec_id \\\n                 --header 'X-Rundeck-Auth-Token: '$api_token \\\n                 --header 'Content-Type: application/json' \\\n                 --header 'Accept: application/json'`\n            \n            exec_status=`echo $exec_info | jq -r -c '.status'`\n            \n            project_name=`echo $exec_info | jq -r -c '.job.project'`\n            job_name=`echo $exec_info | jq -r -c '.job.name'`\n            job_id=`echo $roi_data | jq -r -c '.job_id'`\n            exec_start=`echo $exec_info | jq -r -c '.\"date-started\".date | sub(\"T\"; \" \") | sub(\"Z\"; \"\")'`\n            exec_duration=`echo $roi_data | jq -r -c '.job_duration_secs'`\n            roi_custom_field=`echo $roi_data | jq -r -c '.minutes'`\n            \n            if [[ \"$roi_custom_field\" != \"null\" ]] && [[ \"$exec_status\" == \"succeeded\" ]]; then\n                echo \"${exec_id},${project_name},${job_name},${job_id},${exec_start},${exec_duration},${roi_custom_field}\" >> $output_csv\n            fi\n        fi\n    done\n}\n\nlist_projects\nget_roi\n\necho 'Latest ROI ExecID Saved in DB: '$latestStoredID\necho 'Latest ExecID Found in PAOP: '$latestExecID\necho \"CSV data has been saved to $output_csv\"\n"
+    } ],
+    "keepgoing" : false,
+    "strategy" : "node-first"
+  },
+  "uuid" : "db799fc7-e5aa-4d64-9320-67284c5727fe"
+} ]
