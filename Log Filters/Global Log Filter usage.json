@@ -2,7 +2,7 @@
   "defaultTab" : "nodes",
   "description" : "",
   "executionEnabled" : true,
-  "group" : "Demo/Global Log example",
+  "group" : "Log Filters",
   "id" : "5cddbbf2-c061-4fe9-9412-a8a2650ab93b",
   "loglevel" : "INFO",
   "name" : "Global Log Filter usage",
