@@ -1,0 +1,38 @@
+[ {
+  "defaultTab" : "nodes",
+  "description" : "",
+  "executionEnabled" : true,
+  "group" : "Variables",
+  "id" : "3c1ab478-e10f-4489-9e28-428999b3c86e",
+  "loglevel" : "INFO",
+  "name" : "Global variable use case",
+  "nodeFilterEditable" : false,
+  "plugins" : {
+    "ExecutionLifecycle" : { }
+  },
+  "runnerSelector" : {
+    "runnerFilterMode" : "LOCAL",
+    "runnerFilterType" : "LOCAL_RUNNER"
+  },
+  "scheduleEnabled" : true,
+  "schedules" : [ ],
+  "sequence" : {
+    "commands" : [ {
+      "description" : "Run referenced job",
+      "jobref" : {
+        "args" : "-new-incident true",
+        "group" : "PagerDuty",
+        "importOptions" : true,
+        "name" : "Windows-Check Memory and Disk usage",
+        "project" : "jet2tests",
+        "uuid" : "a9845554-fe61-442b-a0c0-95799137f4fe"
+      }
+    }, {
+      "description" : "Print global var value",
+      "exec" : "echo \"${export.disk-space-result}\""
+    } ],
+    "keepgoing" : false,
+    "strategy" : "node-first"
+  },
+  "uuid" : "3c1ab478-e10f-4489-9e28-428999b3c86e"
+} ]
