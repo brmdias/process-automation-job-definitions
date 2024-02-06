@@ -1,0 +1,79 @@
+[ {
+  "defaultTab" : "nodes",
+  "description" : "Returns some fun feedback as data output.\n\nRequires Rundeck CLI and Fortune to be installed.  Find the installation jobs under Demo/Configuration",
+  "executionEnabled" : true,
+  "group" : "Demo/Execution Plugins",
+  "id" : "b8e541cf-1d23-4259-9b5c-a5a12d623424",
+  "loglevel" : "INFO",
+  "maxMultipleExecutions" : "2",
+  "multipleExecutions" : true,
+  "name" : "Result Data Example",
+  "nodeFilterEditable" : true,
+  "plugins" : {
+    "ExecutionLifecycle" : {
+      "result-data-json-template" : {
+        "jsonTemplate" : "{\n  \"D6 Roll\":\"${data.dice*}\",\n  \"Fortune\":\"${data.fortune*}\",\n  \"Luck Today\":\"${data.luck*}\"\n}"
+      }
+    }
+  },
+  "runnerSelector" : {
+    "runnerFilterMode" : "LOCAL",
+    "runnerFilterType" : "LOCAL_RUNNER"
+  },
+  "scheduleEnabled" : true,
+  "schedules" : [ ],
+  "sequence" : {
+    "commands" : [ {
+      "description" : "roll dice",
+      "exec" : "echo $(($RANDOM % 6 + 1 ))",
+      "plugins" : {
+        "LogFilter" : [ {
+          "config" : {
+            "invalidKeyPattern" : "\\s|\\$|\\{|\\}|\\\\",
+            "logData" : "true",
+            "name" : "dice",
+            "regex" : "^(.+)$"
+          },
+          "type" : "key-value-data"
+        } ]
+      }
+    }, {
+      "description" : "fortune",
+      "exec" : "/usr/games/fortune",
+      "plugins" : {
+        "LogFilter" : [ {
+          "config" : {
+            "hideOutput" : "false",
+            "logData" : "false",
+            "name" : "fortune",
+            "regex" : "(.+?)"
+          },
+          "type" : "key-value-data-multilines"
+        } ]
+      }
+    }, {
+      "description" : "wishing",
+      "exec" : "RD_COLOR=0 rd pond",
+      "plugins" : {
+        "LogFilter" : [ {
+          "config" : {
+            "invalidKeyPattern" : "\\s|\\$|\\{|\\}|\\\\",
+            "logData" : "false",
+            "name" : "luck",
+            "regex" : "^(.+\\.)$"
+          },
+          "type" : "key-value-data"
+        } ]
+      }
+    }, {
+      "configuration" : {
+        "debugOnly" : "false"
+      },
+      "nodeStep" : false,
+      "type" : "log-data-step"
+    } ],
+    "keepgoing" : false,
+    "strategy" : "node-first"
+  },
+  "uuid" : "b8e541cf-1d23-4259-9b5c-a5a12d623424"
+} ]
