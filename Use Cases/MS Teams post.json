@@ -12,7 +12,7 @@
     "value" : "This a message to be posted on MS Teams!"
   }, {
     "name" : "webhook-url",
-    "value" : "https://pagerduty.webhook.office.com/webhookb2/122b3032-f4f1-4f30-ad97-febe98318483@dd649b90-2b30-45cb-a264-1130134c625e/IncomingWebhook/6a9b931c728b412a998f22780be09d82/4da1d127-be5a-4c35-a4fa-3b5e781af59d"
+    "value" : "TBD"
   } ],
   "plugins" : {
     "ExecutionLifecycle" : { }
