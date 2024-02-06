@@ -2,7 +2,7 @@
   "defaultTab" : "nodes",
   "description" : "",
   "executionEnabled" : true,
-  "group" : "Demo/Job Options",
+  "group" : "Job Options",
   "id" : "2fd7665c-8ba9-4ab0-a4b1-4162a8dc0b7b",
   "loglevel" : "INFO",
   "name" : "Job options (using global vars)",
@@ -22,7 +22,7 @@
     "ExecutionLifecycle" : { }
   },
   "runnerSelector" : {
-    "filter" : "aws",
+    "filter" : "linux",
     "runnerFilterMode" : "FILTER",
     "runnerFilterType" : "TAG_FILTER_AND"
   },

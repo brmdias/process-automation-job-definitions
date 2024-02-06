@@ -2,7 +2,7 @@
   "defaultTab" : "nodes",
   "description" : "",
   "executionEnabled" : true,
-  "group" : "Demo/Job Wrapper",
+  "group" : "Use Cases/Job Wrapper",
   "id" : "985a9838-f1dc-4e2c-95cf-8c08d6e854e4",
   "loglevel" : "INFO",
   "name" : "Job 2",

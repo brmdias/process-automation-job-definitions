@@ -2,10 +2,10 @@
   "defaultTab" : "nodes",
   "description" : "",
   "executionEnabled" : true,
-  "group" : "Demo/Job Wrapper",
-  "id" : "972eaddd-ca56-4410-9c01-42b7d64793c9",
+  "group" : "Use Cases/Job Wrapper",
+  "id" : "ff728ef0-e054-4463-b221-15227b3b0a0f",
   "loglevel" : "INFO",
-  "name" : "Job 1",
+  "name" : "Job 3",
   "nodeFilterEditable" : false,
   "plugins" : {
     "ExecutionLifecycle" : { }
@@ -18,10 +18,10 @@
   "schedules" : [ ],
   "sequence" : {
     "commands" : [ {
-      "exec" : "echo \"Execution job 1\""
+      "exec" : "echo \"Execution job 3\""
     } ],
     "keepgoing" : false,
     "strategy" : "node-first"
   },
-  "uuid" : "972eaddd-ca56-4410-9c01-42b7d64793c9"
+  "uuid" : "ff728ef0-e054-4463-b221-15227b3b0a0f"
 } ]

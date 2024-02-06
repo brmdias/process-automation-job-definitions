@@ -2,7 +2,7 @@
   "defaultTab" : "nodes",
   "description" : "Prototype: External Analysis CSV population for ROI",
   "executionEnabled" : true,
-  "group" : "Demos/ROI/Utilities",
+  "group" : "ROI",
   "id" : "db799fc7-e5aa-4d64-9320-67284c5727fe",
   "loglevel" : "INFO",
   "name" : "Export ROI metrics to CSV",
