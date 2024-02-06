@@ -1,0 +1,68 @@
+[ {
+  "defaultTab" : "nodes",
+  "description" : "",
+  "executionEnabled" : true,
+  "group" : "Use Cases/SMAX Integration",
+  "id" : "48d04b65-9ce5-4641-9271-cebd360bd139",
+  "loglevel" : "INFO",
+  "name" : "API endpoint healthcheck",
+  "nodeFilterEditable" : false,
+  "options" : [ {
+    "name" : "api-endpoint",
+    "values" : [ "https://www.meo.pt", "https://www.meo.pt/abc" ],
+    "valuesListDelimiter" : ","
+  }, {
+    "name" : "smax-token",
+    "value" : "eyJ0eXAiOiJKV1MiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiI4YWQ0ZjAxMDhiNWE1MDIzMDE4YjYxNThmOWJhMTY5ZCIsImlzcyI6Imh0dHBzOi8vdXM3LXNtYXguc2Fhcy5taWNyb2ZvY3VzLmNvbS9pZG0tc2VydmljZSIsImNvbS5ocGUuaWRtOnRydXN0b3IiOm51bGwsImV4cCI6MTY5ODMxNTkwMCwiY29tLmhwLmNsb3VkOnRlbmFudCI6eyJpZCI6IjhhZDRmMDEwOGI1YTUwMjMwMThiNjE1OGYzMzUxNjYyIiwibmFtZSI6IjMzMjU2NTA3NyIsImVuYWJsZWQiOnRydWV9LCJwcm4iOiJiZGlhc0BwYWdlcmR1dHkuY29tIiwiaWF0IjoxNjk4MzEyMzAwLCJqdGkiOiJkYThjNjJkMi03ZGU5LTQ4OWYtOTY1OC05YzA5OGUxMjlkYWQifQ.fVj0HXPHunick4AP28tZmtxiQIw1r_UjR3zKynNaNGw"
+  }, {
+    "name" : "xsrf-token",
+    "value" : "ZmUzZTBhNjItMmM3Mi00Y2QwLWE3Y2MtYzY2MjM0ZDhhMDEw"
+  } ],
+  "plugins" : {
+    "ExecutionLifecycle" : { }
+  },
+  "runnerSelector" : {
+    "runnerFilterMode" : "LOCAL",
+    "runnerFilterType" : "LOCAL_RUNNER"
+  },
+  "scheduleEnabled" : true,
+  "schedules" : [ ],
+  "sequence" : {
+    "commands" : [ {
+      "configuration" : {
+        "authentication" : "None",
+        "checkResponseCode" : "true",
+        "headers" : "{\"content-type\": \"application/json\"}",
+        "method" : "GET",
+        "printResponse" : "false",
+        "printResponseCode" : "true",
+        "printResponseToFile" : "false",
+        "proxySettings" : "false",
+        "remoteUrl" : "${option.api-endpoint}",
+        "responseCode" : "200",
+        "sslVerify" : "true",
+        "timeout" : "30000"
+      },
+      "errorhandler" : {
+        "script" : "echo @ctx.api-health@\ncurl -v --location 'https://us7-smax.saas.microfocus.com/rest/332565077/ems/bulk' \\\n--header 'Cookie: SMAX_AUTH_TOKEN=@option.smax-token@' \\\n--header 'X-XSRF-TOKEN: @option.xsrf-token@' \\\n--header 'Content-Type: application/json' \\\n--data '{\n        \"entities\": [\n                {\n                        \"entity_type\": \"Incident\",\n                        \"properties\": {\n                                \"ImpactScope\": \"SingleUser\",\n                                \"Active\": true,\n                                \"RequestedByPerson\": \"10612\",\n                                \"PhaseId\": \"Log\",\n                                \"ProcessId\": \"normal\",\n                                \"FirstTouch\": true,\n                                \"Urgency\": \"SlightDisruption\",\n                                \"RegisteredForActualService\": \"11178\",\n                                \"ServiceDeskGroup\": \"10880\",\n                                \"CompletionCode\": null,\n                                \"DisplayLabel\": \"@option.api-endpoint@ is down\",\n                                \"Priority\": \"LowPriority\",\n                                \"Description\": \"Endpoint is down (Rundeck): @option.api-endpoint@. Rundeck failed to get a OK response code from endpoint\"\n                        }\n                }\n        ],\n        \"operation\": \"CREATE\"\n}'"
+      },
+      "nodeStep" : false,
+      "plugins" : {
+        "LogFilter" : [ {
+          "config" : {
+            "contextVariable" : "api-health",
+            "doNothing" : "true",
+            "mute" : "false",
+            "regex" : "Response Code: HTTP/1.1 200 OK",
+            "text" : "healthy"
+          },
+          "type" : "progress-badges"
+        } ]
+      },
+      "type" : "edu.ohio.ais.rundeck.HttpWorkflowStepPlugin"
+    } ],
+    "keepgoing" : false,
+    "strategy" : "node-first"
+  },
+  "uuid" : "48d04b65-9ce5-4641-9271-cebd360bd139"
+} ]
