@@ -1,5 +1,5 @@
 # Job definition
-Job definition is available [here](Export_ROI_metrics_to_CSV.yaml)
+Job definition is available [here](Export_ROI_metrics_to_CSV.json)
 
 # Job options
 **PAOP Host IP**: IP Address/Hostname for the PAoP hosting the ROI Metrics.
