@@ -32,6 +32,8 @@
       "exec" : "dir"
     }, {
       "exec" : "hostname"
+    }, {
+      "exec" : "ipconfig"
     } ],
     "keepgoing" : false,
     "strategy" : "node-first"
