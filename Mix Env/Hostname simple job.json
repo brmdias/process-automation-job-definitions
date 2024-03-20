@@ -34,8 +34,6 @@
       "exec" : "hostname"
     }, {
       "exec" : "ipconfig /all"
-    }, {
-      "exec" : "hostname"
     } ],
     "keepgoing" : false,
     "strategy" : "node-first"
