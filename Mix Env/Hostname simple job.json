@@ -1,6 +1,6 @@
 [ {
   "defaultTab" : "nodes",
-  "description" : "This is a change from Github via webhook - changed",
+  "description" : "This is a change from Github via webhook.",
   "executionEnabled" : true,
   "group" : "Mix Env",
   "id" : "b8c9a72f-d15f-4b01-9955-f3212d98ae96",
