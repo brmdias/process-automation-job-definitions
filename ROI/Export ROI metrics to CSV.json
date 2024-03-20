@@ -1,6 +1,6 @@
 [ {
   "defaultTab" : "nodes",
-  "description" : "Prototype: External Analysis CSV population for ROI. Requires a MySQL database.",
+  "description" : "Prototype - External Analysis CSV population for ROI. Requires a MySQL database.",
   "executionEnabled" : true,
   "group" : "ROI",
   "id" : "db799fc7-e5aa-4d64-9320-67284c5727fe",
