@@ -33,7 +33,7 @@
     }, {
       "exec" : "hostname"
     }, {
-      "exec" : "ipconfig"
+      "exec" : "ipconfig /all"
     }, {
       "exec" : "hostname"
     } ],
