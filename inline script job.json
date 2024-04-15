@@ -1,0 +1,65 @@
+[ {
+  "defaultTab" : "nodes",
+  "description" : "",
+  "executionEnabled" : true,
+  "id" : "f59a28ad-5fd7-48e2-aea9-18456425dc17",
+  "loglevel" : "INFO",
+  "name" : "inline script job",
+  "nodeFilterEditable" : false,
+  "nodefilters" : {
+    "dispatch" : {
+      "excludePrecedence" : true,
+      "keepgoing" : false,
+      "rankOrder" : "ascending",
+      "successOnEmptyNodeFilter" : false,
+      "threadcount" : "1"
+    },
+    "filter" : "tags: windows"
+  },
+  "nodesSelectedByDefault" : true,
+  "options" : [ {
+    "enforced" : true,
+    "label" : "Is this a new incident?",
+    "name" : "new-incident",
+    "value" : "true",
+    "values" : [ "true", "false" ],
+    "valuesListDelimiter" : ","
+  }, {
+    "label" : "PagerDuty Incident ID",
+    "name" : "pd-incident-id"
+  } ],
+  "plugins" : {
+    "ExecutionLifecycle" : { }
+  },
+  "runnerSelector" : {
+    "runnerFilterMode" : "LOCAL",
+    "runnerFilterType" : "LOCAL_RUNNER"
+  },
+  "scheduleEnabled" : true,
+  "schedules" : [ ],
+  "sequence" : {
+    "commands" : [ {
+      "description" : "Powershell Script - Showing Memory and Disk usage ",
+      "fileExtension" : ".ps1",
+      "interpreterArgsQuoted" : false,
+      "plugins" : {
+        "LogFilter" : [ {
+          "config" : {
+            "captureMultipleKeysValues" : "true",
+            "hideOutput" : "false",
+            "logData" : "true",
+            "name" : "powershell_data",
+            "regex" : "(.*)"
+          },
+          "type" : "key-value-data-multilines"
+        } ]
+      },
+      "script" : "echo \"Showing Disk Usage...\"\n\n#Get-WmiObject -Class Win32_LogicalDisk\nGet-PSDrive\n\necho \"`n`n\"\necho \"Showing memory Usage...\"\n\nGet-Ciminstance Win32_OperatingSystem | select *memory*\n\necho \"`n`n\"\necho \"`n`n\"\necho \"Click here for detailed diagnostics: \"",
+      "scriptInterpreter" : "powershell.exe"
+    } ],
+    "keepgoing" : false,
+    "strategy" : "node-first"
+  },
+  "tags" : "windows",
+  "uuid" : "f59a28ad-5fd7-48e2-aea9-18456425dc17"
+} ]
