@@ -1,0 +1,58 @@
+[ {
+  "defaultTab" : "nodes",
+  "description" : "",
+  "executionEnabled" : true,
+  "group" : "PagerDuty",
+  "id" : "d29e7a42-3d97-4112-9969-e47593b2f0c1",
+  "loglevel" : "INFO",
+  "name" : "API endpoint monitoring",
+  "nodeFilterEditable" : false,
+  "options" : [ {
+    "name" : "apiendpoint",
+    "value" : "https://parreco.onthewifi.com"
+  } ],
+  "plugins" : {
+    "ExecutionLifecycle" : { }
+  },
+  "runnerSelector" : {
+    "runnerFilterMode" : "LOCAL",
+    "runnerFilterType" : "LOCAL_RUNNER"
+  },
+  "scheduleEnabled" : true,
+  "schedules" : [ ],
+  "sequence" : {
+    "commands" : [ {
+      "configuration" : {
+        "authentication" : "None",
+        "checkResponseCode" : "false",
+        "headers" : "{\"content-type\": \"application/json\"}",
+        "method" : "GET",
+        "printResponse" : "true",
+        "printResponseCode" : "true",
+        "printResponseToFile" : "false",
+        "proxySettings" : "false",
+        "remoteUrl" : "${option.apiendpoint}",
+        "sslVerify" : "true",
+        "timeout" : "30000"
+      },
+      "errorhandler" : {
+        "configuration" : {
+          "dedupe_key" : "123",
+          "event_action" : "trigger",
+          "images" : "https://www.rundeck.com/hubfs/rundeck-app-assets/rundeck-by-pagerduty-icon.png",
+          "payload_severity" : "warning",
+          "payload_source" : "${job.name}",
+          "payload_summary" : "${job.name} [${job.project}] run by ${job.username} (type: ${job.executionType}) ",
+          "service_key" : "keys/pager-duty/pdt-bdias-homelab-integration-key"
+        },
+        "nodeStep" : false,
+        "type" : "pd-sent-event-step"
+      },
+      "nodeStep" : false,
+      "type" : "edu.ohio.ais.rundeck.HttpWorkflowStepPlugin"
+    } ],
+    "keepgoing" : false,
+    "strategy" : "node-first"
+  },
+  "uuid" : "d29e7a42-3d97-4112-9969-e47593b2f0c1"
+} ]
