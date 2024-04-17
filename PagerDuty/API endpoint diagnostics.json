@@ -5,7 +5,7 @@
   "group" : "PagerDuty",
   "id" : "1394cbb9-9535-4143-8f5b-97ca0abc1eca",
   "loglevel" : "INFO",
-  "name" : "API endpoint validation",
+  "name" : "API endpoint diagnostics",
   "nodeFilterEditable" : false,
   "options" : [ {
     "name" : "apiendpoint",
