@@ -1,0 +1,67 @@
+[ {
+  "defaultTab" : "nodes",
+  "description" : "",
+  "executionEnabled" : true,
+  "group" : "PagerDuty",
+  "id" : "1394cbb9-9535-4143-8f5b-97ca0abc1eca",
+  "loglevel" : "INFO",
+  "name" : "API endpoint validation",
+  "nodeFilterEditable" : false,
+  "options" : [ {
+    "name" : "apiendpoint",
+    "value" : "https://parreco.onthewifi.com"
+  }, {
+    "name" : "pd_incident_id"
+  } ],
+  "plugins" : {
+    "ExecutionLifecycle" : { }
+  },
+  "runnerSelector" : {
+    "runnerFilterMode" : "LOCAL",
+    "runnerFilterType" : "LOCAL_RUNNER"
+  },
+  "scheduleEnabled" : true,
+  "schedules" : [ ],
+  "sequence" : {
+    "commands" : [ {
+      "configuration" : {
+        "authentication" : "None",
+        "checkResponseCode" : "true",
+        "headers" : "{\"content-type\": \"application/json\"}",
+        "method" : "GET",
+        "printResponse" : "true",
+        "printResponseCode" : "true",
+        "printResponseToFile" : "false",
+        "proxySettings" : "false",
+        "remoteUrl" : "${option.apiendpoint}",
+        "responseCode" : "200",
+        "sslVerify" : "true",
+        "timeout" : "30000"
+      },
+      "nodeStep" : false,
+      "type" : "edu.ohio.ais.rundeck.HttpWorkflowStepPlugin"
+    }, {
+      "configuration" : {
+        "incident_id" : "${option.pd_incident_id}",
+        "note" : "NOTE FROM WORKFLOW STEP."
+      },
+      "nodeStep" : false,
+      "type" : "pd-note-step"
+    } ],
+    "keepgoing" : false,
+    "pluginConfig" : {
+      "LogFilter" : [ {
+        "config" : {
+          "customOutput" : "This is the result of the API endpoint diagnostics.",
+          "filterName" : "API endpoint diagnostics",
+          "logOutputSettings" : "All",
+          "regexPattern" : "(.*)",
+          "stepStatus" : "Any"
+        },
+        "type" : "pagerduty-incident-output-capture"
+      } ]
+    },
+    "strategy" : "node-first"
+  },
+  "uuid" : "1394cbb9-9535-4143-8f5b-97ca0abc1eca"
+} ]
