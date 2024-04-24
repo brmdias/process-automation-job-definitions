@@ -24,6 +24,7 @@
       }
     }
   },
+  "notifyAvgDurationThreshold" : null,
   "options" : [ {
     "name" : "apiendpoint",
     "value" : "https://parreco.onthewifi.com"
