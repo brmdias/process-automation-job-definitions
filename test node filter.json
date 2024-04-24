@@ -1,0 +1,37 @@
+[ {
+  "defaultTab" : "nodes",
+  "description" : "new comittt and new update",
+  "executionEnabled" : true,
+  "id" : "42c158ed-0d63-428a-9743-2e15314553a7",
+  "loglevel" : "INFO",
+  "name" : "test node filter",
+  "nodeFilterEditable" : false,
+  "nodefilters" : {
+    "dispatch" : {
+      "excludePrecedence" : true,
+      "keepgoing" : false,
+      "rankOrder" : "ascending",
+      "successOnEmptyNodeFilter" : false,
+      "threadcount" : "1"
+    },
+    "filter" : "Node 1 Filter"
+  },
+  "nodesSelectedByDefault" : true,
+  "plugins" : {
+    "ExecutionLifecycle" : { }
+  },
+  "runnerSelector" : {
+    "runnerFilterMode" : "LOCAL",
+    "runnerFilterType" : "LOCAL_RUNNER"
+  },
+  "scheduleEnabled" : true,
+  "schedules" : [ ],
+  "sequence" : {
+    "commands" : [ {
+      "exec" : "echo \"node filter test\""
+    } ],
+    "keepgoing" : false,
+    "strategy" : "node-first"
+  },
+  "uuid" : "42c158ed-0d63-428a-9743-2e15314553a7"
+} ]
