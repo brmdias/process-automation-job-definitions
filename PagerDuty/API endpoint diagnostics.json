@@ -10,11 +10,11 @@
   "options" : [ {
     "name" : "apiendpoint",
     "value" : "https://parreco.onthewifi.com"
-  }, {
-    "name" : "pd_incident_id"
   } ],
   "plugins" : {
-    "ExecutionLifecycle" : { }
+    "ExecutionLifecycle" : {
+      "Send Incident Output to Pagerduty" : { }
+    }
   },
   "runnerSelector" : {
     "runnerFilterMode" : "LOCAL",
@@ -40,13 +40,6 @@
       },
       "nodeStep" : false,
       "type" : "edu.ohio.ais.rundeck.HttpWorkflowStepPlugin"
-    }, {
-      "configuration" : {
-        "incident_id" : "${option.pd_incident_id}",
-        "note" : "NOTE FROM WORKFLOW STEP."
-      },
-      "nodeStep" : false,
-      "type" : "pd-note-step"
     } ],
     "keepgoing" : false,
     "pluginConfig" : {
