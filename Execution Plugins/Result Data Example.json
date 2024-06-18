@@ -12,7 +12,7 @@
   "plugins" : {
     "ExecutionLifecycle" : {
       "result-data-json-template" : {
-        "jsonTemplate" : "{\n  \"D6 Roll\":\"${data.dice*}\",\n  \"Fortune\":\"${data.fortune*}\",\n  \"Luck Today\":\"${data.luck*}\"\n}"
+        "jsonTemplate" : "{\n  \"D6 Roll\":\"${data.dice*}\",\n  \"Luck Today\":\"${data.luck*}\"\n}"
       }
     }
   },
@@ -35,20 +35,6 @@
             "regex" : "^(.+)$"
           },
           "type" : "key-value-data"
-        } ]
-      }
-    }, {
-      "description" : "fortune",
-      "exec" : "/usr/games/fortune",
-      "plugins" : {
-        "LogFilter" : [ {
-          "config" : {
-            "hideOutput" : "false",
-            "logData" : "false",
-            "name" : "fortune",
-            "regex" : "(.+?)"
-          },
-          "type" : "key-value-data-multilines"
         } ]
       }
     }, {
