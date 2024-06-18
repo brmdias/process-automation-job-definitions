@@ -37,5 +37,6 @@
     "keepgoing" : false,
     "strategy" : "node-first"
   },
+  "tags" : "critical,important",
   "uuid" : "5cddbbf2-c061-4fe9-9412-a8a2650ab93b"
 } ]

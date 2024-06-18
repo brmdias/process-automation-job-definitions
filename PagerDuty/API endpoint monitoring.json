@@ -7,24 +7,6 @@
   "loglevel" : "INFO",
   "name" : "API endpoint monitoring",
   "nodeFilterEditable" : false,
-  "notification" : {
-    "onfailure" : {
-      "plugin" : {
-        "configuration" : {
-          "action" : "trigger",
-          "images" : "https://www.rundeck.com/hubfs/rundeck-app-assets/rundeck-by-pagerduty-icon.png",
-          "pagerdutyUrl" : "https://events.eu.pagerduty.com",
-          "payload_severity" : "error",
-          "payload_source" : "${job.name}",
-          "payload_summary" : "${job.status} [${job.project}] \"${job.name}\" run by ${job.user} (#${job.execid}) [ ${job.href} ]",
-          "service_key" : "R03DY7X741STB4K8P1UGGOH4BMCNOWHZ",
-          "service_key_storage_path" : "keys/pager-duty/pdt-bdias-misfired-rundeck-jobs"
-        },
-        "type" : "PagerDutyEventNotification"
-      }
-    }
-  },
-  "notifyAvgDurationThreshold" : null,
   "options" : [ {
     "name" : "apiendpoint",
     "value" : "https://parreco.onthewifi.com"

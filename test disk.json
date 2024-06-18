@@ -1,0 +1,37 @@
+[ {
+  "defaultTab" : "nodes",
+  "description" : "",
+  "executionEnabled" : true,
+  "id" : "3cb39c63-9477-4ca6-b94a-ffb3bb1bbee2",
+  "loglevel" : "INFO",
+  "name" : "test disk",
+  "nodeFilterEditable" : false,
+  "plugins" : {
+    "ExecutionLifecycle" : { }
+  },
+  "runnerSelector" : {
+    "runnerFilterMode" : "LOCAL",
+    "runnerFilterType" : "LOCAL_RUNNER"
+  },
+  "scheduleEnabled" : true,
+  "schedules" : [ ],
+  "sequence" : {
+    "commands" : [ {
+      "plugins" : {
+        "LogFilter" : [ {
+          "config" : {
+            "captureMultipleKeysValues" : "false",
+            "hideOutput" : "false",
+            "logData" : "false",
+            "regex" : ".*"
+          },
+          "type" : "key-value-data-multilines"
+        } ]
+      },
+      "script" : "df -H"
+    } ],
+    "keepgoing" : false,
+    "strategy" : "node-first"
+  },
+  "uuid" : "3cb39c63-9477-4ca6-b94a-ffb3bb1bbee2"
+} ]
