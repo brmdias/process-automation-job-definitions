@@ -1,0 +1,37 @@
+[ {
+  "defaultTab" : "nodes",
+  "description" : "",
+  "executionEnabled" : true,
+  "group" : "GitHub-Handlers",
+  "id" : "d6dee956-0cbd-4a59-963a-10695849c8c9",
+  "loglevel" : "INFO",
+  "name" : "Github-SCM-Import-Handler",
+  "nodeFilterEditable" : false,
+  "options" : [ {
+    "label" : "Job Name (coming from webhook payload)",
+    "name" : "job-name"
+  }, {
+    "label" : "Process Automation API Token",
+    "name" : "paop-token",
+    "secure" : true,
+    "storagePath" : "keys/paop-api-token",
+    "valueExposed" : true
+  } ],
+  "plugins" : {
+    "ExecutionLifecycle" : { }
+  },
+  "runnerSelector" : {
+    "runnerFilterMode" : "LOCAL",
+    "runnerFilterType" : "LOCAL_RUNNER"
+  },
+  "scheduleEnabled" : true,
+  "schedules" : [ ],
+  "sequence" : {
+    "commands" : [ {
+      "script" : "echo \"Project name: $RD_JOB_PROJECT\"\nRD_CLUSTER=\"bdias.pd-sandbox.com\"\necho \"Process Automation cluster FQDN: $RD_CLUSTER\"\n\n\ncurl --silent -X POST \"https://$RD_CLUSTER/api/44/project/$RD_JOB_PROJECT/scm/import/action/import-jobs\" \\\n--header 'Accept: application/json' \\\n--header 'Content-Type: application/json' \\\n--header 'X-Rundeck-Auth-Token: @option.paop-token@' \\\n--data '{\n    \"input\":{\n        \"message\":\"This is a test commit from Postman.\"\n    },\n    \"items\": @option.job-name@\n}'"
+    } ],
+    "keepgoing" : false,
+    "strategy" : "node-first"
+  },
+  "uuid" : "d6dee956-0cbd-4a59-963a-10695849c8c9"
+} ]

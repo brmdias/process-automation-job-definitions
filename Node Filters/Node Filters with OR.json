@@ -1,11 +1,11 @@
 [ {
   "defaultTab" : "nodes",
-  "description" : "This is a change from Github via webhook.\nNew commit from John.",
+  "description" : "",
   "executionEnabled" : true,
-  "group" : "Mix Env",
-  "id" : "b8c9a72f-d15f-4b01-9955-f3212d98ae96",
+  "group" : "Node Filters",
+  "id" : "cd7d6926-5366-4695-82dc-e38905907d81",
   "loglevel" : "INFO",
-  "name" : "Hostname simple job",
+  "name" : "Node Filters with OR",
   "nodeFilterEditable" : false,
   "nodefilters" : {
     "dispatch" : {
@@ -15,7 +15,7 @@
       "successOnEmptyNodeFilter" : false,
       "threadcount" : "1"
     },
-    "filter" : "osFamily: windows"
+    "filter" : "app: \"Java,Nginx\""
   },
   "nodesSelectedByDefault" : true,
   "plugins" : {
@@ -29,14 +29,10 @@
   "schedules" : [ ],
   "sequence" : {
     "commands" : [ {
-      "exec" : "dir"
-    }, {
-      "exec" : "hostname"
-    }, {
-      "exec" : "ipconfig /all"
+      "exec" : "uname -a"
     } ],
     "keepgoing" : false,
     "strategy" : "node-first"
   },
-  "uuid" : "b8c9a72f-d15f-4b01-9955-f3212d98ae96"
+  "uuid" : "cd7d6926-5366-4695-82dc-e38905907d81"
 } ]

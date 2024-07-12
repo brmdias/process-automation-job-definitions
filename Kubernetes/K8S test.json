@@ -1,0 +1,28 @@
+[ {
+  "defaultTab" : "nodes",
+  "description" : "",
+  "executionEnabled" : true,
+  "group" : "Kubernetes",
+  "id" : "dbd4f11e-d378-4f49-939a-bddec434aa9f",
+  "loglevel" : "INFO",
+  "name" : "K8S test",
+  "nodeFilterEditable" : false,
+  "plugins" : {
+    "ExecutionLifecycle" : { }
+  },
+  "runnerSelector" : {
+    "runnerFilterMode" : "LOCAL",
+    "runnerFilterType" : "LOCAL_RUNNER"
+  },
+  "scheduleEnabled" : true,
+  "schedules" : [ ],
+  "sequence" : {
+    "commands" : [ {
+      "description" : "Get Pods",
+      "exec" : "kubectl get po -A"
+    } ],
+    "keepgoing" : false,
+    "strategy" : "node-first"
+  },
+  "uuid" : "dbd4f11e-d378-4f49-939a-bddec434aa9f"
+} ]

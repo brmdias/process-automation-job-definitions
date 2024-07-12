@@ -1,6 +1,6 @@
 [ {
   "defaultTab" : "nodes",
-  "description" : "",
+  "description" : "Using global vars as part of Workflow Steps and as Node Filter.",
   "executionEnabled" : true,
   "group" : "Job Options",
   "id" : "2fd7665c-8ba9-4ab0-a4b1-4162a8dc0b7b",
