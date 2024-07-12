@@ -9,7 +9,7 @@
   "nodeFilterEditable" : false,
   "options" : [ {
     "name" : "apiendpoint",
-    "value" : "https://www.pagerduty.com/abc"
+    "value" : "https://parreco.onthewifi.com"
   } ],
   "plugins" : {
     "ExecutionLifecycle" : { }
@@ -27,7 +27,7 @@
         "checkResponseCode" : "false",
         "headers" : "{\"content-type\": \"application/json\"}",
         "method" : "GET",
-        "printResponse" : "false",
+        "printResponse" : "true",
         "printResponseCode" : "true",
         "printResponseToFile" : "false",
         "proxySettings" : "false",
@@ -36,21 +36,19 @@
         "timeout" : "30000"
       },
       "errorhandler" : {
-        "script" : "curl --request POST \\\n  --url https://events.pagerduty.com/v2/enqueue \\\n  --header 'Accept: application/json' \\\n  --header 'Content-Type: application/json' \\\n  --data '{\n  \"payload\": {\n    \"summary\": \"[@job.project@] @option.apiendpoint@ | @data.logdata*@\",\n    \"timestamp\": \"2015-07-17T08:42:58.315+0000\",\n    \"severity\": \"critical\",\n    \"source\": \"prod-datapipe03.example.com\",\n    \"component\": \"mysql\",\n    \"group\": \"prod-datapipe\",\n    \"class\": \"disk\",\n    \"custom_details\": {\n      \"custom prop\": \"Custom Property from Runbook Automation\",\n      \"endpoint\": \"@option.apiendpoint@\",\n      \"error_code\": \"@data.logdata*@\"\n    }\n  },\n  \"routing_key\": \"R03DWCPINXA35S0EE8R9I00ITQN9F2TV\",\n  \"dedup_key\": \"@job.execid@\",\n  \"event_action\": \"trigger\"\n}'"
+        "configuration" : {
+          "dedupe_key" : "123",
+          "event_action" : "trigger",
+          "images" : "https://www.rundeck.com/hubfs/rundeck-app-assets/rundeck-by-pagerduty-icon.png",
+          "payload_severity" : "warning",
+          "payload_source" : "${job.name}",
+          "payload_summary" : "${job.name} [${job.project}] run by ${job.username} (type: ${job.executionType}) ",
+          "service_key" : "keys/pager-duty/pdt-bdias-homelab-integration-key"
+        },
+        "nodeStep" : false,
+        "type" : "pd-sent-event-step"
       },
       "nodeStep" : false,
-      "plugins" : {
-        "LogFilter" : [ {
-          "config" : {
-            "captureMultipleKeysValues" : "true",
-            "hideOutput" : "false",
-            "logData" : "true",
-            "name" : "logdata",
-            "regex" : "Response Code: (.*)"
-          },
-          "type" : "key-value-data-multilines"
-        } ]
-      },
       "type" : "edu.ohio.ais.rundeck.HttpWorkflowStepPlugin"
     } ],
     "keepgoing" : false,
