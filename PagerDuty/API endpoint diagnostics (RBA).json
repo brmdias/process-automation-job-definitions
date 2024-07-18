@@ -15,6 +15,7 @@
     "name" : "pd_incident_id",
     "value" : "-1"
   }, {
+    "hidden" : true,
     "name" : "cloud-infra-integration-key",
     "secure" : true,
     "storagePath" : "keys/project/dev/pagerduty/pdt-bdias-cloud-infra-integration-key",
