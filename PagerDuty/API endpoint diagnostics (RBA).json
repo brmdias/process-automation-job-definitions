@@ -49,6 +49,7 @@
         "sslVerify" : "true",
         "timeout" : "30000"
       },
+      "description" : "API Endpoint test",
       "errorhandler" : {
         "keepgoingOnSuccess" : true,
         "script" : "curl --request 'POST' \\\n--url 'https://events.eu.pagerduty.com/v2/enqueue' \\\n--header 'Content-Type: application/json' \\\n--data '{\n  \"payload\": {\n      \"summary\": \"Error @data.request_code@ on @option.apiendpoint@\",\n      \"severity\": \"critical\",\n      \"source\": \"Runbook Automation\",\n      \"custom_details\": {\n        \"problem\": \"@data.request_code@\",\n        \"endpoint\":\"@option.apiendpoint@\",\n        \"execution_id\":\"@job.execid@\"\n      }\n  },\n  \"routing_key\": \"@option.cloud-infra-integration-key@\",\n  \"dedup_key\": \"@job.id@_@option.apiendpoint@\",\n  \"event_action\": \"trigger\"\n}'"
@@ -70,8 +71,9 @@
     }, {
       "configuration" : {
         "incident_id" : "${option.pd_incident_id}",
-        "note" : "Runbook executed by ${job.username}.\nExecutions logs available at: https://pdt-rdtam.runbook.pagerduty.cloud/project/bdias/execution/show/${job.execid}"
+        "note" : "Runbook executed by ${job.username}.\nExecutions logs available at: https://pdt-rdtam.runbook.pagerduty.cloud/project/bdias/execution/show/${job.execid}#output"
       },
+      "description" : "Update incident notes",
       "nodeStep" : false,
       "type" : "pd-note-step"
     }, {
@@ -89,6 +91,7 @@
         "resolution" : "API returning a ${export.request_code} request code.",
         "status" : "resolved"
       },
+      "description" : "Resolving incident in case of success",
       "nodeStep" : false,
       "type" : "pd-update-incident-step"
     } ],
@@ -106,7 +109,7 @@
       } ],
       "WorkflowStrategy" : {
         "ruleset" : {
-          "rules" : "[*] run-in-sequence\n[2] if:option.pd_incident_id!=-1\n[4] if:export.request_code==200"
+          "rules" : "[*] run-in-sequence\n[2] if:option.pd_incident_id!=-1\n[4] if:export.request_code==200 if:option.pd_incident_id!=-1"
         }
       }
     },
