@@ -16,11 +16,14 @@
     "value" : "-1"
   } ],
   "plugins" : {
-    "ExecutionLifecycle" : { }
+    "ExecutionLifecycle" : {
+      "Send Incident Output to Pagerduty" : { }
+    }
   },
   "runnerSelector" : {
-    "runnerFilterMode" : "LOCAL",
-    "runnerFilterType" : "LOCAL_RUNNER"
+    "filter" : "BDIAS",
+    "runnerFilterMode" : "TAGS",
+    "runnerFilterType" : "TAG_FILTER_AND"
   },
   "scheduleEnabled" : true,
   "schedules" : [ ],
@@ -61,7 +64,7 @@
     }, {
       "configuration" : {
         "incident_id" : "${option.pd_incident_id}",
-        "note" : "NOTE FROM WORKFLOW STEP."
+        "note" : "Runbook executed by ${job.username}.\nExecutions logs available at: https://pdt-rdtam.runbook.pagerduty.cloud/project/bdias/execution/show/${job.execid}"
       },
       "nodeStep" : false,
       "type" : "pd-note-step"
