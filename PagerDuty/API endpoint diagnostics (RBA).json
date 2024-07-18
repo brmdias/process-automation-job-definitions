@@ -21,7 +21,7 @@
     }
   },
   "runnerSelector" : {
-    "filter" : "LINUX",
+    "filter" : "BDIAS",
     "runnerFilterMode" : "TAGS",
     "runnerFilterType" : "TAG_FILTER_AND"
   },
