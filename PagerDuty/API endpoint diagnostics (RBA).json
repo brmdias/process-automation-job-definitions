@@ -15,6 +15,7 @@
     "name" : "pd_incident_id",
     "value" : "-1"
   }, {
+    "hidden" : true,
     "name" : "cloud-infra-integration-key",
     "secure" : true,
     "storagePath" : "keys/project/dev/pagerduty/pdt-bdias-cloud-infra-integration-key",
@@ -59,7 +60,7 @@
             "invalidKeyPattern" : "\\s|\\$|\\{|\\}|\\\\",
             "logData" : "true",
             "name" : "request_code",
-            "regex" : "Response Code: HTTP/1.1 (.*)",
+            "regex" : "Response Code: HTTP/1.1 (\\d{3}) .*",
             "replaceFilteredResult" : "false"
           },
           "type" : "key-value-data"
@@ -73,6 +74,23 @@
       },
       "nodeStep" : false,
       "type" : "pd-note-step"
+    }, {
+      "configuration" : {
+        "export" : "request_code",
+        "group" : "export",
+        "value" : "${data.request_code*}"
+      },
+      "description" : "Elevating request_code var to Global",
+      "nodeStep" : false,
+      "type" : "export-var"
+    }, {
+      "configuration" : {
+        "incident_id" : "${option.pd_incident_id}",
+        "resolution" : "API returning a ${export.request_code} request code.",
+        "status" : "resolved"
+      },
+      "nodeStep" : false,
+      "type" : "pd-update-incident-step"
     } ],
     "keepgoing" : false,
     "pluginConfig" : {
@@ -88,7 +106,7 @@
       } ],
       "WorkflowStrategy" : {
         "ruleset" : {
-          "rules" : "[*] run-in-sequence\n[2] if:option.pd_incident_id!=-1"
+          "rules" : "[*] run-in-sequence\n[2] if:option.pd_incident_id!=-1\n[4] if:export.request_code==200"
         }
       }
     },
