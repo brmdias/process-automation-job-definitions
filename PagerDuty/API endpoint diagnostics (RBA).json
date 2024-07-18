@@ -1,17 +1,19 @@
 [ {
   "defaultTab" : "nodes",
-  "description" : "",
+  "description" : "Managed by Runbook Automation.",
   "executionEnabled" : true,
   "group" : "PagerDuty",
   "id" : "1394cbb9-9535-4143-8f5b-97ca0abc1eca",
   "loglevel" : "INFO",
-  "name" : "API endpoint diagnostics",
+  "name" : "API endpoint diagnostics (RBA)",
   "nodeFilterEditable" : false,
   "options" : [ {
     "name" : "apiendpoint",
-    "value" : "https://parreco.onthewifi.com"
+    "value" : "https://www.pagerduty.com"
   }, {
-    "name" : "pd_incident_id"
+    "hidden" : true,
+    "name" : "pd_incident_id",
+    "value" : "-1"
   } ],
   "plugins" : {
     "ExecutionLifecycle" : { }
@@ -38,7 +40,23 @@
         "sslVerify" : "true",
         "timeout" : "30000"
       },
+      "errorhandler" : {
+        "keepgoingOnSuccess" : true,
+        "script" : "curl --request 'POST' \\\n--url 'https://events.eu.pagerduty.com/v2/enqueue' \\\n--header 'Content-Type: application/json' \\\n--data '{\n  \"payload\": {\n      \"summary\": \"Error @data.request_code@ on @option.apiendpoint@\",\n      \"severity\": \"critical\",\n      \"source\": \"Runbook Automation\",\n      \"custom_details\": {\n        \"problem\": \"@data.request_code@\",\n        \"endpoint\":\"@option.apiendpoint@\",\n        \"execution_id\":\"@job.execid@\"\n      }\n  },\n  \"routing_key\": \"R03DWCPINXA35S0EE8R9I00ITQN9F2TV\",\n  \"dedup_key\": \"@job.id@_@option.apiendpoint@\",\n  \"event_action\": \"trigger\"\n}'"
+      },
       "nodeStep" : false,
+      "plugins" : {
+        "LogFilter" : [ {
+          "config" : {
+            "invalidKeyPattern" : "\\s|\\$|\\{|\\}|\\\\",
+            "logData" : "true",
+            "name" : "request_code",
+            "regex" : "Response Code: HTTP/1.1 (.*)",
+            "replaceFilteredResult" : "false"
+          },
+          "type" : "key-value-data"
+        } ]
+      },
       "type" : "edu.ohio.ais.rundeck.HttpWorkflowStepPlugin"
     }, {
       "configuration" : {
@@ -59,9 +77,14 @@
           "stepStatus" : "Any"
         },
         "type" : "pagerduty-incident-output-capture"
-      } ]
+      } ],
+      "WorkflowStrategy" : {
+        "ruleset" : {
+          "rules" : "[*] run-in-sequence\n[2] if:option.pd_incident_id!=-1"
+        }
+      }
     },
-    "strategy" : "node-first"
+    "strategy" : "ruleset"
   },
   "uuid" : "1394cbb9-9535-4143-8f5b-97ca0abc1eca"
 } ]
