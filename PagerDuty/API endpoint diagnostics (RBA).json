@@ -16,7 +16,9 @@
     "value" : "-1"
   } ],
   "plugins" : {
-    "ExecutionLifecycle" : { }
+    "ExecutionLifecycle" : {
+      "Send Incident Output to Pagerduty" : { }
+    }
   },
   "runnerSelector" : {
     "runnerFilterMode" : "LOCAL",
