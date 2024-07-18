@@ -1,0 +1,39 @@
+[ {
+  "defaultTab" : "nodes",
+  "description" : "This job waits for an execution from Job \"Ruleset example 1\".\nThis also asserts if its execution state is Successful or Failed.",
+  "executionEnabled" : true,
+  "group" : "Ruleset",
+  "id" : "51d53110-17ab-4880-9c7c-d5b0f603d26f",
+  "loglevel" : "INFO",
+  "name" : "Wait for job execution",
+  "nodeFilterEditable" : false,
+  "plugins" : {
+    "ExecutionLifecycle" : { }
+  },
+  "runnerSelector" : {
+    "runnerFilterMode" : "LOCAL",
+    "runnerFilterType" : "LOCAL_RUNNER"
+  },
+  "scheduleEnabled" : true,
+  "schedules" : [ ],
+  "sequence" : {
+    "commands" : [ {
+      "configuration" : {
+        "atLeastOne" : "false",
+        "condition" : "Equals",
+        "executionState" : "Succeeded",
+        "interval" : "10s",
+        "jobName" : "Ruleset/Ruleset example 1",
+        "maxtry" : "24",
+        "next" : "Halt",
+        "project" : "dev",
+        "running" : "true"
+      },
+      "nodeStep" : false,
+      "type" : "wait-for-job"
+    } ],
+    "keepgoing" : false,
+    "strategy" : "node-first"
+  },
+  "uuid" : "51d53110-17ab-4880-9c7c-d5b0f603d26f"
+} ]
