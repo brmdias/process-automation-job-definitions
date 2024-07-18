@@ -14,6 +14,11 @@
     "hidden" : true,
     "name" : "pd_incident_id",
     "value" : "-1"
+  }, {
+    "name" : "cloud-infra-integration-key",
+    "secure" : true,
+    "storagePath" : "keys/project/dev/pagerduty/pdt-bdias-cloud-infra-integration-key",
+    "valueExposed" : true
   } ],
   "plugins" : {
     "ExecutionLifecycle" : {
@@ -45,7 +50,7 @@
       },
       "errorhandler" : {
         "keepgoingOnSuccess" : true,
-        "script" : "curl --request 'POST' \\\n--url 'https://events.eu.pagerduty.com/v2/enqueue' \\\n--header 'Content-Type: application/json' \\\n--data '{\n  \"payload\": {\n      \"summary\": \"Error @data.request_code@ on @option.apiendpoint@\",\n      \"severity\": \"critical\",\n      \"source\": \"Runbook Automation\",\n      \"custom_details\": {\n        \"problem\": \"@data.request_code@\",\n        \"endpoint\":\"@option.apiendpoint@\",\n        \"execution_id\":\"@job.execid@\"\n      }\n  },\n  \"routing_key\": \"R03DWCPINXA35S0EE8R9I00ITQN9F2TV\",\n  \"dedup_key\": \"@job.id@_@option.apiendpoint@\",\n  \"event_action\": \"trigger\"\n}'"
+        "script" : "curl --request 'POST' \\\n--url 'https://events.eu.pagerduty.com/v2/enqueue' \\\n--header 'Content-Type: application/json' \\\n--data '{\n  \"payload\": {\n      \"summary\": \"Error @data.request_code@ on @option.apiendpoint@\",\n      \"severity\": \"critical\",\n      \"source\": \"Runbook Automation\",\n      \"custom_details\": {\n        \"problem\": \"@data.request_code@\",\n        \"endpoint\":\"@option.apiendpoint@\",\n        \"execution_id\":\"@job.execid@\"\n      }\n  },\n  \"routing_key\": \"@option.cloud-infra-integration-key@\",\n  \"dedup_key\": \"@job.id@_@option.apiendpoint@\",\n  \"event_action\": \"trigger\"\n}'"
       },
       "nodeStep" : false,
       "plugins" : {
