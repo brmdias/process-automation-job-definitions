@@ -1,0 +1,129 @@
+[ {
+  "defaultTab" : "nodes",
+  "description" : "",
+  "executionEnabled" : true,
+  "group" : "Ruleset",
+  "id" : "7d6dce96-2221-4d80-83b9-3b1895206c00",
+  "loglevel" : "INFO",
+  "name" : "Test Exit Codes",
+  "nodeFilterEditable" : false,
+  "plugins" : {
+    "ExecutionLifecycle" : { }
+  },
+  "runnerSelector" : {
+    "runnerFilterMode" : "LOCAL",
+    "runnerFilterType" : "LOCAL_RUNNER"
+  },
+  "scheduleEnabled" : true,
+  "schedules" : [ ],
+  "sequence" : {
+    "commands" : [ {
+      "description" : "cd /abc",
+      "exec" : "cd /abc"
+    }, {
+      "configuration" : {
+        "export" : "step1_exitCode",
+        "group" : "export",
+        "value" : "${1:exec.exitCode*}"
+      },
+      "description" : "step1_exitCode",
+      "nodeStep" : false,
+      "type" : "export-var"
+    }, {
+      "description" : "Script: cd /abc",
+      "errorhandler" : {
+        "exec" : "false"
+      },
+      "script" : "#!/bin/sh \n\ncd /abc"
+    }, {
+      "configuration" : {
+        "export" : "step3_exitCode",
+        "group" : "export",
+        "value" : "${3:exec.exitCode*}"
+      },
+      "description" : "step1_exitCode",
+      "nodeStep" : false,
+      "type" : "export-var"
+    }, {
+      "configuration" : {
+        "export" : "step6_http_success_exitCode",
+        "group" : "export",
+        "value" : "0"
+      },
+      "description" : "step6_http_success_exitCode",
+      "nodeStep" : false,
+      "type" : "export-var"
+    }, {
+      "configuration" : {
+        "authentication" : "None",
+        "checkResponseCode" : "true",
+        "method" : "GET",
+        "printResponse" : "true",
+        "printResponseCode" : "true",
+        "printResponseToFile" : "false",
+        "proxySettings" : "false",
+        "remoteUrl" : "https://ddarby-paop.pd-sandbox.net/health",
+        "responseCode" : "200",
+        "sslVerify" : "true",
+        "timeout" : "30000"
+      },
+      "description" : "Workflow: HTTP success",
+      "errorhandler" : {
+        "configuration" : {
+          "export" : "step6_http_success_exitCode",
+          "group" : "export",
+          "value" : "1"
+        },
+        "nodeStep" : false,
+        "type" : "export-var"
+      },
+      "nodeStep" : false,
+      "type" : "edu.ohio.ais.rundeck.HttpWorkflowStepPlugin"
+    }, {
+      "configuration" : {
+        "export" : "step8_http_failure_exitCode",
+        "group" : "export",
+        "value" : "0"
+      },
+      "description" : "step8_http_failure_exitCode",
+      "nodeStep" : false,
+      "type" : "export-var"
+    }, {
+      "configuration" : {
+        "authentication" : "None",
+        "checkResponseCode" : "true",
+        "method" : "GET",
+        "printResponse" : "true",
+        "printResponseCode" : "true",
+        "printResponseToFile" : "false",
+        "proxySettings" : "false",
+        "remoteUrl" : "https://ddarby-paop.pd-sandbox.net/api/35/project/test",
+        "responseCode" : "200",
+        "sslVerify" : "true",
+        "timeout" : "30000"
+      },
+      "description" : "Workflow: HTTP failure",
+      "errorhandler" : {
+        "configuration" : {
+          "export" : "step8_http_failure_exitCode",
+          "group" : "export",
+          "value" : "1"
+        },
+        "nodeStep" : false,
+        "type" : "export-var"
+      },
+      "nodeStep" : false,
+      "type" : "edu.ohio.ais.rundeck.HttpWorkflowStepPlugin"
+    }, {
+      "configuration" : {
+        "debugOnly" : "false"
+      },
+      "description" : "Log data",
+      "nodeStep" : false,
+      "type" : "log-data-step"
+    } ],
+    "keepgoing" : true,
+    "strategy" : "node-first"
+  },
+  "uuid" : "7d6dce96-2221-4d80-83b9-3b1895206c00"
+} ]

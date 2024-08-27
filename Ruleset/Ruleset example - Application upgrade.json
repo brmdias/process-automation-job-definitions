@@ -5,7 +5,7 @@
   "group" : "Ruleset",
   "id" : "10c57ba1-721a-46bf-a4d8-d363db4a1468",
   "loglevel" : "INFO",
-  "name" : "Ruleset example 2",
+  "name" : "Ruleset example - Application upgrade",
   "nodeFilterEditable" : false,
   "options" : [ {
     "label" : "File Path",
@@ -38,10 +38,10 @@
   "schedules" : [ ],
   "sequence" : {
     "commands" : [ {
-      "description" : "Step 1 - Parallel Execution",
+      "description" : "Announce upgrade on MS Teams",
       "script" : "echo \"Starting step #1\"\n\nsleep 20s\n\necho \"Completing step #1\""
     }, {
-      "description" : "Step 2 - Prerequisite (Job Ref)",
+      "description" : "Push upgrade packages to the server",
       "jobref" : {
         "args" : "-filepath ${option.filepath}",
         "failOnDisable" : true,
@@ -50,8 +50,7 @@
         "uuid" : "0ad8669a-2dc4-4e9b-8797-12b03887438f"
       }
     }, {
-      "args" : "${option.step-3-result}",
-      "description" : "Run script file",
+      "description" : "Start upgrade",
       "errorhandler" : {
         "configuration" : {
           "export" : "step-result",
@@ -62,10 +61,10 @@
         "nodeStep" : false,
         "type" : "export-var"
       },
-      "scriptfile" : "${option.filepath}"
+      "exec" : "${option.filepath} ${option.step-3-result}"
     }, {
       "description" : "OK",
-      "script" : "echo \"Step #4 - OK case\"\necho \"Step 3 via logfilter: @export.step-result@\"\n\nexit 0"
+      "script" : "echo \"Step #4 - OK case\"\necho \"Step 3 Global var: @export.step-result@\"\n\necho \"step variable - ${3:exec.exitCode*}\"\n\nexit 0"
     }, {
       "description" : "NOK",
       "script" : "echo \"Step #4 - Not OK case\"\necho \"Step 3 result via logfilter: @export.step-result@\"\n\nexit 0"
