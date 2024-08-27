@@ -1,0 +1,58 @@
+[ {
+  "defaultTab" : "nodes",
+  "description" : "Checks for any global/widespread issues specifically related to Microsoft.",
+  "executionEnabled" : true,
+  "group" : "Outages",
+  "id" : "2533bd0e-f2b0-4efd-b69b-6eb6daadd4b3",
+  "loglevel" : "INFO",
+  "name" : "Check for Microsoft Outages",
+  "nodeFilterEditable" : false,
+  "plugins" : {
+    "ExecutionLifecycle" : { }
+  },
+  "runnerSelector" : {
+    "filter" : "RUNNER",
+    "runnerFilterMode" : "TAGS",
+    "runnerFilterType" : "TAG_FILTER_AND"
+  },
+  "scheduleEnabled" : true,
+  "schedules" : [ ],
+  "sequence" : {
+    "commands" : [ {
+      "plugins" : {
+        "LogFilter" : [ {
+          "config" : {
+            "captureMultipleKeysValues" : "false",
+            "hideOutput" : "false",
+            "logData" : "true",
+            "name" : "azure_issues",
+            "regex" : "(.*)"
+          },
+          "type" : "key-value-data-multilines"
+        } ]
+      },
+      "script" : "#!/usr/bin/env python3\n\nimport sys\nimport urllib.request\nimport xml.etree.ElementTree as ET\n\n# Define the feed URL\nfeed_url = 'https://azure.status.microsoft/en-gb/status/feed/'\n\ndef check_azure_status(feed_url):\n    try:\n        response = urllib.request.urlopen(feed_url)\n        content = response.read()\n    except urllib.error.URLError as e:\n        print(f\"Error fetching the feed: {e}\")\n        sys.exit(1)\n\n    try:\n        root = ET.fromstring(content)\n    except ET.ParseError as e:\n        print(f\"Error parsing the feed: {e}\")\n        sys.exit(1)\n\n    issues = []\n    for item in root.findall('.//item'):\n        title = item.find('title').text\n        description = item.find('description').text\n        pubDate = item.find('pubDate').text\n\n        print(f\"Entry found: Title: {title}, Description: {description}, Published: {pubDate}\")\n\n        if \"Issue\" in title or \"Degradation\" in title or \"Advisory\" in title:\n            issues.append({\n                'title': title,\n                'description': description,\n                'pubDate': pubDate\n            })\n\n    # Log the results\n    if issues:\n        print(\"Azure Status Issues Detected:\")\n        for issue in issues:\n            print(f\"Title: {issue['title']}\")\n            print(f\"Description: {issue['description']}\")\n            print(f\"Published: {issue['pubDate']}\")\n            print(\"-----\")\n        sys.exit(1)  # Exit with error code to indicate issues were found\n    else:\n        print(\"No issues found in the Azure status feed.\")\n        sys.exit(0)  # Exit with success code to indicate no issues\n\nif __name__ == \"__main__\":\n    check_azure_status(feed_url)\n"
+    }, {
+      "configuration" : {
+        "api_token" : "keys/pager-duty/pdt-bdias-api-token",
+        "email" : "bdias@pagerduty.com",
+        "incident_id" : "${option.pd_incident_id}",
+        "note" : "Microsoft Issues have been detected: ${data.azure_issues*}\\n\\nClick here for detailed diagnostics: ${job.url}#output"
+      },
+      "description" : "Send Diagnostics to PagerDuty",
+      "errorhandler" : {
+        "configuration" : {
+          "text" : "An error has occured: ${result.message}"
+        },
+        "keepgoingOnSuccess" : true,
+        "nodeStep" : false,
+        "type" : "progress-badge"
+      },
+      "nodeStep" : false,
+      "type" : "pd-note-step"
+    } ],
+    "keepgoing" : false,
+    "strategy" : "node-first"
+  },
+  "uuid" : "2533bd0e-f2b0-4efd-b69b-6eb6daadd4b3"
+} ]
