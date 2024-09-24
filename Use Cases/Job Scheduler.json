@@ -1,6 +1,6 @@
 [ {
   "defaultTab" : "nodes",
-  "description" : "",
+  "description" : " \n## Objective\nThis job will change the owner of a job to a different user. This is done using RBA API by exporting and importing the job definition without any changes. \n\nIt will then change the job owner to the user account associated to the token used for export/import.\n\nThis can be helpful when you want to use a specific local account to manage all job schedules. This will avoid a job schedule to become orphan when a user is removed from RBA.\n\n## Requirements\n- Python installed\n- User RBA API Token available in the Key Storage under path: `keys/users/[USERNAME]/rba-api-token`\n    - If you're following a different naming convention, edit the job and change the option `user-account-token` default value.\n\n## How to use this\n1. Make sure you have your users RBA API tokens created under the path `keys/users/[USERNAME]/rba-api-token` or other path convention defined in job option `user-account-token`.\n2. Run the job with option values:\n    1. Job ID: ID of the job to get a new owner\n    2. User Account: Username of the new owner of the jobs\n",
   "executionEnabled" : true,
   "group" : "Use Cases",
   "id" : "6305e1be-118a-4f7e-968d-01b81d318809",
