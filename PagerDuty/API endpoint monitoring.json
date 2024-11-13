@@ -3,13 +3,50 @@
   "description" : "",
   "executionEnabled" : true,
   "group" : "PagerDuty",
-  "id" : "d29e7a42-3d97-4112-9969-e47593b2f0c1",
+  "id" : "bc0c726f-a617-4f15-8232-c7b9bfa04422",
   "loglevel" : "INFO",
   "name" : "API endpoint monitoring",
   "nodeFilterEditable" : false,
+  "notification" : {
+    "onfailure" : {
+      "plugin" : {
+        "configuration" : {
+          "action" : "trigger",
+          "component" : "${job.id}",
+          "dedupe_key" : "${job.id}",
+          "group" : "${execution.href}",
+          "images" : "https://www.rundeck.com/hubfs/rundeck-app-assets/rundeck-by-pagerduty-icon.png",
+          "pagerdutyUrl" : "https://events.eu.pagerduty.com",
+          "payload_severity" : "warning",
+          "payload_source" : "Runbook Automation",
+          "payload_summary" : "${job.status} [${job.project}] \"${job.name}\" run by ${job.user} (#${job.execid}) [ ${job.href} ]",
+          "service_key_storage_path" : "keys/pager-duty/pdt-bdias-global-orchestration-key"
+        },
+        "type" : "PagerDutyEventNotification"
+      }
+    },
+    "onsuccess" : {
+      "plugin" : {
+        "configuration" : {
+          "action" : "resolve",
+          "component" : "${job.id}",
+          "dedupe_key" : "${job.id}",
+          "group" : "${execution.href}",
+          "images" : "https://www.rundeck.com/hubfs/rundeck-app-assets/rundeck-by-pagerduty-icon.png",
+          "pagerdutyUrl" : "https://events.eu.pagerduty.com",
+          "payload_severity" : "warning",
+          "payload_source" : "Runbook Automation",
+          "payload_summary" : "${job.status} [${job.project}] \"${job.name}\" run by ${job.user} (#${job.execid}) [ ${job.href} ]",
+          "service_key_storage_path" : "keys/pager-duty/pdt-bdias-global-orchestration-key"
+        },
+        "type" : "PagerDutyEventNotification"
+      }
+    }
+  },
+  "notifyAvgDurationThreshold" : null,
   "options" : [ {
     "name" : "apiendpoint",
-    "value" : "https://parreco.onthewifi.com"
+    "value" : "https://www.bbc.com"
   } ],
   "plugins" : {
     "ExecutionLifecycle" : { }
@@ -27,32 +64,25 @@
         "checkResponseCode" : "false",
         "headers" : "{\"content-type\": \"application/json\"}",
         "method" : "GET",
-        "printResponse" : "true",
+        "printResponse" : "false",
         "printResponseCode" : "true",
         "printResponseToFile" : "false",
         "proxySettings" : "false",
-        "remoteUrl" : "${option.apiendpoint}",
+        "remoteUrl" : "${option.apiendpoint}/sport/${data.page_id*}",
         "sslVerify" : "true",
         "timeout" : "30000"
       },
-      "errorhandler" : {
-        "configuration" : {
-          "dedupe_key" : "123",
-          "event_action" : "trigger",
-          "images" : "https://www.rundeck.com/hubfs/rundeck-app-assets/rundeck-by-pagerduty-icon.png",
-          "payload_severity" : "warning",
-          "payload_source" : "${job.name}",
-          "payload_summary" : "${job.name} [${job.project}] run by ${job.username} (type: ${job.executionType}) ",
-          "service_key" : "keys/pager-duty/pdt-bdias-homelab-integration-key"
-        },
-        "nodeStep" : false,
-        "type" : "pd-sent-event-step"
-      },
       "nodeStep" : false,
       "type" : "edu.ohio.ais.rundeck.HttpWorkflowStepPlugin"
+    }, {
+      "configuration" : {
+        "debugOnly" : "false"
+      },
+      "nodeStep" : false,
+      "type" : "log-data-step"
     } ],
     "keepgoing" : false,
     "strategy" : "node-first"
   },
-  "uuid" : "d29e7a42-3d97-4112-9969-e47593b2f0c1"
+  "uuid" : "bc0c726f-a617-4f15-8232-c7b9bfa04422"
 } ]
