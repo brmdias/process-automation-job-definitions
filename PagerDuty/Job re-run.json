@@ -12,16 +12,25 @@
     "name" : "job-uuid",
     "value" : "bc0c726f-a617-4f15-8232-c7b9bfa04422"
   }, {
+    "hidden" : true,
+    "name" : "pd_incident_id",
+    "value" : "123"
+  }, {
+    "hidden" : true,
     "name" : "rba-token",
     "secure" : true,
     "storagePath" : "keys/bdias-rba-token",
     "valueExposed" : true
   }, {
+    "label" : "RBA URL",
     "name" : "rba-url",
+    "required" : true,
     "value" : "https://bdias.pd-sandbox.com"
   } ],
   "plugins" : {
-    "ExecutionLifecycle" : { }
+    "ExecutionLifecycle" : {
+      "Send Incident Output to Pagerduty" : { }
+    }
   },
   "scheduleEnabled" : true,
   "schedules" : [ ],
@@ -33,6 +42,17 @@
       "script" : "curl --location --request POST '@option.rba-url@/api/44/job/@option.job-uuid@/run' \\\n--header 'Accept: application/json' \\\n--header 'Content-Type: application/json' \\\n--header 'X-Rundeck-Auth-Token: @option.rba-token@'"
     } ],
     "keepgoing" : false,
+    "pluginConfig" : {
+      "LogFilter" : [ {
+        "config" : {
+          "filterName" : "Job re-run",
+          "logOutputSettings" : "All",
+          "regexPattern" : "(.*)",
+          "stepStatus" : "Any"
+        },
+        "type" : "pagerduty-incident-output-capture"
+      } ]
+    },
     "strategy" : "node-first"
   },
   "uuid" : "a5969981-f2d8-44d9-83eb-431430bfefe4"
