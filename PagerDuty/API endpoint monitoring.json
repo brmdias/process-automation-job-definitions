@@ -20,7 +20,7 @@
           "payload_severity" : "warning",
           "payload_source" : "Runbook Automation",
           "payload_summary" : "${job.status} [${job.project}] \"${job.name}\" run by ${job.user} (#${job.execid}) [ ${job.href} ]",
-          "service_key_storage_path" : "keys/pager-duty/pdt-bdias-global-orchestration-key"
+          "service_key_storage_path" : "keys/pagerduty/pdt-bdias-global-orchestration-key"
         },
         "type" : "PagerDutyEventNotification"
       }
@@ -37,7 +37,7 @@
           "payload_severity" : "warning",
           "payload_source" : "Runbook Automation",
           "payload_summary" : "${job.status} [${job.project}] \"${job.name}\" run by ${job.user} (#${job.execid}) [ ${job.href} ]",
-          "service_key_storage_path" : "keys/pager-duty/pdt-bdias-global-orchestration-key"
+          "service_key_storage_path" : "keys/pagerduty/pdt-bdias-global-orchestration-key"
         },
         "type" : "PagerDutyEventNotification"
       }
@@ -81,7 +81,7 @@
       "nodeStep" : false,
       "type" : "log-data-step"
     } ],
-    "keepgoing" : false,
+    "keepgoing" : true,
     "strategy" : "node-first"
   },
   "uuid" : "bc0c726f-a617-4f15-8232-c7b9bfa04422"
