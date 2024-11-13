@@ -1,0 +1,39 @@
+[ {
+  "defaultTab" : "nodes",
+  "description" : "Run a job, using the Job ID provided as job option.",
+  "executionEnabled" : true,
+  "group" : "PagerDuty",
+  "id" : "a5969981-f2d8-44d9-83eb-431430bfefe4",
+  "loglevel" : "INFO",
+  "name" : "Job re-run",
+  "nodeFilterEditable" : false,
+  "options" : [ {
+    "label" : "Job ID",
+    "name" : "job-uuid",
+    "value" : "bc0c726f-a617-4f15-8232-c7b9bfa04422"
+  }, {
+    "name" : "rba-token",
+    "secure" : true,
+    "storagePath" : "keys/bdias-rba-token",
+    "valueExposed" : true
+  }, {
+    "name" : "rba-url",
+    "value" : "https://bdias.pd-sandbox.com"
+  } ],
+  "plugins" : {
+    "ExecutionLifecycle" : { }
+  },
+  "scheduleEnabled" : true,
+  "schedules" : [ ],
+  "sequence" : {
+    "commands" : [ {
+      "autoSecureInput" : "false",
+      "description" : "Run Job via API",
+      "passSecureInput" : "false",
+      "script" : "curl --location --request POST '@option.rba-url@/api/44/job/@option.job-uuid@/run' \\\n--header 'Accept: application/json' \\\n--header 'Content-Type: application/json' \\\n--header 'X-Rundeck-Auth-Token: @option.rba-token@'"
+    } ],
+    "keepgoing" : false,
+    "strategy" : "node-first"
+  },
+  "uuid" : "a5969981-f2d8-44d9-83eb-431430bfefe4"
+} ]
