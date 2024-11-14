@@ -14,12 +14,12 @@
           "action" : "trigger",
           "component" : "${job.id}",
           "dedupe_key" : "${job.id}",
-          "group" : "${execution.href}",
+          "group" : "${job.serverUrl}",
           "images" : "https://www.rundeck.com/hubfs/rundeck-app-assets/rundeck-by-pagerduty-icon.png",
           "pagerdutyUrl" : "https://events.eu.pagerduty.com",
           "payload_severity" : "warning",
           "payload_source" : "Runbook Automation",
-          "payload_summary" : "${job.status} [${job.project}] \"${job.name}\" run by ${job.user} (#${job.execid}) [ ${job.href} ]",
+          "payload_summary" : "[${job.status}] \"${job.name}\" run by ${job.user} (#${job.execid})",
           "service_key_storage_path" : "keys/pagerduty/pdt-bdias-global-orchestration-key"
         },
         "type" : "PagerDutyEventNotification"
@@ -31,12 +31,12 @@
           "action" : "resolve",
           "component" : "${job.id}",
           "dedupe_key" : "${job.id}",
-          "group" : "${execution.href}",
+          "group" : "${job.serverUrl}",
           "images" : "https://www.rundeck.com/hubfs/rundeck-app-assets/rundeck-by-pagerduty-icon.png",
           "pagerdutyUrl" : "https://events.eu.pagerduty.com",
           "payload_severity" : "warning",
           "payload_source" : "Runbook Automation",
-          "payload_summary" : "${job.status} [${job.project}] \"${job.name}\" run by ${job.user} (#${job.execid}) [ ${job.href} ]",
+          "payload_summary" : "[${job.status}] \"${job.name}\" run by ${job.user} (#${job.execid})",
           "service_key_storage_path" : "keys/pagerduty/pdt-bdias-global-orchestration-key"
         },
         "type" : "PagerDutyEventNotification"
@@ -49,7 +49,7 @@
     "value" : "https://www.bbc.com"
   } ],
   "plugins" : {
-    "ExecutionLifecycle" : { }
+    "ExecutionLifecycle" : null
   },
   "runnerSelector" : {
     "runnerFilterMode" : "LOCAL",
