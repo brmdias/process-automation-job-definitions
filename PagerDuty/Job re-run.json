@@ -7,6 +7,17 @@
   "loglevel" : "INFO",
   "name" : "Job re-run",
   "nodeFilterEditable" : false,
+  "nodefilters" : {
+    "dispatch" : {
+      "excludePrecedence" : true,
+      "keepgoing" : false,
+      "rankOrder" : "ascending",
+      "successOnEmptyNodeFilter" : false,
+      "threadcount" : "1"
+    },
+    "filter" : "bdias-rundeckers-01"
+  },
+  "nodesSelectedByDefault" : true,
   "options" : [ {
     "label" : "Job ID",
     "name" : "job-uuid",
