@@ -8,7 +8,7 @@
   "name" : "Running a shell with python",
   "nodeFilterEditable" : false,
   "plugins" : {
-    "ExecutionLifecycle" : { }
+    "ExecutionLifecycle" : null
   },
   "runnerSelector" : {
     "runnerFilterMode" : "LOCAL",
@@ -18,9 +18,11 @@
   "schedules" : [ ],
   "sequence" : {
     "commands" : [ {
+      "autoSecureInput" : "false",
       "fileExtension" : ".py",
       "interpreterArgsQuoted" : false,
-      "script" : "import subprocess\n\n# Command with shell\nresult = subprocess.run('export RD_URL=\"https://dev.rundeck.refinitiv.com/\"', shell=True, capture_output=True, text=True)\nresult = subprocess.run('export RD_TOKEN=\"@option.paop-token@\"\"', shell=True, capture_output=True, text=True)\nresult = subprocess.run('rd -V', shell=True, capture_output=True, text=True)\n\n\n# Capture the output\nprint(\"stdout:\", result.stdout)\nprint(\"stderr:\", result.stderr)\nprint(\"Return code:\", result.returncode)\n",
+      "passSecureInput" : "false",
+      "script" : "import subprocess\n\n# Command with shell\nresult = subprocess.run('export RD_URL=\"https://bdias.pd-sandbox.com/\"', shell=True, capture_output=True, text=True)\nresult = subprocess.run('export RD_TOKEN=\"@option.paop-token@\"\"', shell=True, capture_output=True, text=True)\nresult = subprocess.run('rd -V', shell=True, capture_output=True, text=True)\n\n\n# Capture the output\nprint(\"stdout:\", result.stdout)\nprint(\"stderr:\", result.stderr)\nprint(\"Return code:\", result.returncode)\n",
       "scriptInterpreter" : "python"
     } ],
     "keepgoing" : false,
