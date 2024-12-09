@@ -2,26 +2,23 @@
   "defaultTab" : "nodes",
   "description" : "",
   "executionEnabled" : true,
-  "group" : "Use Cases/Job Wrapper",
-  "id" : "985a9838-f1dc-4e2c-95cf-8c08d6e854e4",
+  "group" : "Toolkit",
+  "id" : "6c6e29d9-11b2-4f00-9a64-9361a5f2aad1",
   "loglevel" : "INFO",
-  "name" : "Job 2",
+  "name" : "Clean cached yum packages",
   "nodeFilterEditable" : false,
   "plugins" : {
     "ExecutionLifecycle" : { }
-  },
-  "runnerSelector" : {
-    "runnerFilterMode" : "LOCAL",
-    "runnerFilterType" : "LOCAL_RUNNER"
   },
   "scheduleEnabled" : true,
   "schedules" : [ ],
   "sequence" : {
     "commands" : [ {
-      "exec" : "echo \"Execution job 2\""
+      "description" : "Clean all cached data",
+      "exec" : "sudo yum clean all"
     } ],
     "keepgoing" : false,
     "strategy" : "node-first"
   },
-  "uuid" : "985a9838-f1dc-4e2c-95cf-8c08d6e854e4"
+  "uuid" : "6c6e29d9-11b2-4f00-9a64-9361a5f2aad1"
 } ]

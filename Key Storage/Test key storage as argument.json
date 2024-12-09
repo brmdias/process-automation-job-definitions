@@ -2,11 +2,17 @@
   "defaultTab" : "nodes",
   "description" : "",
   "executionEnabled" : true,
-  "group" : "Use Cases/Job Wrapper",
-  "id" : "972eaddd-ca56-4410-9c01-42b7d64793c9",
+  "group" : "Key Storage",
+  "id" : "48f617c7-3c8f-4a87-87e9-806147bb5b94",
   "loglevel" : "INFO",
-  "name" : "Job 1",
+  "name" : "Test key storage as argument",
   "nodeFilterEditable" : false,
+  "options" : [ {
+    "name" : "job-option-password",
+    "secure" : true,
+    "storagePath" : "keys/project/dev/pagerduty/test-password",
+    "valueExposed" : true
+  } ],
   "plugins" : {
     "ExecutionLifecycle" : { }
   },
@@ -18,10 +24,10 @@
   "schedules" : [ ],
   "sequence" : {
     "commands" : [ {
-      "exec" : "echo \"Execution job 1\""
+      "exec" : "echo \"trying to print a password: ${option.job-option-password}\""
     } ],
     "keepgoing" : false,
     "strategy" : "node-first"
   },
-  "uuid" : "972eaddd-ca56-4410-9c01-42b7d64793c9"
+  "uuid" : "48f617c7-3c8f-4a87-87e9-806147bb5b94"
 } ]

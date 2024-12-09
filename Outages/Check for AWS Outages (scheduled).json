@@ -1,0 +1,37 @@
+[ {
+  "defaultTab" : "nodes",
+  "description" : "Checks for any global/widespread issues specifically related to Microsoft.",
+  "executionEnabled" : true,
+  "group" : "Outages",
+  "id" : "52adf494-8151-4472-9d27-2d75cd019666",
+  "loglevel" : "INFO",
+  "name" : "Check for AWS Outages (scheduled)",
+  "nodeFilterEditable" : false,
+  "plugins" : {
+    "ExecutionLifecycle" : { }
+  },
+  "runnerSelector" : {
+    "runnerFilterMode" : "LOCAL",
+    "runnerFilterType" : "LOCAL_RUNNER"
+  },
+  "scheduleEnabled" : true,
+  "schedules" : [ {
+    "jobParams" : null,
+    "name" : "Public Cloud Providers Check"
+  } ],
+  "sequence" : {
+    "commands" : [ {
+      "description" : "Check AWS Status",
+      "fileExtension" : ".py",
+      "interpreterArgsQuoted" : false,
+      "plugins" : {
+        "LogFilter" : [ ]
+      },
+      "script" : "import sys\nimport urllib.request\nimport json\n\ndef check_aws_status():\n    aws_status_url = 'https://status.aws.amazon.com/data.json'\n    try:\n        response = urllib.request.urlopen(aws_status_url)\n        content = response.read()\n        data = json.loads(content)\n    except urllib.error.URLError as e:\n        print(f\"Error fetching the AWS status: {e}\")\n        sys.exit(1)\n    except json.JSONDecodeError as e:\n        print(f\"Error parsing the AWS status: {e}\")\n        sys.exit(1)\n\n    # Check if the data is a list\n    if isinstance(data, list):\n        issues = []\n        for event in data:\n            # Assuming each event is a dictionary with relevant keys\n            if event.get('status') != 'resolved':\n                issues.append({\n                    'title': event.get('service', 'Unknown Service'),\n                    'description': event.get('description', 'No description available'),\n                    'date': event.get('date', 'No date available')\n                })\n\n        if issues:\n            print(\"AWS Status Issues Detected:\")\n            for issue in issues:\n                print(f\"Service: {issue['title']}\")\n                print(f\"Description: {issue['description']}\")\n                print(f\"Date: {issue['date']}\")\n                print(\"-----\")\n            sys.exit(1)\n        else:\n            print(\"No issues found in the AWS status feed.\")\n            sys.exit(0)\n    else:\n        print(\"Unexpected data format received from AWS status feed.\")\n        sys.exit(1)\n\nif __name__ == \"__main__\":\n    check_aws_status()",
+      "scriptInterpreter" : "python"
+    } ],
+    "keepgoing" : false,
+    "strategy" : "node-first"
+  },
+  "uuid" : "52adf494-8151-4472-9d27-2d75cd019666"
+} ]

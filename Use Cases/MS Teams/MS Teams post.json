@@ -2,7 +2,7 @@
   "defaultTab" : "nodes",
   "description" : "",
   "executionEnabled" : true,
-  "group" : "Use Cases",
+  "group" : "Use Cases/MS Teams",
   "id" : "9292b89e-54a4-4dbd-b99d-4faa607c0662",
   "loglevel" : "INFO",
   "name" : "MS Teams post",
@@ -15,7 +15,7 @@
     "value" : "TBD"
   } ],
   "plugins" : {
-    "ExecutionLifecycle" : { }
+    "ExecutionLifecycle" : null
   },
   "runnerSelector" : {
     "runnerFilterMode" : "LOCAL",

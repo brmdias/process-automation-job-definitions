@@ -1,0 +1,26 @@
+[ {
+  "defaultTab" : "nodes",
+  "description" : "Clean all log archives (.gz) on the RBA-SH server.",
+  "executionEnabled" : true,
+  "group" : "Toolkit",
+  "id" : "94b8c0f7-1c1b-4f3a-8cba-3597d536e368",
+  "loglevel" : "INFO",
+  "name" : "Clean log archives",
+  "nodeFilterEditable" : false,
+  "plugins" : {
+    "ExecutionLifecycle" : { }
+  },
+  "scheduleEnabled" : true,
+  "schedules" : [ ],
+  "sequence" : {
+    "commands" : [ {
+      "autoSecureInput" : "false",
+      "description" : "Clean all log archives (.gz)",
+      "passSecureInput" : "false",
+      "script" : "cd /var/log/rundeck\nrm *.gz"
+    } ],
+    "keepgoing" : false,
+    "strategy" : "node-first"
+  },
+  "uuid" : "94b8c0f7-1c1b-4f3a-8cba-3597d536e368"
+} ]

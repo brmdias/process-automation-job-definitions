@@ -2,13 +2,13 @@
   "defaultTab" : "nodes",
   "description" : "",
   "executionEnabled" : true,
-  "group" : "Ruleset",
+  "group" : "Tests",
   "id" : "7d6dce96-2221-4d80-83b9-3b1895206c00",
   "loglevel" : "INFO",
   "name" : "Test Exit Codes",
   "nodeFilterEditable" : false,
   "plugins" : {
-    "ExecutionLifecycle" : { }
+    "ExecutionLifecycle" : null
   },
   "runnerSelector" : {
     "runnerFilterMode" : "LOCAL",

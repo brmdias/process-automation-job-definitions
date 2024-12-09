@@ -2,10 +2,10 @@
   "defaultTab" : "nodes",
   "description" : "",
   "executionEnabled" : true,
-  "group" : "Node Filters",
-  "id" : "cd7d6926-5366-4695-82dc-e38905907d81",
+  "group" : "Tests",
+  "id" : "0266c6ed-5cb7-4736-9e64-7f902f1090fa",
   "loglevel" : "INFO",
-  "name" : "Node Filters with OR",
+  "name" : "test step execution var",
   "nodeFilterEditable" : false,
   "nodefilters" : {
     "dispatch" : {
@@ -15,11 +15,11 @@
       "successOnEmptyNodeFilter" : false,
       "threadcount" : "1"
     },
-    "filter" : "app: \"Java,Nginx\""
+    "filter" : ".*-1"
   },
   "nodesSelectedByDefault" : true,
   "plugins" : {
-    "ExecutionLifecycle" : { }
+    "ExecutionLifecycle" : null
   },
   "runnerSelector" : {
     "runnerFilterMode" : "LOCAL",
@@ -29,10 +29,13 @@
   "schedules" : [ ],
   "sequence" : {
     "commands" : [ {
-      "exec" : "uname -a"
+      "exec" : "/var/lib/rundeck/var/test-script.sh 0"
+    }, {
+      "description" : "Read step1 exit code",
+      "exec" : "echo \"ExitCode Step1 - ${1:exec.exitCode*}\""
     } ],
-    "keepgoing" : false,
+    "keepgoing" : true,
     "strategy" : "node-first"
   },
-  "uuid" : "cd7d6926-5366-4695-82dc-e38905907d81"
+  "uuid" : "0266c6ed-5cb7-4736-9e64-7f902f1090fa"
 } ]
