@@ -11,7 +11,7 @@
     "onsuccess" : {
       "email" : {
         "attachLog" : true,
-        "attachLogInline" : true,
+        "attachLogInFile" : true,
         "recipients" : "bdias@pagerduty.com",
         "subject" : "System Health Check notification"
       }
