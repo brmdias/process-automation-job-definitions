@@ -15,7 +15,7 @@
       "successOnEmptyNodeFilter" : false,
       "threadcount" : "1"
     },
-    "filter" : "bdias-rundeckers-01"
+    "filter" : "bdias-rundeckers-a"
   },
   "nodesSelectedByDefault" : true,
   "options" : [ {
