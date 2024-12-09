@@ -2,10 +2,10 @@
   "defaultTab" : "nodes",
   "description" : "",
   "executionEnabled" : true,
-  "group" : "Use Cases",
-  "id" : "439c70df-fd0b-4c1e-a2bc-4d6768a1777a",
-  "loglevel" : "DEBUG",
-  "name" : "Job using personal credentials",
+  "group" : "POC",
+  "id" : "f8c936f4-418e-47ba-a84b-d8e57fd3dc50",
+  "loglevel" : "INFO",
+  "name" : "Test worker",
   "nodeFilterEditable" : false,
   "nodefilters" : {
     "dispatch" : {
@@ -15,34 +15,30 @@
       "successOnEmptyNodeFilter" : false,
       "threadcount" : "1"
     },
-    "filter" : "worker.*"
+    "filter" : "worker-.*"
   },
   "nodesSelectedByDefault" : true,
   "options" : [ {
-    "name" : "username",
-    "value" : "${job.username}"
+    "hidden" : true,
+    "name" : "worker-id",
+    "type" : "text",
+    "value" : "abc"
   } ],
   "plugins" : {
     "ExecutionLifecycle" : null
-  },
-  "runnerSelector" : {
-    "runnerFilterMode" : "LOCAL",
-    "runnerFilterType" : "LOCAL_RUNNER"
   },
   "scheduleEnabled" : true,
   "schedules" : [ ],
   "sequence" : {
     "commands" : [ {
-      "exec" : "whoami"
-    }, {
-      "exec" : "echo \"%PATH%\""
-    }, {
-      "exec" : "dir"
-    }, {
-      "exec" : "hostname"
+      "autoSecureInput" : "false",
+      "description" : "Sanity check",
+      "passSecureInput" : "false",
+      "script" : "whoami\nhostname\npwd\nls -l"
     } ],
     "keepgoing" : false,
     "strategy" : "node-first"
   },
-  "uuid" : "439c70df-fd0b-4c1e-a2bc-4d6768a1777a"
+  "timeout" : "60s",
+  "uuid" : "f8c936f4-418e-47ba-a84b-d8e57fd3dc50"
 } ]

@@ -24,7 +24,7 @@
     "valuesUrl" : "file:/var/lib/rundeck/var/dynamic_options/${option.distro.value}"
   } ],
   "plugins" : {
-    "ExecutionLifecycle" : { }
+    "ExecutionLifecycle" : null
   },
   "runnerSelector" : {
     "runnerFilterMode" : "LOCAL",
@@ -39,6 +39,10 @@
       "exec" : "echo \"RULESET PATH 2: You have selected a ${option.vm} machine with ${option.distro} distribution, version ${option.version}.\""
     }, {
       "exec" : "echo \"You have selected a ${option.vm} machine with ${option.distro} distribution, version ${option.version}.\""
+    }, {
+      "autoSecureInput" : "false",
+      "passSecureInput" : "false",
+      "script" : "echo \"RULESET PATH 1: You have selected a @option.vm@ machine with @option.distro@ distribution, version @option.version@.\"\necho \"RULESET PATH 2: You have selected a @option.vm@ machine with @option.distro@ distribution, version @option.version@.\"\necho \"You have selected a @option.vm@ machine with @option.distro@ distribution, version @option.version@.\""
     } ],
     "keepgoing" : false,
     "pluginConfig" : {

@@ -1,0 +1,35 @@
+[ {
+  "defaultTab" : "nodes",
+  "description" : "",
+  "executionEnabled" : true,
+  "group" : "POC",
+  "id" : "51dd4782-4abd-4b18-912a-faa977495f16",
+  "loglevel" : "INFO",
+  "name" : "Clean-up files",
+  "nodeFilterEditable" : false,
+  "nodefilters" : {
+    "dispatch" : {
+      "excludePrecedence" : true,
+      "keepgoing" : false,
+      "rankOrder" : "ascending",
+      "successOnEmptyNodeFilter" : false,
+      "threadcount" : "2"
+    },
+    "filter" : "worker-.*"
+  },
+  "nodesSelectedByDefault" : true,
+  "plugins" : {
+    "ExecutionLifecycle" : null
+  },
+  "scheduleEnabled" : true,
+  "schedules" : [ ],
+  "sequence" : {
+    "commands" : [ {
+      "description" : "Delete JSON file",
+      "exec" : "rm /home/ec2-user/worker/worker_output.json"
+    } ],
+    "keepgoing" : false,
+    "strategy" : "node-first"
+  },
+  "uuid" : "51dd4782-4abd-4b18-912a-faa977495f16"
+} ]

@@ -1,0 +1,33 @@
+[ {
+  "defaultTab" : "nodes",
+  "description" : "",
+  "executionEnabled" : true,
+  "group" : "Key Storage",
+  "id" : "48f617c7-3c8f-4a87-87e9-806147bb5b94",
+  "loglevel" : "INFO",
+  "name" : "Test key storage as argument",
+  "nodeFilterEditable" : false,
+  "options" : [ {
+    "name" : "job-option-password",
+    "secure" : true,
+    "storagePath" : "keys/project/dev/pagerduty/test-password",
+    "valueExposed" : true
+  } ],
+  "plugins" : {
+    "ExecutionLifecycle" : { }
+  },
+  "runnerSelector" : {
+    "runnerFilterMode" : "LOCAL",
+    "runnerFilterType" : "LOCAL_RUNNER"
+  },
+  "scheduleEnabled" : true,
+  "schedules" : [ ],
+  "sequence" : {
+    "commands" : [ {
+      "exec" : "echo \"trying to print a password: ${option.job-option-password}\""
+    } ],
+    "keepgoing" : false,
+    "strategy" : "node-first"
+  },
+  "uuid" : "48f617c7-3c8f-4a87-87e9-806147bb5b94"
+} ]

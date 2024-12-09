@@ -2,10 +2,9 @@
   "defaultTab" : "nodes",
   "description" : "",
   "executionEnabled" : true,
-  "group" : "Use Cases",
-  "id" : "439c70df-fd0b-4c1e-a2bc-4d6768a1777a",
-  "loglevel" : "DEBUG",
-  "name" : "Job using personal credentials",
+  "id" : "3620477a-45aa-4ec6-8ead-3d9071c78174",
+  "loglevel" : "INFO",
+  "name" : "test-worker-debug",
   "nodeFilterEditable" : false,
   "nodefilters" : {
     "dispatch" : {
@@ -18,31 +17,19 @@
     "filter" : "worker.*"
   },
   "nodesSelectedByDefault" : true,
-  "options" : [ {
-    "name" : "username",
-    "value" : "${job.username}"
-  } ],
   "plugins" : {
     "ExecutionLifecycle" : null
-  },
-  "runnerSelector" : {
-    "runnerFilterMode" : "LOCAL",
-    "runnerFilterType" : "LOCAL_RUNNER"
   },
   "scheduleEnabled" : true,
   "schedules" : [ ],
   "sequence" : {
     "commands" : [ {
-      "exec" : "whoami"
-    }, {
-      "exec" : "echo \"%PATH%\""
-    }, {
-      "exec" : "dir"
-    }, {
-      "exec" : "hostname"
+      "autoSecureInput" : "false",
+      "passSecureInput" : "false",
+      "script" : "whoami\nls -l"
     } ],
     "keepgoing" : false,
     "strategy" : "node-first"
   },
-  "uuid" : "439c70df-fd0b-4c1e-a2bc-4d6768a1777a"
+  "uuid" : "3620477a-45aa-4ec6-8ead-3d9071c78174"
 } ]

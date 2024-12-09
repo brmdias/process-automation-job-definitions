@@ -1,0 +1,44 @@
+[ {
+  "defaultTab" : "nodes",
+  "description" : "",
+  "executionEnabled" : true,
+  "group" : "POC",
+  "id" : "fe908f2e-05c7-43a3-b769-000a9476a8b3",
+  "loglevel" : "INFO",
+  "maxMultipleExecutions" : "0",
+  "multipleExecutions" : true,
+  "name" : "3. Multiple workers",
+  "nodeFilterEditable" : false,
+  "nodefilters" : {
+    "dispatch" : {
+      "excludePrecedence" : true,
+      "keepgoing" : false,
+      "rankOrder" : "ascending",
+      "successOnEmptyNodeFilter" : false,
+      "threadcount" : "2"
+    },
+    "filter" : "worker-.*"
+  },
+  "nodesSelectedByDefault" : true,
+  "plugins" : {
+    "ExecutionLifecycle" : null
+  },
+  "scheduleEnabled" : true,
+  "schedules" : [ ],
+  "sequence" : {
+    "commands" : [ {
+      "configuration" : {
+        "file" : "/home/ec2-user/worker/worker_output.json",
+        "interval" : "1",
+        "maxtry" : "60"
+      },
+      "description" : "Checking if file exists",
+      "nodeStep" : true,
+      "type" : "nixy-waitfor-file-exists"
+    } ],
+    "keepgoing" : false,
+    "strategy" : "node-first"
+  },
+  "timeout" : "120s",
+  "uuid" : "fe908f2e-05c7-43a3-b769-000a9476a8b3"
+} ]

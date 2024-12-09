@@ -2,10 +2,10 @@
   "defaultTab" : "nodes",
   "description" : "",
   "executionEnabled" : true,
-  "group" : "Use Cases",
-  "id" : "439c70df-fd0b-4c1e-a2bc-4d6768a1777a",
-  "loglevel" : "DEBUG",
-  "name" : "Job using personal credentials",
+  "group" : "Test",
+  "id" : "0266c6ed-5cb7-4736-9e64-7f902f1090fa",
+  "loglevel" : "INFO",
+  "name" : "test step execution var",
   "nodeFilterEditable" : false,
   "nodefilters" : {
     "dispatch" : {
@@ -15,13 +15,9 @@
       "successOnEmptyNodeFilter" : false,
       "threadcount" : "1"
     },
-    "filter" : "worker.*"
+    "filter" : ".*-1"
   },
   "nodesSelectedByDefault" : true,
-  "options" : [ {
-    "name" : "username",
-    "value" : "${job.username}"
-  } ],
   "plugins" : {
     "ExecutionLifecycle" : null
   },
@@ -33,16 +29,13 @@
   "schedules" : [ ],
   "sequence" : {
     "commands" : [ {
-      "exec" : "whoami"
+      "exec" : "/var/lib/rundeck/var/test-script.sh 0"
     }, {
-      "exec" : "echo \"%PATH%\""
-    }, {
-      "exec" : "dir"
-    }, {
-      "exec" : "hostname"
+      "description" : "Read step1 exit code",
+      "exec" : "echo \"ExitCode Step1 - ${1:exec.exitCode*}\""
     } ],
-    "keepgoing" : false,
+    "keepgoing" : true,
     "strategy" : "node-first"
   },
-  "uuid" : "439c70df-fd0b-4c1e-a2bc-4d6768a1777a"
+  "uuid" : "0266c6ed-5cb7-4736-9e64-7f902f1090fa"
 } ]

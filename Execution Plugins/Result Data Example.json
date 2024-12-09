@@ -9,6 +9,14 @@
   "multipleExecutions" : true,
   "name" : "Result Data Example",
   "nodeFilterEditable" : true,
+  "options" : [ {
+    "delimiter" : ";",
+    "multivalued" : true,
+    "name" : "test",
+    "type" : "text",
+    "values" : [ "abc", "def", "ggg" ],
+    "valuesListDelimiter" : ","
+  } ],
   "plugins" : {
     "ExecutionLifecycle" : {
       "result-data-json-template" : {
@@ -39,7 +47,7 @@
       }
     }, {
       "description" : "wishing",
-      "exec" : "RD_COLOR=0 rd pond",
+      "exec" : "RD_COLOR=0 rd list",
       "plugins" : {
         "LogFilter" : [ {
           "config" : {

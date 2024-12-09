@@ -1,0 +1,47 @@
+[ {
+  "defaultTab" : "nodes",
+  "description" : "",
+  "executionEnabled" : true,
+  "group" : "POC",
+  "id" : "c6908a89-46aa-4042-9037-e187dcc5f236",
+  "loglevel" : "INFO",
+  "name" : "2. Run worker",
+  "nodeFilterEditable" : false,
+  "nodefilters" : {
+    "dispatch" : {
+      "excludePrecedence" : true,
+      "keepgoing" : false,
+      "rankOrder" : "ascending",
+      "successOnEmptyNodeFilter" : false,
+      "threadcount" : "2"
+    },
+    "filter" : "worker-.*"
+  },
+  "nodesSelectedByDefault" : true,
+  "plugins" : {
+    "ExecutionLifecycle" : null
+  },
+  "scheduleEnabled" : true,
+  "schedules" : [ ],
+  "sequence" : {
+    "commands" : [ {
+      "description" : "Running task in worker",
+      "exec" : "python /home/ec2-user/worker/worker.py --duration 5",
+      "plugins" : {
+        "LogFilter" : [ {
+          "config" : {
+            "invalidKeyPattern" : "\\s|\\$|\\{|\\}|\\\\",
+            "logData" : "true",
+            "regex" : "^RUNDECK:DATA:\\s*([^\\s]+?)\\s*=\\s*(.+)$",
+            "replaceFilteredResult" : "false"
+          },
+          "type" : "key-value-data"
+        } ]
+      }
+    } ],
+    "keepgoing" : false,
+    "strategy" : "parallel"
+  },
+  "timeout" : "60s",
+  "uuid" : "c6908a89-46aa-4042-9037-e187dcc5f236"
+} ]

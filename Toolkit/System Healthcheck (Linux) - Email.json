@@ -1,0 +1,64 @@
+[ {
+  "defaultTab" : "nodes",
+  "description" : "",
+  "executionEnabled" : true,
+  "group" : "Toolkit",
+  "id" : "98bdb67a-adba-4378-ab74-04dcbd3fbf4b",
+  "loglevel" : "INFO",
+  "name" : "System Healthcheck (Linux) - Email",
+  "nodeFilterEditable" : false,
+  "notification" : {
+    "onsuccess" : {
+      "email" : {
+        "attachLog" : true,
+        "attachLogInline" : true,
+        "recipients" : "bdias@pagerduty.com",
+        "subject" : "System Health Check notification"
+      }
+    }
+  },
+  "notifyAvgDurationThreshold" : null,
+  "options" : [ {
+    "name" : "pd_incident_id"
+  } ],
+  "plugins" : {
+    "ExecutionLifecycle" : {
+      "Send Incident Output to Pagerduty" : { }
+    }
+  },
+  "runnerSelector" : {
+    "runnerFilterMode" : "LOCAL",
+    "runnerFilterType" : "LOCAL_RUNNER"
+  },
+  "scheduleEnabled" : true,
+  "schedules" : [ ],
+  "sequence" : {
+    "commands" : [ {
+      "description" : "Check disk space",
+      "exec" : "df -H"
+    }, {
+      "description" : "Check processes",
+      "exec" : "ps -ef | grep rundeck"
+    }, {
+      "description" : "Check service",
+      "exec" : "systemctl status rundeckd.service"
+    }, {
+      "description" : "Look at last 100 lines of service.log file",
+      "exec" : "tail -n 100 /var/log/rundeck/service.log"
+    } ],
+    "keepgoing" : false,
+    "pluginConfig" : {
+      "LogFilter" : [ {
+        "config" : {
+          "filterName" : "System healthcheck logs",
+          "logOutputSettings" : "All",
+          "regexPattern" : "(.*)",
+          "stepStatus" : "Any"
+        },
+        "type" : "pagerduty-incident-output-capture"
+      } ]
+    },
+    "strategy" : "node-first"
+  },
+  "uuid" : "98bdb67a-adba-4378-ab74-04dcbd3fbf4b"
+} ]
