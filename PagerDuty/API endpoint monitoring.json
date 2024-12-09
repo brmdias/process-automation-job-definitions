@@ -11,17 +11,18 @@
     "onfailure" : {
       "plugin" : {
         "configuration" : {
-          "authentication" : "None",
-          "body" : "{\n  \"payload\": {\n      \"summary\": \"[${job.status}] \\\"${job.name}\\\" run by ${job.user} (#${job.execid})\",\n      \"severity\": \"critical\",\n      \"source\": \"Runbook Automation\",\n      \"component\": \"${job.id}\",\n      \"group\": \"${job.serverUrl}\",\n      \"custom_details\": {\n        \"execution_id\": \"${execution.href}\",\n        \"endpoint\": \"${option.apiendpoint}\",\n        }\n  },\n  \"routing_key\": \"R03DY3A0ISMLEPIECREOJCS2CMSBJFS0\",\n  \"event_action\": \"trigger\"\n}",
-          "contentType" : "application/json",
-          "file" : "/etc/rundeck/notification_responses",
-          "headers" : "Accept: */*",
-          "method" : "POST",
-          "printResponseToFile" : "true",
-          "remoteUrl" : "https://events.eu.pagerduty.com/v2/enqueue",
-          "timeout" : "30000"
+          "action" : "trigger",
+          "component" : "${job.id}",
+          "dedupe_key" : "${job.id}",
+          "group" : "${job.serverUrl}",
+          "images" : "https://www.rundeck.com/hubfs/rundeck-app-assets/rundeck-by-pagerduty-icon.png",
+          "pagerdutyUrl" : "https://events.eu.pagerduty.com",
+          "payload_severity" : "warning",
+          "payload_source" : "Runbook Automation",
+          "payload_summary" : "[${job.status}] \"${job.name}\" run by ${job.user} (#${job.execid})",
+          "service_key_storage_path" : "keys/pagerduty/pdt-bdias-global-orchestration-key"
         },
-        "type" : "HttpNotification"
+        "type" : "PagerDutyEventNotification"
       }
     },
     "onsuccess" : {
