@@ -2,7 +2,7 @@
   "defaultTab" : "nodes",
   "description" : "",
   "executionEnabled" : true,
-  "group" : "Test/Cyberark",
+  "group" : "Tests/Cyberark",
   "id" : "b1f28212-1e73-4e64-b5bd-76f112993736",
   "loglevel" : "INFO",
   "name" : "test cyberark",
@@ -11,6 +11,7 @@
     "name" : "cyberark-test",
     "secure" : true,
     "storagePath" : "keys/cyberark/Test/rborchert-password",
+    "type" : "text",
     "valueExposed" : true
   } ],
   "plugins" : {
