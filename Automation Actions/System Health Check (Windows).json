@@ -3,9 +3,9 @@
   "description" : "",
   "executionEnabled" : true,
   "group" : "Automation Actions",
-  "id" : "532f0968-75f7-444f-bf1c-3891a799e730",
+  "id" : "29d1c6d6-fe19-4333-aa37-ef8dfc05dc8b",
   "loglevel" : "INFO",
-  "name" : "System Healthcheck (Linux)",
+  "name" : "System Health Check (Windows)",
   "nodeFilterEditable" : false,
   "nodefilters" : {
     "dispatch" : {
@@ -15,7 +15,7 @@
       "successOnEmptyNodeFilter" : false,
       "threadcount" : "1"
     },
-    "filter" : "osFamily: unix"
+    "filter" : "osFamily: windows"
   },
   "nodesSelectedByDefault" : true,
   "options" : [ {
@@ -36,22 +36,22 @@
   "sequence" : {
     "commands" : [ {
       "description" : "Check disk space",
-      "exec" : "df -H"
+      "exec" : "wmic logicaldisk get size,freespace,caption"
     }, {
       "description" : "Top 5 processes by CPU utilization",
-      "exec" : "ps -eo pid,comm,%cpu --sort=-%cpu | head -n 6"
+      "exec" : "Get-Process | Sort-Object CPU -Descending | Select-Object -First 5 | Format-Table -Property Id,ProcessName,CPU"
     }, {
       "description" : "Top 5 Processes by Memory Usage",
-      "exec" : "ps -eo pid,comm,%mem --sort=-%mem | head -n 6"
+      "exec" : "Get-Process | Sort-Object WorkingSet -Descending | Select-Object -First 5 | Format-Table -Property Id,ProcessName,WorkingSet"
     }, {
       "description" : "Network usage",
-      "exec" : "ifstat -t 1 5"
+      "exec" : "netstat -e"
     }, {
       "description" : "System load",
-      "exec" : "uptime"
+      "exec" : "wmic cpu get loadpercentage"
     }, {
       "description" : "User Logins",
-      "exec" : "who"
+      "exec" : "query user"
     } ],
     "keepgoing" : true,
     "pluginConfig" : {
@@ -67,5 +67,5 @@
     },
     "strategy" : "node-first"
   },
-  "uuid" : "532f0968-75f7-444f-bf1c-3891a799e730"
+  "uuid" : "29d1c6d6-fe19-4333-aa37-ef8dfc05dc8b"
 } ]
