@@ -112,7 +112,7 @@
       "passSecureInput" : "false",
       "script" : "echo \"Getting logs from Execution ID @data.execId@\"\n\ncurl --location '@option.rba-url@/api/14/execution/@data.execId@/output?format=text' \\\n--header 'Accept: application/yaml' \\\n--header 'X-Rundeck-Auth-Token: @option.rba-token@'\n"
     } ],
-    "keepgoing" : false,
+    "keepgoing" : true,
     "pluginConfig" : {
       "LogFilter" : [ {
         "config" : {
