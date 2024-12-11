@@ -9,10 +9,16 @@
   "nodeFilterEditable" : false,
   "notification" : {
     "onfailure" : {
+      "email" : {
+        "attachLog" : true,
+        "attachLogInFile" : true,
+        "recipients" : "bdias@pagerduty.com",
+        "subject" : "[FAILED] \"${job.name}\" (#${job.execid})"
+      },
       "plugin" : {
         "configuration" : {
           "action" : "trigger",
-          "component" : "${job.id}",
+          "component" : "${job.execid}",
           "dedupe_key" : "${job.id}",
           "group" : "${job.serverUrl}",
           "images" : "https://www.rundeck.com/hubfs/rundeck-app-assets/rundeck-by-pagerduty-icon.png",
@@ -29,7 +35,7 @@
       "plugin" : {
         "configuration" : {
           "action" : "resolve",
-          "component" : "${job.id}",
+          "component" : "${job.execid}",
           "dedupe_key" : "${job.id}",
           "group" : "${job.serverUrl}",
           "images" : "https://www.rundeck.com/hubfs/rundeck-app-assets/rundeck-by-pagerduty-icon.png",
