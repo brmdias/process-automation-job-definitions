@@ -19,9 +19,10 @@
   },
   "nodesSelectedByDefault" : true,
   "options" : [ {
-    "label" : "Job ID",
-    "name" : "job-uuid",
-    "value" : "bc0c726f-a617-4f15-8232-c7b9bfa04422"
+    "label" : "Execution ID",
+    "name" : "execution-id",
+    "type" : "text",
+    "value" : "85424"
   }, {
     "hidden" : true,
     "name" : "pd_incident_id",
@@ -47,34 +48,56 @@
   "schedules" : [ ],
   "sequence" : {
     "commands" : [ {
-      "autoSecureInput" : "false",
-      "description" : "Check if Job UUID exists",
-      "passSecureInput" : "false",
-      "script" : "# Assign arguments to variables  \nRUNDECK_SERVER_URL=@option.rba-url@\nAPI_TOKEN=@option.rba-token@\nJOB_UUID=@option.job-uuid@\n\n# Rundeck API endpoint to get job details  \nAPI_ENDPOINT=\"${RUNDECK_SERVER_URL}/api/41/job/${JOB_UUID}\"  \n\n# Make the API request  \nresponse=$(curl -s -o /dev/null -w \"%{http_code}\" -H \"X-Rundeck-Auth-Token: ${API_TOKEN}\" \"${API_ENDPOINT}\")  \n  \n# Check the HTTP response code  \nif [ \"$response\" -eq 200 ]; then  \n  echo \"Job with UUID ${JOB_UUID} exists on the Rundeck server.\"  \nelif [ \"$response\" -eq 404 ]; then  \n  echo \"Job with UUID ${JOB_UUID} does not exist on the Rundeck server.\"\n  exit 1\nelse  \n  echo \"Failed to verify the job. HTTP response code: $response\"  \n  echo \"Please check the Rundeck server URL, API token, and Job UUID.\"  \n  exit 1\nfi  \n"
-    }, {
-      "autoSecureInput" : "false",
-      "description" : "Run Job via API",
-      "passSecureInput" : "false",
+      "configuration" : {
+        "executions" : "${option.execution-id}",
+        "failed nodes" : "false",
+        "json display" : "true"
+      },
+      "nodeStep" : false,
       "plugins" : {
         "LogFilter" : [ {
           "config" : {
             "extraQuotes" : "false",
-            "filter" : "{ id, href, status, serverUUID, project,  \"job.id\": .job.id, \"job.name\": .job.name, \"job.group\": .job.group }",
+            "filter" : ".[0].id",
             "logData" : "true",
-            "prefix" : "result"
+            "prefix" : "execId"
+          },
+          "type" : "json-mapper"
+        }, {
+          "config" : {
+            "extraQuotes" : "false",
+            "filter" : ".[0].job.id",
+            "logData" : "true",
+            "prefix" : "job-uuid"
+          },
+          "type" : "json-mapper"
+        }, {
+          "config" : {
+            "extraQuotes" : "false",
+            "filter" : ".[0].job.jobName",
+            "logData" : "true",
+            "prefix" : "job-name"
+          },
+          "type" : "json-mapper"
+        }, {
+          "config" : {
+            "extraQuotes" : "false",
+            "filter" : ".[0].project",
+            "logData" : "true",
+            "prefix" : "project"
           },
           "type" : "json-mapper"
         } ]
       },
-      "script" : "curl --location --request POST '@option.rba-url@/api/44/job/@option.job-uuid@/run' \\\n--header 'Accept: application/json' \\\n--header 'Content-Type: application/json' \\\n--header 'X-Rundeck-Auth-Token: @option.rba-token@'"
+      "type" : "run-executions"
     }, {
       "configuration" : {
         "atLeastOne" : "false",
         "condition" : "Equals",
         "executionState" : "Succeeded",
         "interval" : "5s",
-        "jobName" : "${data.job.group}/${data.job.name}",
-        "jobUUID" : "${data.job.id}",
+        "jobName" : "${data.job-group}/${data.job-name}",
+        "jobUUID" : "${data.job-uuid}",
         "maxtry" : "60",
         "next" : "Continue",
         "project" : "${data.project}",
@@ -87,7 +110,7 @@
       "autoSecureInput" : "false",
       "description" : "Get logs from execution",
       "passSecureInput" : "false",
-      "script" : "echo \"Getting logs from Execution ID @data.id@\"\n\ncurl --location '@option.rba-url@/api/14/execution/@data.id@/output?format=text' \\\n--header 'Accept: application/yaml' \\\n--header 'X-Rundeck-Auth-Token: @option.rba-token@'\n"
+      "script" : "echo \"Getting logs from Execution ID @data.execId@\"\n\ncurl --location '@option.rba-url@/api/14/execution/@data.execId@/output?format=text' \\\n--header 'Accept: application/yaml' \\\n--header 'X-Rundeck-Auth-Token: @option.rba-token@'\n"
     } ],
     "keepgoing" : false,
     "pluginConfig" : {
