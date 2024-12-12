@@ -1,6 +1,6 @@
 [ {
   "defaultTab" : "nodes",
-  "description" : "The \"Job re-run\" is an automated process designed to re-execute a specific job in Rundeck using a provided Execution ID. \n\nThis job integrates with PagerDuty to log the re-run status and execution details as an incident note. \n\nIt retrieves execution logs, monitors the status of the re-run, and ensures that the results are communicated effectively. \n\nThe job is particularly useful for automating incident management workflows and ensuring transparency in job execution.",
+  "description" : "The \"Job re-run\" is an automated process designed to re-execute a specific job in Rundeck using a provided Execution ID. \n\nNOTE: please change this job node filter accordingly.\n\nThis job integrates with PagerDuty to log the re-run status and execution details as an incident note. \n\nIt retrieves execution logs, monitors the status of the re-run, and ensures that the results are communicated effectively. \n\nThe job is particularly useful for automating incident management workflows and ensuring transparency in job execution.",
   "executionEnabled" : true,
   "group" : "PagerDuty",
   "id" : "a5969981-f2d8-44d9-83eb-431430bfefe4",
@@ -15,7 +15,7 @@
       "successOnEmptyNodeFilter" : false,
       "threadcount" : "1"
     },
-    "filter" : "bdias-rundeckers-a"
+    "filter" : "."
   },
   "nodesSelectedByDefault" : true,
   "options" : [ {
