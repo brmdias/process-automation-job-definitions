@@ -1,6 +1,6 @@
 [ {
   "defaultTab" : "nodes",
-  "description" : "Run a job, using the Job ID provided as job option.",
+  "description" : "The \"Job re-run\" is an automated process designed to re-execute a specific job in Rundeck using a provided Execution ID. \n\nNOTE: please change this job node filter accordingly.\n\nThis job integrates with PagerDuty to log the re-run status and execution details as an incident note. \n\nIt retrieves execution logs, monitors the status of the re-run, and ensures that the results are communicated effectively. \n\nThe job is particularly useful for automating incident management workflows and ensuring transparency in job execution.",
   "executionEnabled" : true,
   "group" : "PagerDuty",
   "id" : "a5969981-f2d8-44d9-83eb-431430bfefe4",
@@ -15,10 +15,11 @@
       "successOnEmptyNodeFilter" : false,
       "threadcount" : "1"
     },
-    "filter" : "bdias-rundeckers-a"
+    "filter" : "."
   },
   "nodesSelectedByDefault" : true,
   "options" : [ {
+    "description" : "The unique identifier of the Rundeck execution to be re-run.",
     "label" : "Execution ID",
     "name" : "execution-id",
     "type" : "text",
@@ -34,9 +35,11 @@
     "storagePath" : "keys/bdias-rba-token",
     "valueExposed" : true
   }, {
+    "description" : "The base URL of the Rundeck instance where the job will be executed.",
     "label" : "RBA URL",
     "name" : "rba-url",
     "required" : true,
+    "type" : "text",
     "value" : "https://bdias.pd-sandbox.com"
   } ],
   "plugins" : {
@@ -53,6 +56,7 @@
         "failed nodes" : "false",
         "json display" : "true"
       },
+      "description" : "Job re-run",
       "nodeStep" : false,
       "plugins" : {
         "LogFilter" : [ {
@@ -87,41 +91,40 @@
             "prefix" : "project"
           },
           "type" : "json-mapper"
-        }, {
+        } ]
+      },
+      "type" : "run-executions"
+    }, {
+      "configuration" : {
+        "executions" : "${data.execId}",
+        "fail on failed execution" : "true",
+        "json display" : "true",
+        "project" : "${data.project}"
+      },
+      "description" : "Waiting for Execution",
+      "errorhandler" : {
+        "configuration" : {
+          "export" : "execution-status",
+          "group" : "data",
+          "value" : "failed"
+        },
+        "keepgoingOnSuccess" : true,
+        "nodeStep" : false,
+        "type" : "export-var"
+      },
+      "nodeStep" : false,
+      "plugins" : {
+        "LogFilter" : [ {
           "config" : {
             "extraQuotes" : "false",
-            "filter" : ".href",
-            "logData" : "true",
-            "prefix" : "execution-url"
-          },
-          "type" : "json-mapper"
-        }, {
-          "config" : {
-            "extraQuotes" : "false",
-            "filter" : ".status",
+            "filter" : ".[0].status",
             "logData" : "true",
             "prefix" : "execution-status"
           },
           "type" : "json-mapper"
         } ]
       },
-      "type" : "run-executions"
-    }, {
-      "configuration" : {
-        "atLeastOne" : "false",
-        "condition" : "Equals",
-        "executionState" : "Succeeded",
-        "interval" : "5s",
-        "jobName" : "${data.job-group}/${data.job-name}",
-        "jobUUID" : "${data.job-uuid}",
-        "maxtry" : "60",
-        "next" : "Continue",
-        "project" : "${data.project}",
-        "running" : "true"
-      },
-      "description" : "Wait for job to be completed",
-      "nodeStep" : false,
-      "type" : "wait-for-job"
+      "type" : "result-executions"
     }, {
       "autoSecureInput" : "false",
       "description" : "Get logs from execution",
@@ -129,12 +132,12 @@
       "script" : "echo \"Getting logs from Execution ID @data.execId@\"\n\ncurl --location '@option.rba-url@/api/14/execution/@data.execId@/output?format=text' \\\n--header 'Accept: application/yaml' \\\n--header 'X-Rundeck-Auth-Token: @option.rba-token@'\n"
     }, {
       "configuration" : {
-        "api_token" : "keys/pager-duty/pdt-bdias-api-token",
+        "api_token" : "keys/pagerduty/pdt-bdias-api-token",
         "email" : "bdias@pagerduty.com",
         "incident_id" : "${option.pd_incident_id}",
-        "note" : "Job re-run was triggered by Automation Actions.\n\nJob run: ${data.job-name}\nRe-run status: ${data.execution-status}\nExecution logs of re-run: ${data.execution-url}"
+        "note" : "⚙️ Job re-run was triggered by Automation Actions.\n\nJob name: ${data.job-name}\nRe-run status: ${data.execution-status}\nExecution logs of re-run: ${option.rba-url}project/${data.project}/execution/show/${data.execId}"
       },
-      "description" : "Add an incident note",
+      "description" : "Add execution logs as an incident note",
       "nodeStep" : false,
       "type" : "pd-note-step"
     } ],
@@ -152,5 +155,6 @@
     },
     "strategy" : "node-first"
   },
+  "tags" : "pagerduty",
   "uuid" : "a5969981-f2d8-44d9-83eb-431430bfefe4"
 } ]
