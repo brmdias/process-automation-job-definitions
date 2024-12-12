@@ -23,7 +23,7 @@
     "label" : "Execution ID",
     "name" : "execution-id",
     "type" : "text",
-    "value" : "85424"
+    "value" : ""
   }, {
     "hidden" : true,
     "name" : "pd_incident_id",
@@ -40,7 +40,7 @@
     "name" : "rba-url",
     "required" : true,
     "type" : "text",
-    "value" : "https://bdias.pd-sandbox.com"
+    "value" : "https://<runbook-automation-url>"
   } ],
   "plugins" : {
     "ExecutionLifecycle" : {
