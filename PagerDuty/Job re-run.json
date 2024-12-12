@@ -53,6 +53,7 @@
         "failed nodes" : "false",
         "json display" : "true"
       },
+      "description" : "Job re-run",
       "nodeStep" : false,
       "plugins" : {
         "LogFilter" : [ {
@@ -87,15 +88,30 @@
             "prefix" : "project"
           },
           "type" : "json-mapper"
-        }, {
-          "config" : {
-            "extraQuotes" : "false",
-            "filter" : ".[0].href",
-            "logData" : "true",
-            "prefix" : "execution-url"
-          },
-          "type" : "json-mapper"
-        }, {
+        } ]
+      },
+      "type" : "run-executions"
+    }, {
+      "configuration" : {
+        "executions" : "${data.execId}",
+        "fail on failed execution" : "true",
+        "json display" : "true",
+        "project" : "${data.project}"
+      },
+      "description" : "Waiting for Execution",
+      "errorhandler" : {
+        "configuration" : {
+          "export" : "execution-status",
+          "group" : "data",
+          "value" : "failed"
+        },
+        "keepgoingOnSuccess" : true,
+        "nodeStep" : false,
+        "type" : "export-var"
+      },
+      "nodeStep" : false,
+      "plugins" : {
+        "LogFilter" : [ {
           "config" : {
             "extraQuotes" : "false",
             "filter" : ".[0].status",
@@ -105,23 +121,7 @@
           "type" : "json-mapper"
         } ]
       },
-      "type" : "run-executions"
-    }, {
-      "configuration" : {
-        "atLeastOne" : "false",
-        "condition" : "Equals",
-        "executionState" : "Succeeded",
-        "interval" : "5s",
-        "jobName" : "${data.job-group}/${data.job-name}",
-        "jobUUID" : "${data.job-uuid}",
-        "maxtry" : "60",
-        "next" : "Continue",
-        "project" : "${data.project}",
-        "running" : "true"
-      },
-      "description" : "Wait for job to be completed",
-      "nodeStep" : false,
-      "type" : "wait-for-job"
+      "type" : "result-executions"
     }, {
       "autoSecureInput" : "false",
       "description" : "Get logs from execution",
@@ -132,9 +132,9 @@
         "api_token" : "keys/pagerduty/pdt-bdias-api-token",
         "email" : "bdias@pagerduty.com",
         "incident_id" : "${option.pd_incident_id}",
-        "note" : "Job re-run was triggered by Automation Actions.\n\nJob run: ${data.job-name}\nRe-run status: ${data.execution-status}\nExecution logs of re-run: ${data.execution-url}"
+        "note" : "⚙️ Job re-run was triggered by Automation Actions.\n\nJob name: ${data.job-name}\nRe-run status: ${data.execution-status}\nExecution logs of re-run: ${option.rba-url}project/${data.project}/execution/show/${data.execId}"
       },
-      "description" : "Add an incident note",
+      "description" : "Add execution logs as an incident note",
       "nodeStep" : false,
       "type" : "pd-note-step"
     } ],
