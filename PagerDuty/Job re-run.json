@@ -15,7 +15,7 @@
       "successOnEmptyNodeFilter" : false,
       "threadcount" : "1"
     },
-    "filter" : "."
+    "filter" : ""
   },
   "nodesSelectedByDefault" : true,
   "options" : [ {
