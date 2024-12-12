@@ -1,6 +1,6 @@
 [ {
   "defaultTab" : "nodes",
-  "description" : "Run a job, using the Job ID provided as job option.",
+  "description" : "The \"Job re-run\" is an automated process designed to re-execute a specific job in Rundeck using a provided Execution ID. \n\nThis job integrates with PagerDuty to log the re-run status and execution details as an incident note. \n\nIt retrieves execution logs, monitors the status of the re-run, and ensures that the results are communicated effectively. \n\nThe job is particularly useful for automating incident management workflows and ensuring transparency in job execution.",
   "executionEnabled" : true,
   "group" : "PagerDuty",
   "id" : "a5969981-f2d8-44d9-83eb-431430bfefe4",
@@ -19,6 +19,7 @@
   },
   "nodesSelectedByDefault" : true,
   "options" : [ {
+    "description" : "The unique identifier of the Rundeck execution to be re-run.",
     "label" : "Execution ID",
     "name" : "execution-id",
     "type" : "text",
@@ -34,9 +35,11 @@
     "storagePath" : "keys/bdias-rba-token",
     "valueExposed" : true
   }, {
+    "description" : "The base URL of the Rundeck instance where the job will be executed.",
     "label" : "RBA URL",
     "name" : "rba-url",
     "required" : true,
+    "type" : "text",
     "value" : "https://bdias.pd-sandbox.com"
   } ],
   "plugins" : {
@@ -152,5 +155,6 @@
     },
     "strategy" : "node-first"
   },
+  "tags" : "pagerduty",
   "uuid" : "a5969981-f2d8-44d9-83eb-431430bfefe4"
 } ]
