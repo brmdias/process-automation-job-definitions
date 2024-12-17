@@ -5,13 +5,18 @@
   "group" : "Use Cases/MS Teams",
   "id" : "fe2edba4-af36-4504-8131-9578cbc2d684",
   "loglevel" : "INFO",
-  "name" : "Posting a message on MS Teams chat group",
+  "name" : "Posting a message on MS Teams group chat or channel",
   "nodeFilterEditable" : false,
   "options" : [ {
     "label" : "Message to post",
     "name" : "message",
     "type" : "text",
     "value" : "This is a test message from 'pdt-rdtam.runbook.pagerduty.cloud'"
+  }, {
+    "description" : "Use the webhook URL provided by PowerAutomate.\n[Microsoft guide here](https://support.microsoft.com/en-us/office/creating-a-workflow-from-a-chat-in-teams-e3b51c4f-49de-40aa-a6e7-bcff96b99edc)",
+    "label" : "Webhook URL",
+    "name" : "webhook-url",
+    "type" : "text"
   } ],
   "plugins" : {
     "ExecutionLifecycle" : null
@@ -30,7 +35,7 @@
         "printResponseCode" : "true",
         "printResponseToFile" : "false",
         "proxySettings" : "false",
-        "remoteUrl" : "https://prod-27.westus.logic.azure.com:443/workflows/032d8a76ffbf426c89b4c272ec395ad5/triggers/manual/paths/invoke?api-version=2016-06-01&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=wPZ98_BpWMzA4Gjru7T7z_zAZkAEMlkMMJvhKGF68xE",
+        "remoteUrl" : "${option.webhook-url}",
         "responseCode" : "202",
         "sslVerify" : "true",
         "timeout" : "30000"
