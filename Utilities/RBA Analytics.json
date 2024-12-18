@@ -35,20 +35,20 @@
     "name" : "instance",
     "required" : true,
     "type" : "text",
-    "value" : "https://pdt-rdtam.runbook.pagerduty.cloud"
+    "value" : "<insert your RBA Cluster URL here>"
   }, {
     "description" : "Project to analyze\n\neg \"project-1-home\"\n\nYou can add more as follows:\n\"project-1-home\",\"project2-home\",\"project3-home\"\n\nor leave blank for all projects.\n",
     "label" : "Project",
     "name" : "projects",
     "type" : "text",
-    "value" : "\"bdias\""
+    "value" : "\"<insert your prject name here>\""
   }, {
     "description" : "Secure API Key for Automation Server",
     "hidden" : true,
     "label" : "API Key",
     "name" : "apikey",
     "secure" : true,
-    "storagePath" : "keys/project/bdias/bdias-rba-token-v3",
+    "storagePath" : "keys/path/to/api/key",
     "type" : "text",
     "valueExposed" : true
   }, {
