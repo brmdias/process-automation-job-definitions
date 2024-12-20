@@ -19,9 +19,10 @@
   },
   "nodesSelectedByDefault" : true,
   "options" : [ {
+    "description" : "Please exclude `http(s)://``",
     "name" : "rundeck-server-url",
     "type" : "text",
-    "value" : "pdt-rdtam.runbook.pagerduty.cloud"
+    "value" : "<insert your RBA URL>"
   }, {
     "name" : "rba-api-token",
     "secure" : true,
@@ -33,7 +34,7 @@
     "label" : "Target Job UUID",
     "name" : "job-id",
     "type" : "text",
-    "value" : "29edae87-b3ba-4732-9c9f-06c4ca310ebb"
+    "value" : "<insert your JOB UUID>"
   }, {
     "description" : "Value for the component field in the PagerDuty event.",
     "label" : "PagerDuty Event Component",
@@ -94,10 +95,11 @@
     "type" : "text",
     "value" : "keys/pagerduty/pdt-bdias-global-orchestration-key"
   }, {
+    "description" : "Project name from your target job.",
     "label" : "RBA Project",
     "name" : "project",
     "type" : "text",
-    "value" : "bdias-dev"
+    "value" : "<insert your RBA Project Name>"
   } ],
   "plugins" : {
     "ExecutionLifecycle" : null
