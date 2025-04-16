@@ -19,11 +19,23 @@
   },
   "nodesSelectedByDefault" : true,
   "plugins" : {
-    "ExecutionLifecycle" : null
+    "ExecutionLifecycle" : { }
   },
   "runnerSelector" : {
     "runnerFilterMode" : "LOCAL",
     "runnerFilterType" : "LOCAL_RUNNER"
+  },
+  "schedule" : {
+    "dayofmonth" : {
+      "day" : "*"
+    },
+    "month" : "*",
+    "time" : {
+      "hour" : "*",
+      "minute" : "*",
+      "seconds" : "0"
+    },
+    "year" : "*"
   },
   "scheduleEnabled" : true,
   "schedules" : [ ],
