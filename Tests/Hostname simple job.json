@@ -41,11 +41,9 @@
   "schedules" : [ ],
   "sequence" : {
     "commands" : [ {
-      "exec" : "dir"
+      "exec" : "uname -a"
     }, {
       "exec" : "hostname"
-    }, {
-      "exec" : "ipconfig /all"
     } ],
     "keepgoing" : false,
     "strategy" : "node-first"
