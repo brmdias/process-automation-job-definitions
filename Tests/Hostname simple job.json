@@ -19,21 +19,31 @@
   },
   "nodesSelectedByDefault" : true,
   "plugins" : {
-    "ExecutionLifecycle" : null
+    "ExecutionLifecycle" : { }
   },
   "runnerSelector" : {
     "runnerFilterMode" : "LOCAL",
     "runnerFilterType" : "LOCAL_RUNNER"
   },
+  "schedule" : {
+    "dayofmonth" : {
+      "day" : "*"
+    },
+    "month" : "*",
+    "time" : {
+      "hour" : "*",
+      "minute" : "*",
+      "seconds" : "0"
+    },
+    "year" : "*"
+  },
   "scheduleEnabled" : true,
   "schedules" : [ ],
   "sequence" : {
     "commands" : [ {
-      "exec" : "dir"
+      "exec" : "uname -a"
     }, {
       "exec" : "hostname"
-    }, {
-      "exec" : "ipconfig /all"
     } ],
     "keepgoing" : false,
     "strategy" : "node-first"

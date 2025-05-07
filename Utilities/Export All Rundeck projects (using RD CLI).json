@@ -3,27 +3,22 @@
   "description" : "",
   "executionEnabled" : true,
   "group" : "Utilities",
-  "id" : "1743769f-0b67-4621-b1fa-65d38c85b910",
+  "id" : "ae3c5ef1-2291-49a8-98a6-6a9a71879296",
   "loglevel" : "INFO",
   "name" : "Export All Rundeck projects (using RD CLI)",
   "nodeFilterEditable" : false,
-  "nodefilters" : {
-    "dispatch" : {
-      "excludePrecedence" : true,
-      "keepgoing" : false,
-      "rankOrder" : "ascending",
-      "successOnEmptyNodeFilter" : false,
-      "threadcount" : "1"
-    },
-    "filter" : "bdias-rundeckers-a"
-  },
-  "nodesSelectedByDefault" : true,
   "options" : [ {
     "description" : "Path to the directory used as destination of the backup archive.",
     "label" : "Output directory",
     "name" : "output-dir",
     "type" : "text",
     "value" : "/tmp/rundeck_backups"
+  }, {
+    "description" : "Delay in seconds taken between export actions.",
+    "label" : "Interval",
+    "name" : "interval",
+    "type" : "text",
+    "value" : "5"
   } ],
   "plugins" : {
     "ExecutionLifecycle" : null
@@ -35,12 +30,15 @@
       "autoSecureInput" : "false",
       "description" : "List and export projects",
       "passSecureInput" : "false",
-      "script" : "#!/bin/bash\n\n# Directory to save the exported project archives\nOUTPUT_DIR=\"@option.output-dir@\"\n\n# Create a subdirectory with the current date (e.g., 2024-12-13)\nDATE_DIR=$(date +%Y-%m-%d)\nOUTPUT_DIR=\"$OUTPUT_DIR/$DATE_DIR\"\n\n# Ensure the output directory exists\nmkdir -p \"$OUTPUT_DIR\"\n\n# Function to list all Rundeck projects\nlist_projects() {\n    rd projects list\n}\n\n# Function to export a Rundeck project\nexport_project() {\n    local project_name=\"$1\"  # Assign the first argument to project_name\n    echo \"Debug: Received project_name='$project_name'\"  # Debugging line\n\n    local output_file=\"$OUTPUT_DIR/${project_name}.zip\"\n    echo \"Debug: Output file path='$output_file'\"  # Debugging line\n\n    echo \"Exporting project: $project_name to $output_file...\"\n    rd projects archives export \\\n        --project \"$project_name\" \\\n        --include jobs \\\n        --include configs \\\n        --include readmes \\\n        --include acls \\\n        --file \"$output_file\"\n\n    if [ $? -eq 0 ]; then\n        echo \"Successfully exported project: $project_name\"\n    else\n        echo \"Failed to export project: $project_name\"\n    fi\n}\n\n# Main script\necho \"Starting Rundeck project export process...\"\n\n# -------- TO BE REMOVED -------- \nexport RD_URL=https://pdt-rdtam.runbook.pagerduty.cloud\nexport RD_TOKEN=xcT57DJovVkQ7k1Xld7MpnEBqCHZxRxd\n# -------- TO BE REMOVED -------- \n\n# Uncomment the following line to test with a single project\n#TEST_PROJECT=\"alpha-pln-pod_Beacon\"\n\nif [ -n \"$TEST_PROJECT\" ]; then\n    # Test with a single project\n    echo \"Testing with a single project: $TEST_PROJECT\"\n    export_project \"$TEST_PROJECT\"\nelse\n    # Call the list_projects function and capture its output\n    projects=$(list_projects)\n\n    # Check if the list_projects command succeeded\n    if [ $? -ne 0 ]; then\n        echo \"Failed to list Rundeck projects. Exiting.\"\n        exit 1\n    fi\n\n    # Debugging: Print the output of the list_projects function\n    echo \"Projects retrieved:\"\n    echo \"$projects\"\n\n    # Process the list of projects line by line\n    echo \"$projects\" | while IFS= read -r project_name; do\n        if [ -n \"$project_name\" ]; then\n            export_project \"$project_name\"\n            echo \"Waiting for 5 seconds before the next export...\"\n            sleep 5\n        fi\n    done\nfi\n\necho \"Rundeck project export process completed.\""
+      "script" : "#!/bin/bash\n\n# Directory to save the exported project archives\nOUTPUT_DIR=\"@option.output-dir@\"\n\nINTERVAL=@option.interval@\n\n# Create a subdirectory with the current date (e.g., 2024-12-13)\nDATE_DIR=$(date +%Y-%m-%d)\nOUTPUT_DIR=\"$OUTPUT_DIR/$DATE_DIR\"\n\n# Ensure the output directory exists\nmkdir -p \"$OUTPUT_DIR\"\n\n# Directory containing framework-level settings\nRUNDECK_CONFIG_DIR=\"/etc/rundeck\"\n\n# Function to list all Rundeck projects\nlist_projects() {\n    rd projects list\n}\n\n# Function to export a Rundeck project\nexport_project() {\n    local project_name=\"$1\"  # Assign the first argument to project_name\n    echo \"Debug: Received project_name='$project_name'\"  # Debugging line\n\n    local output_file=\"$OUTPUT_DIR/${project_name}.zip\"\n    echo \"Debug: Output file path='$output_file'\"  # Debugging line\n\n    echo \"Exporting project: $project_name to $output_file...\"\n    rd projects archives export \\\n        --project \"$project_name\" \\\n        --include jobs \\\n        --include configs \\\n        --include readmes \\\n        --include acls \\\n        --file \"$output_file\"\n\n    if [ $? -eq 0 ]; then\n        echo \"Successfully exported project: $project_name\"\n    else\n        echo \"Failed to export project: $project_name\"\n    fi\n}\n\n# Function to backup framework-level settings\nbackup_framework_settings() {\n    local framework_backup_dir=\"$OUTPUT_DIR/rundeck-settings\"\n    echo \"Backing up rundeck-level settings from $RUNDECK_CONFIG_DIR to $framework_backup_dir...\"\n\n    # Create a directory to store the framework settings\n    mkdir -p \"$framework_backup_dir\"\n\n    # Copy the relevant files from /etc/rundeck to the backup directory\n    cp -r \"$RUNDECK_CONFIG_DIR\"/* \"$framework_backup_dir\"\n\n    if [ $? -eq 0 ]; then\n        echo \"Successfully backed up framework-level settings.\"\n    else\n        echo \"Failed to back up framework-level settings.\"\n    fi\n}\n\n# Main script\necho \"Starting Rundeck project export process...\"\n\n# Uncomment the following line to test with a single project\n#TEST_PROJECT=\"alpha-pln-pod_Beacon\"\n#TEST_PROJECT=\"bdias-dev\"\n\nif [ -n \"$TEST_PROJECT\" ]; then\n    # Test with a single project\n    echo \"Testing with a single project: $TEST_PROJECT\"\n    export_project \"$TEST_PROJECT\"\nelse\n    # Call the list_projects function and capture its output\n    projects=$(list_projects)\n\n    # Check if the list_projects command succeeded\n    if [ $? -ne 0 ]; then\n        echo \"Failed to list Rundeck projects. Exiting.\"\n        exit 1\n    fi\n\n    # Debugging: Print the output of the list_projects function\n    echo \"Projects retrieved:\"\n    echo \"$projects\"\n\n    # Process the list of projects line by line\n    echo \"$projects\" | while IFS= read -r project_name; do\n        # Filter out invalid project names using a regex\n        if [[ \"$project_name\" =~ ^[-_a-zA-Z0-9+][-\\._a-zA-Z0-9+]*$ ]]; then\n            export_project \"$project_name\"\n            echo \"Waiting for $INTERVAL seconds before the next export...\"\n            sleep $INTERVAL\n        else\n            echo \"Skipping invalid project name: $project_name\"\n        fi\n    done\nfi\n\n# Backup framework-level settings\nbackup_framework_settings\n\necho \"Rundeck project export process completed.\""
     }, {
-      "script" : "# Directory containing the exported project archives\nOUTPUT_DIR=\"@option.output-dir@\"\n\n# Create a subdirectory with the current date (e.g., 2024-12-13)\nDATE_DIR=$(date +%Y-%m-%d)\nOUTPUT_DIR=\"$OUTPUT_DIR/$DATE_DIR\"\ntar -czf $OUTPUT_DIR/shared_rundeck_projects_archive.tar.gz $OUTPUT_DIR/*\n\nrm -rf $OUTPUT_DIR/*.zip"
+      "autoSecureInput" : "false",
+      "description" : "Aggregate all project archives",
+      "passSecureInput" : "false",
+      "script" : "# Directory containing the exported project archives\nOUTPUT_DIR=\"@option.output-dir@\"\n\n# Create a subdirectory with the current date (e.g., 2024-12-13)\nDATE_DIR=$(date +%Y-%m-%d)\nOUTPUT_DIR=\"$OUTPUT_DIR/$DATE_DIR\"\n\ncd $OUTPUT_DIR\ntar -czf $OUTPUT_DIR/shared_rundeck_projects_archive.tar.gz *\n\nrm -rf $OUTPUT_DIR/*.zip\nrm -r $OUTPUT_DIR/rundeck-settings"
     } ],
     "keepgoing" : false,
     "strategy" : "node-first"
   },
-  "uuid" : "1743769f-0b67-4621-b1fa-65d38c85b910"
+  "uuid" : "ae3c5ef1-2291-49a8-98a6-6a9a71879296"
 } ]
