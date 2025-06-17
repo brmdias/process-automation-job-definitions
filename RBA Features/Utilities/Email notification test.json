@@ -2,7 +2,7 @@
   "defaultTab" : "nodes",
   "description" : "Includes mail notification using GMAIL SMTP.",
   "executionEnabled" : true,
-  "group" : "Utilities",
+  "group" : "RBA Features/Utilities",
   "id" : "8c639b19-5986-4969-b591-a086264e4a18",
   "loglevel" : "INFO",
   "name" : "Email notification test",

@@ -2,7 +2,7 @@
   "defaultTab" : "nodes",
   "description" : "Retrieve the list of all Rundeck projects and export each project to a file.\n\nPerforms the export synchronously.\n\nPrerequisites for the job: Rundeck API token with appropriate permissions - requires `export` authorization for the project.",
   "executionEnabled" : true,
-  "group" : "Utilities",
+  "group" : "Utilities/RBA-API",
   "id" : "c11ac3a0-94da-4aad-840e-774cae8d3a85",
   "loglevel" : "INFO",
   "name" : "Export Rundeck Projects",
@@ -39,7 +39,7 @@
     "value" : "<enter-rundeck-cluster-hostname>"
   } ],
   "plugins" : {
-    "ExecutionLifecycle" : null
+    "ExecutionLifecycle" : { }
   },
   "scheduleEnabled" : true,
   "schedules" : [ ],
