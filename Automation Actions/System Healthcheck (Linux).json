@@ -26,11 +26,6 @@
       "Send Incident Output to Pagerduty" : { }
     }
   },
-  "runnerSelector" : {
-    "filter" : "BDIAS",
-    "runnerFilterMode" : "TAGS",
-    "runnerFilterType" : "TAG_FILTER_AND"
-  },
   "scheduleEnabled" : true,
   "schedules" : [ ],
   "sequence" : {

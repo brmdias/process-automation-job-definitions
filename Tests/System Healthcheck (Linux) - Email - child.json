@@ -10,7 +10,6 @@
   "notification" : {
     "onavgduration" : {
       "email" : {
-        "attachType" : "file",
         "recipients" : "bdias@pagerduty.com",
         "subject" : "System Health Check notification - CHILD (DELAYED)"
       }
@@ -35,10 +34,6 @@
     "ExecutionLifecycle" : {
       "Send Incident Output to Pagerduty" : { }
     }
-  },
-  "runnerSelector" : {
-    "runnerFilterMode" : "LOCAL",
-    "runnerFilterType" : "LOCAL_RUNNER"
   },
   "scheduleEnabled" : true,
   "schedules" : [ ],

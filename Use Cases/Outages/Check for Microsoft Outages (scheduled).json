@@ -2,17 +2,13 @@
   "defaultTab" : "nodes",
   "description" : "Checks for any global/widespread issues specifically related to Microsoft.",
   "executionEnabled" : true,
-  "group" : "Outages",
+  "group" : "Use Cases/Outages",
   "id" : "d99b4048-c65e-4904-a8eb-ade75ea97f0e",
   "loglevel" : "INFO",
   "name" : "Check for Microsoft Outages (scheduled)",
   "nodeFilterEditable" : false,
   "plugins" : {
     "ExecutionLifecycle" : { }
-  },
-  "runnerSelector" : {
-    "runnerFilterMode" : "LOCAL",
-    "runnerFilterType" : "LOCAL_RUNNER"
   },
   "scheduleEnabled" : true,
   "schedules" : [ ],

@@ -25,10 +25,6 @@
   "plugins" : {
     "ExecutionLifecycle" : { }
   },
-  "runnerSelector" : {
-    "runnerFilterMode" : "LOCAL",
-    "runnerFilterType" : "LOCAL_RUNNER"
-  },
   "scheduleEnabled" : true,
   "schedules" : [ ],
   "sequence" : {

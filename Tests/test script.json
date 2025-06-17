@@ -10,11 +10,6 @@
   "plugins" : {
     "ExecutionLifecycle" : null
   },
-  "runnerSelector" : {
-    "filter" : "LINUX",
-    "runnerFilterMode" : "TAGS",
-    "runnerFilterType" : "TAG_FILTER_AND"
-  },
   "scheduleEnabled" : true,
   "schedules" : [ ],
   "sequence" : {

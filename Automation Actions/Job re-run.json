@@ -2,28 +2,16 @@
   "defaultTab" : "nodes",
   "description" : "The \"Job re-run\" is an automated process designed to re-execute a specific job in Rundeck using a provided Execution ID. \n\nNOTE: please change this job node filter accordingly.\n\nThis job integrates with PagerDuty to log the re-run status and execution details as an incident note. \n\nIt retrieves execution logs, monitors the status of the re-run, and ensures that the results are communicated effectively. \n\nThe job is particularly useful for automating incident management workflows and ensuring transparency in job execution.",
   "executionEnabled" : true,
-  "group" : "PagerDuty",
+  "group" : "Automation Actions",
   "id" : "a5969981-f2d8-44d9-83eb-431430bfefe4",
   "loglevel" : "INFO",
   "name" : "Job re-run",
   "nodeFilterEditable" : false,
-  "nodefilters" : {
-    "dispatch" : {
-      "excludePrecedence" : true,
-      "keepgoing" : false,
-      "rankOrder" : "ascending",
-      "successOnEmptyNodeFilter" : false,
-      "threadcount" : "1"
-    },
-    "filter" : ""
-  },
-  "nodesSelectedByDefault" : true,
   "options" : [ {
     "description" : "The unique identifier of the Rundeck execution to be re-run.",
     "label" : "Execution ID",
     "name" : "execution-id",
-    "type" : "text",
-    "value" : ""
+    "type" : "text"
   }, {
     "hidden" : true,
     "name" : "pd_incident_id",
