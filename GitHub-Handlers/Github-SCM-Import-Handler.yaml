@@ -1,0 +1,46 @@
+- defaultTab: nodes
+  description: ''
+  executionEnabled: true
+  group: GitHub-Handlers
+  id: d6dee956-0cbd-4a59-963a-10695849c8c9
+  loglevel: INFO
+  name: Github-SCM-Import-Handler
+  nodeFilterEditable: false
+  options:
+  - label: Job Name (coming from webhook payload)
+    name: job-name
+  - label: Process Automation API Token
+    name: paop-token
+    secure: true
+    storagePath: keys/bdias-rba-token
+    type: text
+    valueExposed: true
+  plugins:
+    ExecutionLifecycle: null
+  scheduleEnabled: true
+  schedules: []
+  sequence:
+    commands:
+    - autoSecureInput: 'false'
+      passSecureInput: 'false'
+      script: |-
+        echo "Project name: $RD_JOB_PROJECT"
+        RD_CLUSTER="@globals.rba-url@"
+
+        echo "Runbook Automation cluster FQDN: $RD_CLUSTER"
+
+
+        curl --silent -X POST "https://$RD_CLUSTER/api/44/project/$RD_JOB_PROJECT/scm/import/action/import-jobs" \
+        --header 'Accept: application/json' \
+        --header 'Content-Type: application/json' \
+        --header 'X-Rundeck-Auth-Token: @option.paop-token@' \
+        --data '{
+            "input":{
+                "message":"This is a test commit from Postman."
+            },
+            "items": @option.job-name@
+        }'
+    keepgoing: false
+    strategy: node-first
+  uuid: d6dee956-0cbd-4a59-963a-10695849c8c9
+

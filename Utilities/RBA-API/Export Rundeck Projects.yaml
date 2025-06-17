@@ -1,0 +1,139 @@
+- defaultTab: nodes
+  description: |-
+    Retrieve the list of all Rundeck projects and export each project to a file.
+
+    Performs the export synchronously.
+
+    Prerequisites for the job: Rundeck API token with appropriate permissions - requires `export` authorization for the project.
+  executionEnabled: true
+  group: Utilities/RBA-API
+  id: c11ac3a0-94da-4aad-840e-774cae8d3a85
+  loglevel: INFO
+  name: Export Rundeck Projects
+  nodeFilterEditable: false
+  nodefilters:
+    dispatch:
+      excludePrecedence: true
+      keepgoing: false
+      rankOrder: ascending
+      successOnEmptyNodeFilter: false
+      threadcount: '1'
+    filter: .*rundeckers-a
+  nodesSelectedByDefault: true
+  options:
+  - hidden: true
+    label: Rundeck API Token
+    name: rba-token
+    required: true
+    secure: true
+    storagePath: keys/bdias-rba-token
+    type: text
+    valueExposed: true
+  - label: Output Directory
+    name: output_directory
+    type: text
+    value: /tmp/rundeck_backups
+  - label: Rundeck Server
+    name: rundeck_server
+    type: text
+    value: <enter-rundeck-cluster-hostname>
+  plugins:
+    ExecutionLifecycle: {}
+  scheduleEnabled: true
+  schedules: []
+  sequence:
+    commands:
+    - configuration:
+        authentication: None
+        checkResponseCode: 'false'
+        headers: '{"X-Rundeck-Auth-Token": "${option.rba-token}", "Content-Type":
+          "application/json"}'
+        method: GET
+        printResponse: 'true'
+        printResponseCode: 'false'
+        printResponseToFile: 'false'
+        proxySettings: 'false'
+        remoteUrl: https://${option.rundeck_server}/api/14/projects
+        sslVerify: 'true'
+        timeout: '30000'
+      description: Retrieve the list of all Rundeck projects
+      nodeStep: false
+      plugins:
+        LogFilter:
+        - config:
+            captureMultipleKeysValues: 'false'
+            hideOutput: 'false'
+            logData: 'true'
+            name: project-list
+            regex: (.*)
+          type: key-value-data-multilines
+      type: edu.ohio.ais.rundeck.HttpWorkflowStepPlugin
+    - autoSecureInput: 'false'
+      description: Export each project to an archive file
+      fileExtension: .py
+      interpreterArgsQuoted: false
+      passSecureInput: 'false'
+      script: |-
+        import requests
+        import json
+        import os
+
+        # JSON data (replace this with a file read if the data is stored in a file)
+        projects = @data.project-list@
+
+        # Base API URL
+        base_api_url = "https://@option.rundeck_server@/api/14/project"
+
+        # Directory to save the ZIP files
+        output_directory = "@option.output_directory@"
+
+        # Ensure the output directory exists
+        os.makedirs(output_directory, exist_ok=True)
+
+        headers = {
+          'Accept': 'application/yaml',
+          'X-Rundeck-Auth-Token': '@option.rba-token@',
+        }
+
+        # Function to make API calls
+        def export_project(project_name):
+            # Construct the API endpoint
+            api_endpoint = f"{base_api_url}/{project_name}/export?exportAll=true&exportExecutions=false"
+            try:
+                # Make the GET request
+                response = requests.get(api_endpoint, headers=headers, stream=True)
+                # Check if the request was successful
+                if response.status_code == 200:
+                    # Define the output file path
+                    output_file = os.path.join(output_directory, f"{project_name}.zip")
+                    # Write the content to a file
+                    with open(output_file, "wb") as file:
+                        for chunk in response.iter_content(chunk_size=8192):
+                            file.write(chunk)
+                    print(f"Successfully exported project: {project_name}")
+                else:
+                    print(f"Failed to export project: {project_name}. Status code: {response.status_code}")
+            except Exception as e:
+                print(f"Error exporting project {project_name}: {e}")
+
+        print("Will start project backups!")
+        # print(f"Project list: {projects}")
+
+        # Iterate over the projects and make API calls
+        for project in projects:
+            project_name = project["name"]
+            # print(f"Going to process project: {project_name}")
+            export_project(project_name)
+      scriptInterpreter: python -u
+    - autoSecureInput: 'false'
+      description: Create an archive containing all exported project files
+      fileExtension: sh
+      interpreterArgsQuoted: false
+      passSecureInput: 'false'
+      script: tar -czf @option.output_directory@/rundeck_projects_archive.tar.gz @option.output_directory@/*
+      scriptInterpreter: /bin/bash
+    keepgoing: false
+    strategy: node-first
+  tags: generated
+  uuid: c11ac3a0-94da-4aad-840e-774cae8d3a85
+

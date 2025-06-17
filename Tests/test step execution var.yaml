@@ -1,0 +1,30 @@
+- defaultTab: nodes
+  description: ''
+  executionEnabled: true
+  group: Tests
+  id: 0266c6ed-5cb7-4736-9e64-7f902f1090fa
+  loglevel: INFO
+  name: test step execution var
+  nodeFilterEditable: false
+  nodefilters:
+    dispatch:
+      excludePrecedence: true
+      keepgoing: false
+      rankOrder: ascending
+      successOnEmptyNodeFilter: false
+      threadcount: '1'
+    filter: .*-1
+  nodesSelectedByDefault: true
+  plugins:
+    ExecutionLifecycle: null
+  scheduleEnabled: true
+  schedules: []
+  sequence:
+    commands:
+    - exec: /var/lib/rundeck/var/test-script.sh 0
+    - description: Read step1 exit code
+      exec: echo "ExitCode Step1 - ${1:exec.exitCode*}"
+    keepgoing: true
+    strategy: node-first
+  uuid: 0266c6ed-5cb7-4736-9e64-7f902f1090fa
+

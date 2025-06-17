@@ -1,0 +1,119 @@
+- defaultTab: nodes
+  description: ''
+  executionEnabled: true
+  group: Use Cases
+  id: 66437aed-9d4f-46ad-96d6-997799ec035f
+  loglevel: INFO
+  name: Windows-Check Memory and Disk usage
+  nodeFilterEditable: false
+  nodefilters:
+    dispatch:
+      excludePrecedence: true
+      keepgoing: false
+      rankOrder: ascending
+      successOnEmptyNodeFilter: false
+      threadcount: '1'
+    filter: 'tags: windows'
+  nodesSelectedByDefault: true
+  options:
+  - enforced: true
+    label: Is this a new incident?
+    name: new-incident
+    value: 'true'
+    values:
+    - 'true'
+    - 'false'
+    valuesListDelimiter: ','
+  - label: PagerDuty Incident ID
+    name: pd-incident-id
+  plugins:
+    ExecutionLifecycle: {}
+  scheduleEnabled: true
+  schedules: []
+  sequence:
+    commands:
+    - description: Get Windows Hostname
+      exec: hostname
+      plugins:
+        LogFilter:
+        - config:
+            invalidKeyPattern: \s|\$|\{|\}|\\
+            logData: 'true'
+            name: hostname
+            regex: (.*)
+            replaceFilteredResult: 'false'
+          type: key-value-data
+    - description: 'Powershell Script - Showing Memory and Disk usage '
+      fileExtension: .ps1
+      interpreterArgsQuoted: false
+      plugins:
+        LogFilter:
+        - config:
+            captureMultipleKeysValues: 'true'
+            hideOutput: 'false'
+            logData: 'true'
+            name: powershell_data
+            regex: (.*)
+          type: key-value-data-multilines
+      script: |-
+        echo "Showing Disk Usage..."
+
+        #Get-WmiObject -Class Win32_LogicalDisk
+        Get-PSDrive
+
+        echo "`n`n"
+        echo "Showing memory Usage..."
+
+        Get-Ciminstance Win32_OperatingSystem | select *memory*
+
+        echo "`n`n"
+        echo "`n`n"
+        echo "Click here for detailed diagnostics: "
+      scriptInterpreter: powershell.exe
+    - configuration:
+        api_token: keys/project/jet2tests/pdt-bdias-api-key
+        email: bdias@pagerduty.com
+        incident_id: ${option.pd-incident-id}
+        note: ${data.powershell_data*}${job.url}#output
+      description: Note on PD Incident
+      nodeStep: false
+      type: pd-note-step
+    - configuration:
+        component: ${data.hostname*}
+        event_action: trigger
+        images: https://www.rundeck.com/hubfs/rundeck-app-assets/rundeck-by-pagerduty-icon.png
+        payload_severity: critical
+        payload_source: ${job.name}
+        payload_summary: '${job.name} [${job.project}] run by ${job.username} (type:
+          ${job.executionType}) '
+        service_key: keys/pager-duty/pdt-bdias-data-storage-integration-key
+      description: Create PagerDuty Incident
+      nodeStep: false
+      type: pd-sent-event-step
+    - configuration:
+        export: disk-space-hostname
+        group: export
+        value: ${data.hostname*}
+      description: Exporting hostname to global var
+      nodeStep: false
+      type: export-var
+    - configuration:
+        export: disk-space-result
+        group: export
+        value: ${data.powershell_data*}
+      description: Exporting result to global var
+      nodeStep: false
+      type: export-var
+    keepgoing: false
+    pluginConfig:
+      WorkflowStrategy:
+        ruleset:
+          rules: |
+            [*] run-in-sequence
+
+            [3] if:option.new-incident==false
+            [4] if:option.new-incident==true
+    strategy: ruleset
+  tags: windows
+  uuid: 66437aed-9d4f-46ad-96d6-997799ec035f
+

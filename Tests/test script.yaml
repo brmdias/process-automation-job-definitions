@@ -1,0 +1,20 @@
+- defaultTab: nodes
+  description: ''
+  executionEnabled: true
+  group: Tests
+  id: 45dd0230-f01e-467e-b7eb-2744aa5f740c
+  loglevel: INFO
+  name: test script
+  nodeFilterEditable: false
+  plugins:
+    ExecutionLifecycle: null
+  scheduleEnabled: true
+  schedules: []
+  sequence:
+    commands:
+    - script: ./test-script.sh
+    - scriptfile: /opt/apps/runner/test-script.sh
+    keepgoing: true
+    strategy: node-first
+  uuid: 45dd0230-f01e-467e-b7eb-2744aa5f740c
+

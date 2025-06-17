@@ -1,0 +1,66 @@
+- defaultTab: nodes
+  description: Includes mail notification using GMAIL SMTP.
+  executionEnabled: true
+  group: RBA Features/Utilities
+  id: 8c639b19-5986-4969-b591-a086264e4a18
+  loglevel: INFO
+  name: Email notification test
+  nodeFilterEditable: false
+  notification:
+    onsuccess:
+      email:
+        attachLog: true
+        attachLogInline: true
+        recipients: bdias@pagerduty.com
+        subject: Rundeck Notification
+  notifyAvgDurationThreshold: null
+  plugins:
+    ExecutionLifecycle: {}
+  schedule:
+    month: '*'
+    time:
+      hour: '*'
+      minute: '*'
+      seconds: 0/5
+    weekday:
+      day: '*'
+    year: '*'
+  scheduleEnabled: false
+  schedules: []
+  sequence:
+    commands:
+    - configuration:
+        authentication: None
+        checkResponseCode: 'true'
+        method: GET
+        printResponse: 'true'
+        printResponseCode: 'true'
+        printResponseToFile: 'false'
+        proxySettings: 'false'
+        remoteUrl: https://parreco.onthewifi.com/
+        responseCode: '200'
+        sslVerify: 'false'
+        timeout: '30000'
+      nodeStep: true
+      plugins:
+        LogFilter: []
+      type: edu.ohio.ais.rundeck.HttpWorkflowNodeStepPlugin
+    - script: |-
+        echo "Testing inline script as part of email notification."
+
+        echo "Testing inline script as part of email notification - 123"
+
+        echo "Testing inline script as part of email notification - 456"
+
+        echo "Testing inline script as part of email notification - 789"
+
+
+        # ps -ef
+
+        # uname -a
+
+        # ifconfig
+    keepgoing: false
+    strategy: node-first
+  uuid: 8c639b19-5986-4969-b591-a086264e4a18
+

@@ -1,0 +1,99 @@
+- defaultTab: output
+  description: "This job automates the creation of a schedule override in PagerDuty.\
+    \ \n\nIt allows you to specify a user, a start date, and an end date for the override,\
+    \ ensuring that the selected user is assigned to the schedule during the specified\
+    \ time period. \n\nThe job interacts with the PagerDuty API to perform this operation\
+    \ and requires valid credentials and schedule details.\n\n# Requirements\nTo successfully\
+    \ execute this job, the following requirements must be met:\n - Python Environment:\
+    \ Ensure Python 3.x is installed on the system.\n - Python Libraries:\n    - requests:\
+    \ For making HTTP requests to the PagerDuty API.\n    - json: For handling JSON\
+    \ data.\n    - datetime: For working with date and time values.\n - PagerDuty\
+    \ API Token: This token must be securely stored and configured in the job options.\n\
+    \ - PagerDuty User and Schedule IDs: PagerDuty user (pagerduty-user-id) and the\
+    \ schedule (schedule-id) where the override will be applied.\n"
+  executionEnabled: true
+  group: PagerDuty
+  id: d1e677c8-5476-449b-9d76-3c2fae8ce9bd
+  loglevel: INFO
+  name: Create schedule override
+  nodeFilterEditable: false
+  options:
+  - hidden: true
+    name: pagerduty-token
+    secure: true
+    storagePath: keys/pager-duty/pdt-bdias-api-token
+    type: text
+    valueExposed: true
+  - description: "The unique identifier of the PagerDuty user for whom the schedule\
+      \ override will be created. \n\nThis is required to assign the override to the\
+      \ correct user."
+    label: PagerDuty User ID
+    name: pagerduty-user-id
+    type: text
+    value: P8BIMQK
+  - dateFormat: YYYY-MM-DDTHH:mm:ss
+    description: "The start date and time for the schedule override in the format\
+      \ YYYY-MM-DDTHH:mm:ss. \n\nThis is a required field to define when the override\
+      \ begins."
+    isDate: true
+    label: Schedule Override Start Date
+    name: start-date
+    required: true
+    type: text
+  - dateFormat: YYYY-MM-DDTHH:mm:ss
+    description: |-
+      The end date and time for the schedule override in the format YYYY-MM-DDTHH:mm:ss.
+
+      This is a required field to define when the override ends.
+    isDate: true
+    label: Schedule Override End Date
+    name: end-date
+    required: true
+    type: text
+  - description: "The unique identifier of the PagerDuty schedule where the override\
+      \ will be applied. \n\nThis ensures the override is created for the correct\
+      \ schedule."
+    label: PagerDuty Schedule ID
+    name: schedule-id
+    type: text
+    value: PY64DWB
+  plugins:
+    ExecutionLifecycle: null
+  scheduleEnabled: true
+  schedules: []
+  sequence:
+    commands:
+    - autoSecureInput: 'false'
+      description: Create Schedule Override
+      fileExtension: .py
+      interpreterArgsQuoted: false
+      passSecureInput: 'false'
+      script: "import requests  \nimport json  \nfrom datetime import datetime, timedelta\
+        \  \n  \n# PagerDuty API Token and Schedule ID  \nPAGERDUTY_API_TOKEN = \"\
+        @option.pagerduty-token@\"\nSCHEDULE_ID = \"@option.schedule-id@\"\n  \ndef\
+        \ create_schedule_override(schedule_id, start_date, end_date, user_id, user_name):\
+        \  \n    url = f\"https://api.pagerduty.com/schedules/{SCHEDULE_ID}/overrides\"\
+        \  \n    headers = {  \n        \"Authorization\": f\"Token token={PAGERDUTY_API_TOKEN}\"\
+        ,  \n        \"Content-Type\": \"application/json\",  \n        \"Accept\"\
+        : \"application/vnd.pagerduty+json;version=2\"  \n    }  \n    payload = {\
+        \  \n        \"override\": {  \n            \"start\": start_date,  \n   \
+        \         \"end\": end_date,  \n            \"user\": {  \n              \
+        \  \"id\": user_id,  \n                \"type\": \"user_reference\"  \n  \
+        \          },\n            \"time_zone\": \"UTC\"\n        }  \n    }  \n\
+        \    response = requests.post(url, headers=headers, data=json.dumps(payload))\
+        \  \n    if response.status_code == 201:  \n        print(f\"Override created\
+        \ for {user_name} from {start_date} to {end_date}\")  \n    else:  \n    \
+        \    print(f\"Error creating override: {response.status_code} - {response.text}\"\
+        )  \n  \n# Main function  \ndef main():  \n    # Example: PagerDuty user details\
+        \ (replace with actual user details)  \n    user_id = \"@option.pagerduty-user-id@\"\
+        \n    user_name = \"@option.pagerduty-user-id@\"\n  \n    start_date = \"\
+        @option.start-date@\"  \n    end_date = \"@option.end-date@\"  \n  \n    print(f\"\
+        Creating override with dates: {start_date} on {end_date}\")  \n    create_schedule_override(SCHEDULE_ID,\
+        \ start_date, end_date, user_id, user_name)  \n  \nif __name__ == \"__main__\"\
+        :  \n    main()  \n"
+      scriptInterpreter: python -u
+    keepgoing: false
+    strategy: node-first
+  tags: pagerduty
+  uuid: d1e677c8-5476-449b-9d76-3c2fae8ce9bd
+
