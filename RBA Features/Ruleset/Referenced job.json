@@ -2,7 +2,7 @@
   "defaultTab" : "nodes",
   "description" : "",
   "executionEnabled" : true,
-  "group" : "Ruleset",
+  "group" : "RBA Features/Ruleset",
   "id" : "0ad8669a-2dc4-4e9b-8797-12b03887438f",
   "loglevel" : "INFO",
   "name" : "Referenced job",

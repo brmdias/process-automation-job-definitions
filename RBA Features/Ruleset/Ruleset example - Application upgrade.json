@@ -2,7 +2,7 @@
   "defaultTab" : "nodes",
   "description" : "This is an example when Ruleset is used as Workflow Strategy - with Error Handler and Script File.\nThis will include:\n - 1 step in parallel of the remaining workflow\n - 1 job reference step (just running another script)\n - 1 local script step running a script saved in the node\n - 1 error handler to use the previous step state as a condition\n - 2 steps running based in the step state from the previous step. These steps are also reading a Global Variable value.\n - 1 step halting the execution in case of an error. This step also runs based in a job option value.\n - 1 final step to wrap-up the workflow (which only runs after specific steps)",
   "executionEnabled" : true,
-  "group" : "Ruleset",
+  "group" : "RBA Features/Ruleset",
   "id" : "10c57ba1-721a-46bf-a4d8-d363db4a1468",
   "loglevel" : "INFO",
   "name" : "Ruleset example - Application upgrade",
@@ -27,7 +27,7 @@
     "valuesListDelimiter" : ","
   } ],
   "plugins" : {
-    "ExecutionLifecycle" : null
+    "ExecutionLifecycle" : { }
   },
   "scheduleEnabled" : true,
   "schedules" : [ ],

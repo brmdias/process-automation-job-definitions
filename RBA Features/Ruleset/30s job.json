@@ -2,7 +2,7 @@
   "defaultTab" : "nodes",
   "description" : "",
   "executionEnabled" : true,
-  "group" : "Ruleset",
+  "group" : "RBA Features/Ruleset",
   "id" : "561417af-b203-4370-8e8f-915613b343e2",
   "loglevel" : "INFO",
   "name" : "30s job",
