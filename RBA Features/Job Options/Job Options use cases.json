@@ -2,7 +2,7 @@
   "defaultTab" : "output",
   "description" : "Job using job options as:\n- Nod filters\n- Notification targets",
   "executionEnabled" : true,
-  "group" : "Job Options",
+  "group" : "RBA Features/Job Options",
   "id" : "321ce69d-7b6f-41c4-9b1e-f9c8101ef80f",
   "loglevel" : "INFO",
   "name" : "Job Options use cases",
@@ -64,7 +64,7 @@
     "value" : "bdias@pagerduty.com"
   } ],
   "plugins" : {
-    "ExecutionLifecycle" : null
+    "ExecutionLifecycle" : { }
   },
   "scheduleEnabled" : true,
   "schedules" : [ ],

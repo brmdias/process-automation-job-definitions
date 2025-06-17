@@ -2,7 +2,7 @@
   "defaultTab" : "output",
   "description" : "",
   "executionEnabled" : true,
-  "group" : "Job Options",
+  "group" : "RBA Features/Job Options",
   "id" : "1be216bc-7cca-4568-8476-ee770895c68e",
   "loglevel" : "INFO",
   "name" : "Cascading Remote Options",
@@ -24,7 +24,7 @@
     "valuesUrl" : "file:/var/lib/rundeck/var/dynamic_options/${option.distro.value}"
   } ],
   "plugins" : {
-    "ExecutionLifecycle" : null
+    "ExecutionLifecycle" : { }
   },
   "scheduleEnabled" : true,
   "schedules" : [ ],
