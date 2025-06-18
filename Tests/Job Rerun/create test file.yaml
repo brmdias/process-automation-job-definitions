@@ -1,0 +1,32 @@
+- defaultTab: nodes
+  description: ''
+  executionEnabled: true
+  group: Tests/Job Rerun
+  id: 852f87bb-da29-47af-9758-789780c08151
+  loglevel: INFO
+  name: create test file
+  nodeFilterEditable: false
+  nodefilters:
+    dispatch:
+      excludePrecedence: true
+      keepgoing: false
+      rankOrder: ascending
+      successOnEmptyNodeFilter: false
+      threadcount: '1'
+    filter: 'name: bdias-rundeckers-a '
+  nodesSelectedByDefault: true
+  options:
+  - name: file-path
+    required: true
+    value: /opt/apps/runner/rerun-test-file
+  plugins:
+    ExecutionLifecycle: {}
+  scheduleEnabled: true
+  schedules: []
+  sequence:
+    commands:
+    - exec: touch ${option.file-path}
+    keepgoing: false
+    strategy: node-first
+  uuid: 852f87bb-da29-47af-9758-789780c08151
+

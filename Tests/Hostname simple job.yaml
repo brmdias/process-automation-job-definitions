@@ -28,7 +28,7 @@
       minute: '*'
       seconds: '0'
     year: '*'
-  scheduleEnabled: true
+  scheduleEnabled: false
   schedules: []
   sequence:
     commands:

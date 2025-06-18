@@ -1,0 +1,32 @@
+- defaultTab: nodes
+  description: ''
+  executionEnabled: true
+  group: Tests/Job Rerun
+  id: 708735ae-3ed9-42df-b4bd-518bf4a3a741
+  loglevel: INFO
+  name: delete test file
+  nodeFilterEditable: false
+  nodefilters:
+    dispatch:
+      excludePrecedence: true
+      keepgoing: false
+      rankOrder: ascending
+      successOnEmptyNodeFilter: false
+      threadcount: '1'
+    filter: 'name: bdias-rundeckers-a '
+  nodesSelectedByDefault: true
+  options:
+  - name: file-path
+    required: true
+    value: /opt/apps/runner/rerun-test-file
+  plugins:
+    ExecutionLifecycle: {}
+  scheduleEnabled: true
+  schedules: []
+  sequence:
+    commands:
+    - exec: rm ${option.file-path}
+    keepgoing: false
+    strategy: node-first
+  uuid: 708735ae-3ed9-42df-b4bd-518bf4a3a741
+
