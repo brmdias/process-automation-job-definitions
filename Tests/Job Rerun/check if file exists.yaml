@@ -17,10 +17,10 @@
           images: https://www.rundeck.com/hubfs/rundeck-app-assets/rundeck-by-pagerduty-icon.png
           pagerdutyUrl: https://events.eu.pagerduty.com
           payload_class: ${job.executionType}
-          payload_severity: critical
+          payload_severity: warning
           payload_source: Runbook Automation
           payload_summary: '[${job.status}] "${job.name}" run by ${job.user} (#${job.execid})'
-          service_key_storage_path: keys/pagerduty/pdt-bdias-global-orchestration-key
+          service_key_storage_path: keys/project/dev/pagerduty/pdt-bdias-global-orchestration-key
         type: PagerDutyEventNotification
   notifyAvgDurationThreshold: null
   options:
