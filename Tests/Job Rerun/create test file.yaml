@@ -6,19 +6,10 @@
   loglevel: INFO
   name: create test file
   nodeFilterEditable: false
-  nodefilters:
-    dispatch:
-      excludePrecedence: true
-      keepgoing: false
-      rankOrder: ascending
-      successOnEmptyNodeFilter: false
-      threadcount: '1'
-    filter: 'name: bdias-rundeckers-a '
-  nodesSelectedByDefault: true
   options:
   - name: file-path
     required: true
-    value: /opt/apps/runner/rerun-test-file
+    value: /tmp/rerun-test-file
   plugins:
     ExecutionLifecycle: {}
   scheduleEnabled: true
