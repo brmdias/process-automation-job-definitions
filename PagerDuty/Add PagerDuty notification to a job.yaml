@@ -20,10 +20,10 @@
   options:
   - description: Please exclude `http(s)://``
     name: rundeck-server-url
-    value: bdias.myrundeck.com
+    value: <YOUR_RBA_URL>
   - name: rba-api-token
     secure: true
-    storagePath: keys/rba/bdias-rba-token
+    storagePath: keys/<YOUR_RBA_API_TOKEN_PATH>
     valueExposed: true
   - description: Job UUID from the job that will be modified. Comma-separated list
       in case of multiple jobs to be updated.
@@ -93,9 +93,8 @@
   plugins:
     ExecutionLifecycle: {}
   runnerSelector:
-    filter: aws
-    runnerFilterMode: FILTER
-    runnerFilterType: TAG_FILTER_AND
+    runnerFilterMode: LOCAL
+    runnerFilterType: LOCAL_RUNNER
   scheduleEnabled: true
   schedules: []
   sequence:
