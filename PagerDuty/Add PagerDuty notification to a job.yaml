@@ -1,16 +1,16 @@
 - defaultTab: output
-  description: "This Rundeck job integrates PagerDuty notifications into an existing\
-    \ Rundeck job. \n\nIt automates the process of exporting a job definition, modifying\
-    \ it to include PagerDuty notification settings, and re-importing the updated\
-    \ job back into Rundeck. This ensures that PagerDuty alerts are triggered based\
-    \ on the job's execution status.\n\n## Key Features\n1. Export Job Definition:\
-    \ Retrieves the current job definition from Rundeck using the Rundeck API.\n2.\
-    \ Modify Job Definition: Adds a PagerDuty notification plugin to the job's configuration.\
-    \ The notification is triggered on job failure.\n3. Import Updated Job: Re-imports\
-    \ the modified job definition back into Rundeck, updating the existing job.\n\n\
-    ## Requirements\n- A valid Rundeck API token with permissions to export and import\
-    \ jobs.\n- The UUID of the target job to be modified.\n- A PagerDuty service integration\
-    \ key."
+  description: "This Rundeck job adds a PagerDuty notification into an existing RBA\
+    \ job, on the On Failure notification. \n\nIt automates the process of exporting\
+    \ a job definition, modifying it to include PagerDuty notification settings for\
+    \ the On Failure notification, and re-importing the updated job back into Rundeck.\
+    \ This ensures that PagerDuty alerts are triggered based on the job's execution\
+    \ status.\n\n## Key Features\n1. Export Job Definition: Retrieves the current\
+    \ job definition from Rundeck using the Rundeck API.\n2. Modify Job Definition:\
+    \ Adds a PagerDuty notification plugin to the job's configuration. The notification\
+    \ is triggered on job failure.\n3. Import Updated Job: Re-imports the modified\
+    \ job definition back into Rundeck, updating the existing job.\n\n## Requirements\n\
+    - A valid Rundeck API token with permissions to export and import jobs.\n- The\
+    \ UUID of the target job to be modified.\n- A PagerDuty service integration key."
   executionEnabled: true
   group: PagerDuty
   id: 8034ef69-9aff-4553-a025-731b0f8fcacd
@@ -149,7 +149,7 @@
                     "images": "https://www.rundeck.com/hubfs/rundeck-app-assets/rundeck-by-pagerduty-icon.png",
                     "pagerdutyUrl": "@option.event-service-url@",
                     "payload_class": "@option.class@",
-                    "payload_severity": "critical",
+                    "payload_severity": "@option.severity@",
                     "payload_source": "@option.source@",
                     "payload_summary": "@option.summary@",
                     "service_key_storage_path": "@option.integration-key-path@"
