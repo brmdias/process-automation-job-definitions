@@ -1,6 +1,5 @@
 - defaultTab: output
   description: |-
-    Overview
     This Rundeck job integrates PagerDuty notifications into an existing Rundeck job. It automates the process of exporting a job definition, modifying it to include PagerDuty notification settings, and re-importing the updated job back into Rundeck. This ensures that PagerDuty alerts are triggered based on the job's execution status.
 
     ## Key Features
@@ -108,7 +107,7 @@
     type: text
     value: <insert your RBA Project Name>
   plugins:
-    ExecutionLifecycle: null
+    ExecutionLifecycle: {}
   scheduleEnabled: true
   schedules: []
   sequence:
