@@ -1,16 +1,16 @@
 - defaultTab: output
-  description: |-
-    This Rundeck job integrates PagerDuty notifications into an existing Rundeck job. It automates the process of exporting a job definition, modifying it to include PagerDuty notification settings, and re-importing the updated job back into Rundeck. This ensures that PagerDuty alerts are triggered based on the job's execution status.
-
-    ## Key Features
-    1. Export Job Definition: Retrieves the current job definition from Rundeck using the Rundeck API.
-    2. Modify Job Definition: Adds a PagerDuty notification plugin to the job's configuration. The notification is triggered on job failure.
-    3. Import Updated Job: Re-imports the modified job definition back into Rundeck, updating the existing job.
-
-    ## Requirements
-    - A valid Rundeck API token with permissions to export and import jobs.
-    - The UUID of the target job to be modified.
-    - A PagerDuty service integration key.
+  description: "This Rundeck job integrates PagerDuty notifications into an existing\
+    \ Rundeck job. \n\nIt automates the process of exporting a job definition, modifying\
+    \ it to include PagerDuty notification settings, and re-importing the updated\
+    \ job back into Rundeck. This ensures that PagerDuty alerts are triggered based\
+    \ on the job's execution status.\n\n## Key Features\n1. Export Job Definition:\
+    \ Retrieves the current job definition from Rundeck using the Rundeck API.\n2.\
+    \ Modify Job Definition: Adds a PagerDuty notification plugin to the job's configuration.\
+    \ The notification is triggered on job failure.\n3. Import Updated Job: Re-imports\
+    \ the modified job definition back into Rundeck, updating the existing job.\n\n\
+    ## Requirements\n- A valid Rundeck API token with permissions to export and import\
+    \ jobs.\n- The UUID of the target job to be modified.\n- A PagerDuty service integration\
+    \ key."
   executionEnabled: true
   group: PagerDuty
   id: 86b0229a-63b8-421d-866b-11c15b4bc8e0
@@ -49,8 +49,7 @@
   - description: Deduplication Key used in PagerDuty events
     label: PagerDuty Event Dedup-key
     name: dedup-key
-    type: text
-    value: ${job.id}
+    value: ${job.id}_${job.execid}
   - description: Group field used in PagerDuty Events.
     label: PagerDuty Event Group
     name: group
