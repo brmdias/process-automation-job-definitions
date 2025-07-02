@@ -13,38 +13,26 @@
     \ key."
   executionEnabled: true
   group: PagerDuty
-  id: 86b0229a-63b8-421d-866b-11c15b4bc8e0
+  id: 8034ef69-9aff-4553-a025-731b0f8fcacd
   loglevel: INFO
   name: Add PagerDuty notification to a job
   nodeFilterEditable: false
-  nodefilters:
-    dispatch:
-      excludePrecedence: true
-      keepgoing: false
-      rankOrder: ascending
-      successOnEmptyNodeFilter: false
-      threadcount: '1'
-    filter: bdias-rundeckers-a
-  nodesSelectedByDefault: true
   options:
   - description: Please exclude `http(s)://``
     name: rundeck-server-url
-    type: text
-    value: <insert your RBA URL>
+    value: bdias.myrundeck.com
   - name: rba-api-token
     secure: true
-    storagePath: keys/bdias-rba-token
-    type: text
+    storagePath: keys/rba/bdias-rba-token
     valueExposed: true
-  - description: 'Job UUID from the job that will be modified. '
+  - description: Job UUID from the job that will be modified. Comma-separated list
+      in case of multiple jobs to be updated.
     label: Target Job UUID
-    name: job-id
-    type: text
+    name: job-ids
     value: <insert your JOB UUID>
   - description: Value for the component field in the PagerDuty event.
     label: PagerDuty Event Component
     name: component
-    type: text
     value: ${job.execid}
   - description: Deduplication Key used in PagerDuty events
     label: PagerDuty Event Dedup-key
@@ -53,7 +41,6 @@
   - description: Group field used in PagerDuty Events.
     label: PagerDuty Event Group
     name: group
-    type: text
     value: ${job.serverUrl}
   - description: |-
       PagerDuty Event's API URL
@@ -71,7 +58,7 @@
   - description: Class field from PagerDuty Event
     label: PagerDuty Event Class
     name: class
-    type: text
+    value: ${job.executionType}
   - description: Severity field for the PagerDuty Event
     enforced: true
     label: PagerDuty Event Severity
@@ -93,7 +80,6 @@
   - description: Alert description
     label: PagerDuty Event Summary
     name: summary
-    type: text
     value: '[${job.status}] \"${job.name}\" run by ${job.user} (#${job.execid})'
   - description: Service Integration Key (v2) from storage path
     label: PagerDuty Event Integration Key Path
@@ -103,10 +89,13 @@
   - description: Project name from your target job.
     label: RBA Project
     name: project
-    type: text
-    value: <insert your RBA Project Name>
+    value: bdias
   plugins:
     ExecutionLifecycle: {}
+  runnerSelector:
+    filter: aws
+    runnerFilterMode: FILTER
+    runnerFilterType: TAG_FILTER_AND
   scheduleEnabled: true
   schedules: []
   sequence:
@@ -115,58 +104,122 @@
       fileExtension: .py
       interpreterArgsQuoted: false
       passSecureInput: 'false'
-      script: "import requests\nimport json\n\n# Rundeck API configuration\nRUNDECK_API_URL\
-        \ = \"https://@option.rundeck-server-url@/api/52\"  # Replace with your Rundeck\
-        \ server URL and API version\nAPI_TOKEN = \"@option.rba-api-token@\"  # Replace\
-        \ with your Rundeck API token\nJOB_ID = \"@option.job-id@\"  # Replace with\
-        \ the job ID you want to export/import\n\n# Headers for Rundeck API requests\n\
-        HEADERS = {\n    \"X-Rundeck-Auth-Token\": API_TOKEN,\n    \"Content-Type\"\
-        : \"application/json\"\n}\n\ndef export_job(job_id):\n    \"\"\"Export a job\
-        \ definition from Rundeck.\"\"\"\n    url = f\"{RUNDECK_API_URL}/job/{job_id}?format=json\"\
-        \n    response = requests.get(url, headers=HEADERS)\n    if response.status_code\
-        \ == 200:\n        print(\"Job exported successfully.\")\n        return response.json()\n\
-        \    else:\n        print(f\"Failed to export job. Status code: {response.status_code},\
-        \ Response: {response.text}\")\n        return None\n\ndef modify_job_definition(job_definition):\n\
-        \    \"\"\"Modify the job definition to add a notification plugin.\"\"\"\n\
-        \    # Rundeck API returns a list of jobs, so we need to access the first\
-        \ job\n    if isinstance(job_definition, list) and len(job_definition) > 0:\n\
-        \        job = job_definition[0]  # Access the first job in the list\n   \
-        \ else:\n        raise ValueError(\"Job definition is not in the expected\
-        \ format.\")\n    \n    # Add the notification plugin as shown in the uploaded\
-        \ document\n    job[\"notification\"] = {\n        \"onfailure\": {\n    \
-        \        \"plugin\": {\n                \"type\": \"PagerDutyEventNotification\"\
-        ,\n                \"configuration\": {\n                    \"action\": \"\
-        trigger\",\n                    \"component\": \"@option.component@\",\n \
-        \                   \"dedupe_key\": \"@option.dedup-key@\",\n            \
-        \        \"group\": \"@option.group@\",\n                    \"images\": \"\
-        https://www.rundeck.com/hubfs/rundeck-app-assets/rundeck-by-pagerduty-icon.png\"\
-        ,\n                    \"pagerdutyUrl\": \"@option.event-service-url@\",\n\
-        \                    \"payload_class\": \"@option.class@\",\n            \
-        \        \"payload_severity\": \"critical\",\n                    \"payload_source\"\
-        : \"@option.source@\",\n                    \"payload_summary\": \"@option.summary@\"\
-        ,\n                    \"service_key_storage_path\": \"@option.integration-key-path@\"\
-        \n                }\n            }\n        }\n    }\n    print(\"Job definition\
-        \ modified to include notification plugin.\")\n    return [job]\n\ndef import_job(job_definition):\n\
-        \    \"\"\"Import the updated job definition back to Rundeck.\"\"\"\n    url\
-        \ = f\"{RUNDECK_API_URL}/project/@option.project@/jobs/import?fileformat=json&dupeOption=update\"\
-        \n    post_headers = {\n        'Accept': 'application/json',\n        'Content-Type':\
-        \ 'application/json',\n        'X-Rundeck-Auth-Token': API_TOKEN\n    }\n\
-        \    \n    # Convert the job definition to a JSON string\n    job_definition_json\
-        \ = json.dumps(job_definition)\n    \n    print(f\"Job definition to be imported:\
-        \ {job_definition_json}\")\n    \n    # payload = {\n    #    \"jobs\": job_definition,\n\
-        \    #    \"dupeOption\": \"update\",\n    #    \"uuidOption\": \"preserve\"\
-        \n    # }\n    response = requests.request(\"POST\", url, headers=post_headers,\
-        \ data=job_definition_json)\n    if response.status_code == 200:\n       \
-        \ print(\"Job imported successfully.\")\n    else:\n        print(f\"Failed\
-        \ to import job. Status code: {response.status_code}, Response: {response.text}\"\
-        )\n\ndef main():\n    # Step 1: Export the job definition\n    job_definition\
-        \ = export_job(JOB_ID)\n    if not job_definition:\n        return\n\n   \
-        \ # Step 2: Modify the job definition\n    updated_job_definition = modify_job_definition(job_definition)\n\
-        \n    # Step 3: Import the updated job definition back to Rundeck\n    import_job(updated_job_definition)\n\
-        \nif __name__ == \"__main__\":\n    main()"
-      scriptInterpreter: python -u
+      script: |-
+        import requests
+        import json
+        import time
+
+        # Rundeck API configuration
+        RUNDECK_API_URL = "https://@option.rundeck-server-url@/api/52"  # Replace with your Rundeck server URL and API version
+        API_TOKEN = "@option.rba-api-token@"  # Replace with your Rundeck API token
+        JOB_IDS = "@option.job-ids@"  # Comma-separated job IDs
+
+        # Headers for Rundeck API requests
+        HEADERS = {
+            "X-Rundeck-Auth-Token": API_TOKEN,
+            "Content-Type": "application/json"
+        }
+
+        def export_job(job_id):
+            """Export a job definition from Rundeck."""
+            url = f"{RUNDECK_API_URL}/job/{job_id}?format=json"
+            response = requests.get(url, headers=HEADERS)
+            if response.status_code == 200:
+                print(f"Job {job_id} exported successfully.")
+                return response.json()
+            else:
+                print(f"Failed to export job {job_id}. Status code: {response.status_code}, Response: {response.text}")
+                return None
+
+        def modify_job_definition(job_definition):
+            """Modify the job definition to add a notification plugin, appending to existing notifications."""
+            if isinstance(job_definition, list) and len(job_definition) > 0:
+                job = job_definition[0]
+            else:
+                raise ValueError("Job definition is not in the expected format.")
+
+            # Define the new PagerDuty notification plugin
+            new_plugin = {
+                "type": "PagerDutyEventNotification",
+                "configuration": {
+                    "action": "trigger",
+                    "component": "@option.component@",
+                    "dedupe_key": "@option.dedup-key@",
+                    "group": "@option.group@",
+                    "images": "https://www.rundeck.com/hubfs/rundeck-app-assets/rundeck-by-pagerduty-icon.png",
+                    "pagerdutyUrl": "@option.event-service-url@",
+                    "payload_class": "@option.class@",
+                    "payload_severity": "critical",
+                    "payload_source": "@option.source@",
+                    "payload_summary": "@option.summary@",
+                    "service_key_storage_path": "@option.integration-key-path@"
+                }
+            }
+
+            # Ensure 'notification' exists
+            if "notification" not in job or not isinstance(job["notification"], dict):
+                job["notification"] = {}
+
+            # Handle 'onfailure' notifications
+            onfailure = job["notification"].get("onfailure")
+            if not onfailure:
+                # No onfailure yet, just add the new plugin
+                job["notification"]["onfailure"] = {"plugin": [new_plugin]}
+            else:
+                # onfailure exists
+                if "plugin" in onfailure:
+                    # If plugin is a dict, convert to list
+                    if isinstance(onfailure["plugin"], dict):
+                        onfailure["plugin"] = [onfailure["plugin"]]
+                    # If plugin is already a list, just append
+                    if isinstance(onfailure["plugin"], list):
+                        onfailure["plugin"].append(new_plugin)
+                    else:
+                        # Unexpected type, replace with list
+                        onfailure["plugin"] = [onfailure["plugin"], new_plugin]
+                else:
+                    # No plugin key, add as list
+                    onfailure["plugin"] = [new_plugin]
+                job["notification"]["onfailure"] = onfailure
+
+            print("Job definition modified to append notification plugin.")
+            return [job]
+
+        def import_job(job_definition):
+            """Import the updated job definition back to Rundeck."""
+            url = f"{RUNDECK_API_URL}/project/@option.project@/jobs/import?fileformat=json&dupeOption=update"
+            post_headers = {
+                'Accept': 'application/json',
+                'Content-Type': 'application/json',
+                'X-Rundeck-Auth-Token': API_TOKEN
+            }
+            job_definition_json = json.dumps(job_definition)
+            print(f"Job definition to be imported: {job_definition_json}")
+            response = requests.request("POST", url, headers=post_headers, data=job_definition_json)
+            if response.status_code == 200:
+                print("Job imported successfully.")
+            else:
+                print(f"Failed to import job. Status code: {response.status_code}, Response: {response.text}")
+
+        def main():
+            # Split JOB_IDS by comma and strip whitespace
+            job_ids = [jid.strip() for jid in JOB_IDS.split(",") if jid.strip()]
+            for idx, job_id in enumerate(job_ids):
+                print(f"\nProcessing job {idx+1}/{len(job_ids)}: {job_id}")
+                job_definition = export_job(job_id)
+                if not job_definition:
+                    continue
+                updated_job_definition = modify_job_definition(job_definition)
+                import_job(updated_job_definition)
+                if idx < len(job_ids) - 1:
+                    print("Waiting 2 seconds before processing next job...")
+                    time.sleep(2)
+
+        if __name__ == "__main__":
+            main()
+      scriptInterpreter: python3 -u
     keepgoing: false
     strategy: node-first
   tags: pagerduty
-  uuid: 86b0229a-63b8-421d-866b-11c15b4bc8e0
+  uuid: 8034ef69-9aff-4553-a025-731b0f8fcacd
 
