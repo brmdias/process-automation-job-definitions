@@ -1,0 +1,19 @@
+- defaultTab: nodes
+  description: ''
+  executionEnabled: true
+  group: Toolkit
+  id: e0d845ff-0517-4f14-9620-76c2b89fd1a6
+  loglevel: INFO
+  name: Update pip
+  nodeFilterEditable: false
+  plugins:
+    ExecutionLifecycle: {}
+  scheduleEnabled: true
+  schedules: []
+  sequence:
+    commands:
+    - exec: python -m pip install --upgrade pip
+    keepgoing: false
+    strategy: node-first
+  uuid: e0d845ff-0517-4f14-9620-76c2b89fd1a6
+

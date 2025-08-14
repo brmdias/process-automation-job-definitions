@@ -1,0 +1,188 @@
+- defaultTab: nodes
+  description: ''
+  executionEnabled: true
+  group: Toolkit/OS Upgrades
+  id: 42f1d68c-5eb0-4f60-9a87-07a3c1a48966
+  loglevel: INFO
+  name: Linux OS Upgrade
+  nodeFilterEditable: false
+  nodefilters:
+    dispatch:
+      excludePrecedence: true
+      keepgoing: false
+      rankOrder: ascending
+      successOnEmptyNodeFilter: false
+      threadcount: '1'
+    filter: 'tags: rd.*'
+  nodesSelectedByDefault: true
+  options:
+  - label: Release Version
+    name: releasever
+    type: text
+    value: 2023.6.20241121
+  - hidden: true
+    name: rba-token
+    secure: true
+    storagePath: keys/bdias-rba-token
+    type: text
+    valueExposed: true
+  - delimiter: ','
+    enforced: true
+    label: Server UUID
+    multivalued: true
+    name: server-uuid
+    required: true
+    type: text
+    value: 64a08f29-c38f-4cbd-9e3d-5c088df386f5
+    values:
+    - 64a08f29-c38f-4cbd-9e3d-5c088df386f5
+    - 38c5d9cf-349e-42eb-b132-cdbe8c6b46d0
+    valuesListDelimiter: ','
+  - label: Online Server
+    name: online-server
+    type: text
+  plugins:
+    ExecutionLifecycle: null
+  scheduleEnabled: true
+  schedules: []
+  sequence:
+    commands:
+    - autoSecureInput: 'false'
+      description: Pre-upgrade checks
+      fileExtension: .py
+      interpreterArgsQuoted: false
+      passSecureInput: 'false'
+      script: |+
+        import requests
+
+        server = 'bdias.pd-sandbox.com'
+        api_token = '@option.rba-token@'
+        uuid = '@option.server-uuid@'
+
+        # Disable execution mode
+        post_url = f'https://{server}/api/50/enterprise/cluster/executions/disable?uuid={uuid}'
+        post_headers = {
+            'Accept': 'application/json',
+            'X-Rundeck-Auth-Token': api_token
+        }
+
+        response = requests.post(post_url, headers=post_headers)
+
+        # Check if the POST request was successful
+        if response.status_code == 200:
+            json_response = response.json()  # Save the JSON response as a variable
+            print("Execution Mode set to Disabled with successful.")
+            print(f"Response: {response.status_code}")
+            print(f"{response.text}")
+        else:
+            print(f"GET request failed with status code {response.status_code}")
+            print(response.text)
+            exit(1)
+
+        # Get Job Forecast
+
+        # Enable schedule takeover in case of jobs scheduled for the next X minutes
+        put_url = f'https://{server}/api/50/scheduler/takeover'
+        put_headers = {
+            'Accept': 'application/json',
+            'X-Rundeck-Auth-Token': api_token
+        }
+        put_body = {
+            "server": {
+                "uuid": uuid,
+                "all": True
+            }
+        }
+
+        response = requests.put(put_url, headers=put_headers, json=put_body)
+
+        # Check the response
+        print(response.status_code)
+        print(response.json())  # If the response contains JSON
+
+      scriptInterpreter: python -u
+    - description: Job schedule takeover
+      jobref:
+        group: Toolkit/OS Upgrades
+        importOptions: true
+        name: Job schedule takeover
+        uuid: 12fda892-0ac7-4bb8-92af-5fd32ba96cbb
+    - autoSecureInput: 'false'
+      description: Upgrade
+      passSecureInput: 'false'
+      script: sudo dnf upgrade --releasever=@option.releasever@ -y
+    - autoSecureInput: 'false'
+      description: Reboot
+      passSecureInput: 'false'
+      script: |-
+        echo "Going to reboot!"
+        sudo reboot
+    - configuration:
+        host: ${node.hostname}
+        interval: '5'
+        maxtry: '48'
+      nodeStep: true
+      type: nixy-waitfor-local-ping
+    - configuration:
+        cycles: '6'
+        interval: '5'
+        progress: 'true'
+      description: Wait 30s for SSH to be up
+      nodeStep: false
+      type: nixy-waitfor-sleep-workflow-step
+    - autoSecureInput: 'false'
+      description: Post-upgrade checks
+      passSecureInput: 'false'
+      script: |-
+        echo "Checking OS version after upgrade"
+
+        cat /etc/os-release | grep "PRETTY_NAME"
+        uname -r
+
+        echo "Checking Rundeck service status"
+        systemctl status rundeckd.service
+    - configuration:
+        file: /var/log/rundeck/service.log
+        interval: '5'
+        maxtry: '60'
+        pattern: 'Grails application running at http://localhost:4440 in environment:
+          production'
+      description: Waiting for Rundeck to startup
+      nodeStep: true
+      type: nixy-waitfor-contains
+    - autoSecureInput: 'false'
+      description: Enable Execution Mode in the upgraded server
+      fileExtension: .py
+      interpreterArgsQuoted: false
+      passSecureInput: 'false'
+      script: |-
+        import requests
+
+        server = 'bdias.pd-sandbox.com'
+        api_token = '@option.rba-token@'
+        uuid = '@option.server-uuid@'
+
+        # Disable execution mode
+        post_url = f'https://{server}/api/50/enterprise/cluster/executions/disable?uuid={uuid}'
+        post_headers = {
+            'Accept': 'application/json',
+            'X-Rundeck-Auth-Token': api_token
+        }
+
+        response = requests.post(post_url, headers=post_headers)
+
+        # Check if the POST request was successful
+        if response.status_code == 200:
+            json_response = response.json()  # Save the JSON response as a variable
+            print("Execution Mode set to Disabled with successful.")
+            print(f"Response: {response.status_code}")
+            print(f"{response.text}")
+        else:
+            print(f"GET request failed with status code {response.status_code}")
+            print(response.text)
+            exit(1)
+      scriptInterpreter: python -u
+    keepgoing: false
+    strategy: node-first
+  uuid: 42f1d68c-5eb0-4f60-9a87-07a3c1a48966
+

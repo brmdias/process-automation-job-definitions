@@ -1,0 +1,48 @@
+- defaultTab: nodes
+  description: ''
+  executionEnabled: true
+  group: Toolkit
+  id: d13536d4-eaa0-4d59-93fa-eb04fa0dd50e
+  loglevel: INFO
+  name: System Healthcheck (Linux) - Email
+  nodeFilterEditable: false
+  notification:
+    onsuccess:
+      email:
+        attachLog: true
+        attachLogInFile: true
+        recipients: bdias@pagerduty.com
+        subject: System Health Check notification
+  notifyAvgDurationThreshold: null
+  options:
+  - name: pd_incident_id
+  plugins:
+    ExecutionLifecycle:
+      Send Incident Output to Pagerduty: {}
+  runnerSelector:
+    runnerFilterMode: LOCAL
+    runnerFilterType: LOCAL_RUNNER
+  scheduleEnabled: true
+  schedules: []
+  sequence:
+    commands:
+    - description: Check disk space
+      exec: df -H
+    - description: Check processes
+      exec: ps -ef | grep rundeck
+    - description: Check service
+      exec: systemctl status rundeckd.service
+    - description: Look at last 100 lines of service.log file
+      exec: tail -n 100 /var/log/rundeck/service.log
+    keepgoing: false
+    pluginConfig:
+      LogFilter:
+      - config:
+          filterName: System healthcheck logs
+          logOutputSettings: All
+          regexPattern: (.*)
+          stepStatus: Any
+        type: pagerduty-incident-output-capture
+    strategy: node-first
+  uuid: d13536d4-eaa0-4d59-93fa-eb04fa0dd50e
+

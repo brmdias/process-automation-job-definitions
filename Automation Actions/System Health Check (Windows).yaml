@@ -1,0 +1,56 @@
+- defaultTab: nodes
+  description: ''
+  executionEnabled: true
+  group: Automation Actions
+  id: d5cbfb48-37be-43ec-943e-585e5eadbe6a
+  loglevel: INFO
+  name: System Health Check (Windows)
+  nodeFilterEditable: false
+  nodefilters:
+    dispatch:
+      excludePrecedence: true
+      keepgoing: true
+      rankOrder: ascending
+      successOnEmptyNodeFilter: false
+      threadcount: '1'
+    filter: 'osFamily: windows'
+  nodesSelectedByDefault: true
+  options:
+  - name: pd_incident_id
+  plugins:
+    ExecutionLifecycle:
+      Send Incident Output to Pagerduty: {}
+  runnerSelector:
+    filter: BDIAS
+    runnerFilterMode: TAGS
+    runnerFilterType: TAG_FILTER_AND
+  scheduleEnabled: true
+  schedules: []
+  sequence:
+    commands:
+    - description: Check disk space
+      exec: 'wmic logicaldisk get size,freespace,caption'
+    - description: Top 5 processes by CPU utilization
+      exec: 'Get-Process | Sort-Object CPU -Descending | Select-Object -First 5 |
+        Format-Table -Property Id,ProcessName,CPU'
+    - description: Top 5 Processes by Memory Usage
+      exec: 'Get-Process | Sort-Object WorkingSet -Descending | Select-Object -First
+        5 | Format-Table -Property Id,ProcessName,WorkingSet'
+    - description: Network usage
+      exec: netstat -e
+    - description: System load
+      exec: wmic cpu get loadpercentage
+    - description: User Logins
+      exec: query user
+    keepgoing: true
+    pluginConfig:
+      LogFilter:
+      - config:
+          filterName: System healthcheck logs
+          logOutputSettings: All
+          regexPattern: (.*)
+          stepStatus: Any
+        type: pagerduty-incident-output-capture
+    strategy: node-first
+  uuid: d5cbfb48-37be-43ec-943e-585e5eadbe6a
+

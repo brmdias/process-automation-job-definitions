@@ -1,0 +1,31 @@
+- defaultTab: nodes
+  description: ''
+  executionEnabled: true
+  group: Tests
+  id: 6b15441f-d8c3-410e-a81b-502e00a7eb0f
+  loglevel: INFO
+  name: (jet2) Domain health check
+  nodeFilterEditable: false
+  options:
+  - name: node-list
+  plugins:
+    ExecutionLifecycle: {}
+  scheduleEnabled: true
+  schedules: []
+  sequence:
+    commands:
+    - exec: echo "Hello World"
+    - configuration:
+        jsonArray: '[{"id":1, "name":"test1"}, {"id":2, "name":"test2"}]'
+        printIterationData: 'true'
+        script: |-
+          id=$vars.id
+          echo "ID: $id"
+        stopIterationOnFailure: 'false'
+      description: Test loop
+      nodeStep: true
+      type: iterate-json-script-nodestep-plugin
+    keepgoing: false
+    strategy: node-first
+  uuid: 6b15441f-d8c3-410e-a81b-502e00a7eb0f
+

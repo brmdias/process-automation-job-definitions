@@ -1,0 +1,20 @@
+- defaultTab: nodes
+  description: ''
+  executionEnabled: true
+  group: Toolkit
+  id: fa7ee705-ab6b-44e9-8dbf-8e764ab4b9ea
+  loglevel: INFO
+  name: Clean cached yum packages
+  nodeFilterEditable: false
+  plugins:
+    ExecutionLifecycle: {}
+  scheduleEnabled: true
+  schedules: []
+  sequence:
+    commands:
+    - description: Clean all cached data
+      exec: sudo yum clean all
+    keepgoing: false
+    strategy: node-first
+  uuid: fa7ee705-ab6b-44e9-8dbf-8e764ab4b9ea
+

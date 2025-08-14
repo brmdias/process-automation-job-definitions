@@ -1,0 +1,155 @@
+- defaultTab: output
+  description: ''
+  executionEnabled: true
+  group: Utilities
+  id: b86fa0bb-c153-4b70-8178-c78ba3ad1153
+  loglevel: INFO
+  name: Export All Rundeck projects (using RD CLI)
+  nodeFilterEditable: false
+  options:
+  - description: Path to the directory used as destination of the backup archive.
+    label: Output directory
+    name: output-dir
+    type: text
+    value: /tmp/rundeck_backups
+  - description: Delay in seconds taken between export actions.
+    label: Interval
+    name: interval
+    type: text
+    value: '5'
+  plugins:
+    ExecutionLifecycle: null
+  scheduleEnabled: true
+  schedules: []
+  sequence:
+    commands:
+    - autoSecureInput: 'false'
+      description: List and export projects
+      passSecureInput: 'false'
+      script: |-
+        #!/bin/bash
+
+        # Directory to save the exported project archives
+        OUTPUT_DIR="@option.output-dir@"
+
+        INTERVAL=@option.interval@
+
+        # Create a subdirectory with the current date (e.g., 2024-12-13)
+        DATE_DIR=$(date +%Y-%m-%d)
+        OUTPUT_DIR="$OUTPUT_DIR/$DATE_DIR"
+
+        # Ensure the output directory exists
+        mkdir -p "$OUTPUT_DIR"
+
+        # Directory containing framework-level settings
+        RUNDECK_CONFIG_DIR="/etc/rundeck"
+
+        # Function to list all Rundeck projects
+        list_projects() {
+            rd projects list
+        }
+
+        # Function to export a Rundeck project
+        export_project() {
+            local project_name="$1"  # Assign the first argument to project_name
+            echo "Debug: Received project_name='$project_name'"  # Debugging line
+
+            local output_file="$OUTPUT_DIR/${project_name}.zip"
+            echo "Debug: Output file path='$output_file'"  # Debugging line
+
+            echo "Exporting project: $project_name to $output_file..."
+            rd projects archives export \
+                --project "$project_name" \
+                --include jobs \
+                --include configs \
+                --include readmes \
+                --include acls \
+                --file "$output_file"
+
+            if [ $? -eq 0 ]; then
+                echo "Successfully exported project: $project_name"
+            else
+                echo "Failed to export project: $project_name"
+            fi
+        }
+
+        # Function to backup framework-level settings
+        backup_framework_settings() {
+            local framework_backup_dir="$OUTPUT_DIR/rundeck-settings"
+            echo "Backing up rundeck-level settings from $RUNDECK_CONFIG_DIR to $framework_backup_dir..."
+
+            # Create a directory to store the framework settings
+            mkdir -p "$framework_backup_dir"
+
+            # Copy the relevant files from /etc/rundeck to the backup directory
+            cp -r "$RUNDECK_CONFIG_DIR"/* "$framework_backup_dir"
+
+            if [ $? -eq 0 ]; then
+                echo "Successfully backed up framework-level settings."
+            else
+                echo "Failed to back up framework-level settings."
+            fi
+        }
+
+        # Main script
+        echo "Starting Rundeck project export process..."
+
+        # Uncomment the following line to test with a single project
+        #TEST_PROJECT="alpha-pln-pod_Beacon"
+        #TEST_PROJECT="bdias-dev"
+
+        if [ -n "$TEST_PROJECT" ]; then
+            # Test with a single project
+            echo "Testing with a single project: $TEST_PROJECT"
+            export_project "$TEST_PROJECT"
+        else
+            # Call the list_projects function and capture its output
+            projects=$(list_projects)
+
+            # Check if the list_projects command succeeded
+            if [ $? -ne 0 ]; then
+                echo "Failed to list Rundeck projects. Exiting."
+                exit 1
+            fi
+
+            # Debugging: Print the output of the list_projects function
+            echo "Projects retrieved:"
+            echo "$projects"
+
+            # Process the list of projects line by line
+            echo "$projects" | while IFS= read -r project_name; do
+                # Filter out invalid project names using a regex
+                if [[ "$project_name" =~ ^[-_a-zA-Z0-9+][-\._a-zA-Z0-9+]*$ ]]; then
+                    export_project "$project_name"
+                    echo "Waiting for $INTERVAL seconds before the next export..."
+                    sleep $INTERVAL
+                else
+                    echo "Skipping invalid project name: $project_name"
+                fi
+            done
+        fi
+
+        # Backup framework-level settings
+        backup_framework_settings
+
+        echo "Rundeck project export process completed."
+    - autoSecureInput: 'false'
+      description: Aggregate all project archives
+      passSecureInput: 'false'
+      script: |-
+        # Directory containing the exported project archives
+        OUTPUT_DIR="@option.output-dir@"
+
+        # Create a subdirectory with the current date (e.g., 2024-12-13)
+        DATE_DIR=$(date +%Y-%m-%d)
+        OUTPUT_DIR="$OUTPUT_DIR/$DATE_DIR"
+
+        cd $OUTPUT_DIR
+        tar -czf $OUTPUT_DIR/shared_rundeck_projects_archive.tar.gz *
+
+        rm -rf $OUTPUT_DIR/*.zip
+        rm -r $OUTPUT_DIR/rundeck-settings
+    keepgoing: false
+    strategy: node-first
+  uuid: b86fa0bb-c153-4b70-8178-c78ba3ad1153
+

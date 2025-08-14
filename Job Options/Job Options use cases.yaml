@@ -1,0 +1,102 @@
+- defaultTab: output
+  description: |-
+    Job using job options as:
+    - Nod filters
+    - Notification targets
+  executionEnabled: true
+  group: Job Options
+  id: 33dd8da0-70e7-4c09-947e-ea2323069c9c
+  loglevel: INFO
+  name: Job Options use cases
+  nodeFilterEditable: false
+  nodefilters:
+    dispatch:
+      excludePrecedence: true
+      keepgoing: false
+      rankOrder: ascending
+      successOnEmptyNodeFilter: false
+      threadcount: '1'
+    filter: ${option.online-server}
+  nodesSelectedByDefault: true
+  notification:
+    onfailure:
+      email:
+        attachLog: true
+        attachLogInFile: true
+        recipients: ${option.email-recipient}
+        subject: ${option.online-server} is down!!
+  notifyAvgDurationThreshold: null
+  options:
+  - hidden: true
+    name: rba-token
+    secure: true
+    storagePath: keys/bdias-rba-token
+    type: text
+    valueExposed: true
+  - description: This is the server who will see its job schedules moved.
+    enforced: true
+    label: Server UUID
+    name: server-uuid
+    required: true
+    type: text
+    value: 64a08f29-c38f-4cbd-9e3d-5c088df386f5
+    values:
+    - 64a08f29-c38f-4cbd-9e3d-5c088df386f5
+    - 38c5d9cf-349e-42eb-b132-cdbe8c6b46d0
+    valuesListDelimiter: ','
+  - description: This will be the server who will takeover the other server job schedules.
+    label: Online Server Name
+    name: online-server
+    required: true
+    type: text
+    value: bdias-rd-server-01-64
+  - name: timeout
+    type: text
+    value: '60'
+  - label: Email Recipient
+    name: email-recipient
+    type: text
+    value: bdias@pagerduty.com
+  plugins:
+    ExecutionLifecycle: null
+  scheduleEnabled: true
+  schedules: []
+  sequence:
+    commands:
+    - autoSecureInput: 'false'
+      description: Takeover job schedule from the server UUID in job options
+      fileExtension: .py
+      interpreterArgsQuoted: false
+      passSecureInput: 'false'
+      script: |+
+        import requests
+
+        server = 'bdias.pd-sandbox.com'
+        api_token = '@option.rba-token@'
+        uuid = '@option.server-uuid@'
+
+        # Enable schedule takeover in case of jobs scheduled for the next X minutes
+        put_url = f'https://{server}/api/50/scheduler/takeover'
+        put_headers = {
+            'Accept': 'application/json',
+            'X-Rundeck-Auth-Token': api_token
+        }
+        put_body = {
+            "server": {
+                "uuid": uuid,
+                "all": True
+            }
+        }
+
+        response = requests.put(put_url, headers=put_headers, json=put_body)
+
+        # Check the response
+        print(response.status_code)
+        print(response.json())  # If the response contains JSON
+
+      scriptInterpreter: python -u
+    keepgoing: false
+    strategy: node-first
+  timeout: ${option.timeout}
+  uuid: 33dd8da0-70e7-4c09-947e-ea2323069c9c
+

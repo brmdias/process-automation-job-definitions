@@ -1,0 +1,25 @@
+- defaultTab: nodes
+  description: ''
+  executionEnabled: true
+  group: Tests
+  id: 379467ba-b946-44ae-893f-ddfb2b7cf593
+  loglevel: INFO
+  name: Print key
+  nodeFilterEditable: false
+  options:
+  - name: key
+    secure: true
+    storagePath: keys/bdias-rba-token
+    type: text
+    valueExposed: true
+  plugins:
+    ExecutionLifecycle: null
+  scheduleEnabled: true
+  schedules: []
+  sequence:
+    commands:
+    - exec: echo ${option.key}
+    keepgoing: false
+    strategy: node-first
+  uuid: 379467ba-b946-44ae-893f-ddfb2b7cf593
+

@@ -1,0 +1,49 @@
+- defaultTab: nodes
+  description: ''
+  executionEnabled: true
+  group: Ruleset
+  id: 7e8013b1-6804-4920-aa26-7718b24aa6d5
+  loglevel: INFO
+  name: Referenced job
+  nodeFilterEditable: false
+  options:
+  - label: File Path
+    name: filepath
+    value: /opt/apps/runner/test-script.sh
+  plugins:
+    ExecutionLifecycle: {}
+  runnerSelector:
+    filter: LINUX
+    runnerFilterMode: TAGS
+    runnerFilterType: TAG_FILTER_AND
+  scheduleEnabled: true
+  schedules: []
+  sequence:
+    commands:
+    - args: ${option.filepath}
+      script: |-
+        echo "Step #2"
+
+        #!/bin/bash
+
+        # Path to the file
+        file_path="$1"
+
+        # Check if the file path is provided
+        if [ -z "$file_path" ]; then
+            echo "Usage: $0 <file_path>"
+            exit 1
+        fi
+
+        # Check if the file exists
+        if [ -f "$file_path" ]; then
+            echo "File '$file_path' exists."
+            exit 0
+        else
+            echo "File '$file_path' does not exist."
+            exit 1
+        fi
+    keepgoing: false
+    strategy: node-first
+  uuid: 7e8013b1-6804-4920-aa26-7718b24aa6d5
+

@@ -1,0 +1,85 @@
+- defaultTab: nodes
+  description: ''
+  executionEnabled: true
+  group: Use Cases/SMAX Integration
+  id: 929f0f79-84f4-41ab-b87a-99204eb34294
+  loglevel: INFO
+  name: API endpoint healthcheck
+  nodeFilterEditable: false
+  options:
+  - name: api-endpoint
+    values:
+    - https://www.meo.pt
+    - https://www.meo.pt/abc
+    valuesListDelimiter: ','
+  - name: smax-token
+    value: eyJ0eXAiOiJKV1MiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiI4YWQ0ZjAxMDhiNWE1MDIzMDE4YjYxNThmOWJhMTY5ZCIsImlzcyI6Imh0dHBzOi8vdXM3LXNtYXguc2Fhcy5taWNyb2ZvY3VzLmNvbS9pZG0tc2VydmljZSIsImNvbS5ocGUuaWRtOnRydXN0b3IiOm51bGwsImV4cCI6MTY5ODMxNTkwMCwiY29tLmhwLmNsb3VkOnRlbmFudCI6eyJpZCI6IjhhZDRmMDEwOGI1YTUwMjMwMThiNjE1OGYzMzUxNjYyIiwibmFtZSI6IjMzMjU2NTA3NyIsImVuYWJsZWQiOnRydWV9LCJwcm4iOiJiZGlhc0BwYWdlcmR1dHkuY29tIiwiaWF0IjoxNjk4MzEyMzAwLCJqdGkiOiJkYThjNjJkMi03ZGU5LTQ4OWYtOTY1OC05YzA5OGUxMjlkYWQifQ.fVj0HXPHunick4AP28tZmtxiQIw1r_UjR3zKynNaNGw
+  - name: xsrf-token
+    value: ZmUzZTBhNjItMmM3Mi00Y2QwLWE3Y2MtYzY2MjM0ZDhhMDEw
+  plugins:
+    ExecutionLifecycle: {}
+  runnerSelector:
+    runnerFilterMode: LOCAL
+    runnerFilterType: LOCAL_RUNNER
+  scheduleEnabled: true
+  schedules: []
+  sequence:
+    commands:
+    - configuration:
+        authentication: None
+        checkResponseCode: 'true'
+        headers: '{"content-type": "application/json"}'
+        method: GET
+        printResponse: 'false'
+        printResponseCode: 'true'
+        printResponseToFile: 'false'
+        proxySettings: 'false'
+        remoteUrl: ${option.api-endpoint}
+        responseCode: '200'
+        sslVerify: 'true'
+        timeout: '30000'
+      errorhandler:
+        script: |-
+          echo @ctx.api-health@
+          curl -v --location 'https://us7-smax.saas.microfocus.com/rest/332565077/ems/bulk' \
+          --header 'Cookie: SMAX_AUTH_TOKEN=@option.smax-token@' \
+          --header 'X-XSRF-TOKEN: @option.xsrf-token@' \
+          --header 'Content-Type: application/json' \
+          --data '{
+                  "entities": [
+                          {
+                                  "entity_type": "Incident",
+                                  "properties": {
+                                          "ImpactScope": "SingleUser",
+                                          "Active": true,
+                                          "RequestedByPerson": "10612",
+                                          "PhaseId": "Log",
+                                          "ProcessId": "normal",
+                                          "FirstTouch": true,
+                                          "Urgency": "SlightDisruption",
+                                          "RegisteredForActualService": "11178",
+                                          "ServiceDeskGroup": "10880",
+                                          "CompletionCode": null,
+                                          "DisplayLabel": "@option.api-endpoint@ is down",
+                                          "Priority": "LowPriority",
+                                          "Description": "Endpoint is down (Rundeck): @option.api-endpoint@. Rundeck failed to get a OK response code from endpoint"
+                                  }
+                          }
+                  ],
+                  "operation": "CREATE"
+          }'
+      nodeStep: false
+      plugins:
+        LogFilter:
+        - config:
+            contextVariable: api-health
+            doNothing: 'true'
+            mute: 'false'
+            regex: 'Response Code: HTTP/1.1 200 OK'
+            text: healthy
+          type: progress-badges
+      type: edu.ohio.ais.rundeck.HttpWorkflowStepPlugin
+    keepgoing: false
+    strategy: node-first
+  uuid: 929f0f79-84f4-41ab-b87a-99204eb34294
+

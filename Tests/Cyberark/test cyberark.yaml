@@ -1,0 +1,29 @@
+- defaultTab: nodes
+  description: ''
+  executionEnabled: true
+  group: Tests/Cyberark
+  id: 09582e52-ec12-4019-a68e-44bf1f11e65d
+  loglevel: INFO
+  name: test cyberark
+  nodeFilterEditable: false
+  options:
+  - name: cyberark-test
+    secure: true
+    storagePath: keys/cyberark/Test/rborchert-password
+    type: text
+    valueExposed: true
+  plugins:
+    ExecutionLifecycle: null
+  runnerSelector:
+    runnerFilterMode: LOCAL
+    runnerFilterType: LOCAL_RUNNER
+  scheduleEnabled: true
+  schedules: []
+  sequence:
+    commands:
+    - exec: echo "Starting Cyberark test now!"
+    - exec: echo ${option.cyberark-test}
+    keepgoing: false
+    strategy: node-first
+  uuid: 09582e52-ec12-4019-a68e-44bf1f11e65d
+

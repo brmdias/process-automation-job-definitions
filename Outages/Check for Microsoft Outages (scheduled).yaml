@@ -1,0 +1,78 @@
+- defaultTab: nodes
+  description: Checks for any global/widespread issues specifically related to Microsoft.
+  executionEnabled: true
+  group: Outages
+  id: 0d00a732-f21c-4adb-9566-923ed1051d16
+  loglevel: INFO
+  name: Check for Microsoft Outages (scheduled)
+  nodeFilterEditable: false
+  plugins:
+    ExecutionLifecycle: {}
+  runnerSelector:
+    runnerFilterMode: LOCAL
+    runnerFilterType: LOCAL_RUNNER
+  scheduleEnabled: true
+  schedules: []
+  sequence:
+    commands:
+    - plugins:
+        LogFilter: []
+      script: |
+        #!/usr/bin/env python3
+
+        import sys
+        import urllib.request
+        import xml.etree.ElementTree as ET
+
+        # Define the feed URL
+        feed_url = 'https://azure.status.microsoft/en-gb/status/feed/'
+
+        def check_azure_status(feed_url):
+            try:
+                response = urllib.request.urlopen(feed_url)
+                content = response.read()
+            except urllib.error.URLError as e:
+                print(f"Error fetching the feed: {e}")
+                sys.exit(1)
+
+            try:
+                root = ET.fromstring(content)
+            except ET.ParseError as e:
+                print(f"Error parsing the feed: {e}")
+                sys.exit(1)
+
+            issues = []
+            for item in root.findall('.//item'):
+                title = item.find('title').text
+                description = item.find('description').text
+                pubDate = item.find('pubDate').text
+
+                print(f"Entry found: Title: {title}, Description: {description}, Published: {pubDate}")
+
+                if "Issue" in title or "Degradation" in title or "Advisory" in title:
+                    issues.append({
+                        'title': title,
+                        'description': description,
+                        'pubDate': pubDate
+                    })
+
+            # Log the results
+            if issues:
+                print("Azure Status Issues Detected:")
+                for issue in issues:
+                    print(f"Title: {issue['title']}")
+                    print(f"Description: {issue['description']}")
+                    print(f"Published: {issue['pubDate']}")
+                    print("-----")
+                sys.exit(1)  # Exit with error code to indicate issues were found
+            else:
+                print("No issues found in the Azure status feed.")
+                sys.exit(0)  # Exit with success code to indicate no issues
+
+        if __name__ == "__main__":
+            check_azure_status(feed_url)
+    - exec: echo hello world
+    keepgoing: false
+    strategy: node-first
+  uuid: 0d00a732-f21c-4adb-9566-923ed1051d16
+

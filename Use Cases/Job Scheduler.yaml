@@ -1,0 +1,93 @@
+- defaultTab: nodes
+  description: " \n## Objective\nThis job will change the owner of a job to a different\
+    \ user. This is done using RBA API by exporting and importing the job definition\
+    \ without any changes. \n\nIt will then change the job owner to the user account\
+    \ associated to the token used for export/import.\n\nThis can be helpful when\
+    \ you want to use a specific local account to manage all job schedules. This will\
+    \ avoid a job schedule to become orphan when a user is removed from RBA.\n\n##\
+    \ Requirements\n- Python installed\n- User RBA API Token available in the Key\
+    \ Storage under path: `keys/users/[USERNAME]/rba-api-token`\n    - If you're following\
+    \ a different naming convention, edit the job and change the option `user-account-token`\
+    \ default value.\n\n## How to use this\n1. Make sure you have your users RBA API\
+    \ tokens created under the path `keys/users/[USERNAME]/rba-api-token` or other\
+    \ path convention defined in job option `user-account-token`.\n2. Run the job\
+    \ with option values:\n    1. Job ID: ID of the job to get a new owner\n    2.\
+    \ User Account: Username of the new owner of the jobs\n"
+  executionEnabled: true
+  group: Use Cases
+  id: c2730319-e6ae-4090-b894-77143ea84b48
+  loglevel: INFO
+  name: Job Scheduler
+  nodeFilterEditable: false
+  options:
+  - label: Job ID
+    name: job-id
+    value: d99b4048-c65e-4904-a8eb-ade75ea97f0e
+  - description: Rundeck user account to schedule the job
+    label: User Account
+    name: user-account
+  - hidden: true
+    name: user-account-api-token
+    secure: true
+    storagePath: keys/users/${option.user-account}/rba-api-token
+    valueExposed: true
+  plugins:
+    ExecutionLifecycle: {}
+  runnerSelector:
+    runnerFilterMode: LOCAL
+    runnerFilterType: LOCAL_RUNNER
+  scheduleEnabled: true
+  schedules: []
+  sequence:
+    commands:
+    - fileExtension: .py
+      interpreterArgsQuoted: false
+      script: |-
+        import requests
+
+        # Define the server, job UUID, and API token
+        server = 'bdias.pd-sandbox.com'
+        jobUUID = '@option.job-id@'
+        api_token = '@option.user-account-api-token@'
+
+        # Step 1: Perform the GET request to fetch the JSON response
+        get_url = f'https://{server}/api/48/project/dev/jobs/export?format=json&idlist={jobUUID}'
+        get_headers = {
+            'Accept': 'application/json',
+            'X-Rundeck-Auth-Token': api_token
+        }
+
+        response = requests.get(get_url, headers=get_headers)
+
+        # Check if the GET request was successful
+        if response.status_code == 200:
+            json_response = response.json()  # Save the JSON response as a variable
+            print("GET request successful. JSON response saved.")
+        else:
+            print(f"GET request failed with status code {response.status_code}")
+            print(response.text)
+            exit(1)
+
+        # Step 2: Use the saved JSON response as the payload in a POST request
+        post_url = f'https://{server}/api/48/project/dev/jobs/import?fileformat=json&dupeOption=update'
+        post_headers = {
+            'Accept': 'application/json',
+            'Content-Type': 'application/json',
+            'X-Rundeck-Auth-Token': api_token
+        }
+
+        # Perform the POST request
+        post_response = requests.post(post_url, json=json_response, headers=post_headers)
+
+        # Check if the POST request was successful
+        if post_response.status_code == 200:
+            print("POST request successful.")
+            print(post_response.json())  # Print the response from the server
+        else:
+            print(f"POST request failed with status code {post_response.status_code}")
+            print(post_response.text)
+      scriptInterpreter: python
+    keepgoing: false
+    strategy: node-first
+  uuid: c2730319-e6ae-4090-b894-77143ea84b48
+

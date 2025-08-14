@@ -1,0 +1,39 @@
+- defaultTab: nodes
+  description: ''
+  executionEnabled: true
+  group: Use Cases
+  id: 03918243-8c89-487b-a8fb-2b5b4c72c1f8
+  loglevel: INFO
+  name: Running a shell with python
+  nodeFilterEditable: false
+  plugins:
+    ExecutionLifecycle: null
+  runnerSelector:
+    runnerFilterMode: LOCAL
+    runnerFilterType: LOCAL_RUNNER
+  scheduleEnabled: true
+  schedules: []
+  sequence:
+    commands:
+    - autoSecureInput: 'false'
+      fileExtension: .py
+      interpreterArgsQuoted: false
+      passSecureInput: 'false'
+      script: |
+        import subprocess
+
+        # Command with shell
+        result = subprocess.run('export RD_URL="https://bdias.pd-sandbox.com/"', shell=True, capture_output=True, text=True)
+        result = subprocess.run('export RD_TOKEN="@option.paop-token@""', shell=True, capture_output=True, text=True)
+        result = subprocess.run('rd -V', shell=True, capture_output=True, text=True)
+
+
+        # Capture the output
+        print("stdout:", result.stdout)
+        print("stderr:", result.stderr)
+        print("Return code:", result.returncode)
+      scriptInterpreter: python
+    keepgoing: false
+    strategy: node-first
+  uuid: 03918243-8c89-487b-a8fb-2b5b4c72c1f8
+

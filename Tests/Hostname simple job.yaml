@@ -1,0 +1,43 @@
+- defaultTab: nodes
+  description: |-
+    This is a change from Github via webhook.
+    New commit from John.
+  executionEnabled: true
+  group: Tests
+  id: da355dfc-001c-443e-9b14-5cd00403d840
+  loglevel: INFO
+  name: Hostname simple job
+  nodeFilterEditable: false
+  nodefilters:
+    dispatch:
+      excludePrecedence: true
+      keepgoing: false
+      rankOrder: ascending
+      successOnEmptyNodeFilter: false
+      threadcount: '1'
+    filter: .*
+  nodesSelectedByDefault: true
+  plugins:
+    ExecutionLifecycle: {}
+  runnerSelector:
+    runnerFilterMode: LOCAL
+    runnerFilterType: LOCAL_RUNNER
+  schedule:
+    dayofmonth:
+      day: '*'
+    month: '*'
+    time:
+      hour: '*'
+      minute: '*'
+      seconds: '0'
+    year: '*'
+  scheduleEnabled: true
+  schedules: []
+  sequence:
+    commands:
+    - exec: uname -a
+    - exec: hostname
+    keepgoing: false
+    strategy: node-first
+  uuid: da355dfc-001c-443e-9b14-5cd00403d840
+

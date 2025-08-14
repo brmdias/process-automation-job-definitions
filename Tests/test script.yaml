@@ -1,0 +1,24 @@
+- defaultTab: nodes
+  description: ''
+  executionEnabled: true
+  group: Tests
+  id: 3dcf684d-904b-435c-a086-091b7645b8c2
+  loglevel: INFO
+  name: test script
+  nodeFilterEditable: false
+  plugins:
+    ExecutionLifecycle: null
+  runnerSelector:
+    filter: LINUX
+    runnerFilterMode: TAGS
+    runnerFilterType: TAG_FILTER_AND
+  scheduleEnabled: true
+  schedules: []
+  sequence:
+    commands:
+    - script: ./test-script.sh
+    - scriptfile: /opt/apps/runner/test-script.sh
+    keepgoing: true
+    strategy: node-first
+  uuid: 3dcf684d-904b-435c-a086-091b7645b8c2
+
