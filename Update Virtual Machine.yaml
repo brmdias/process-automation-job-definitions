@@ -1,0 +1,28 @@
+- defaultTab: nodes
+  description: ''
+  executionEnabled: true
+  id: ba637c4f-60ab-4a56-9da0-7b9e297e96f8
+  loglevel: INFO
+  name: Update Virtual Machine
+  nodeFilterEditable: false
+  options:
+  - name: application-name
+    value: pip
+  plugins:
+    ExecutionLifecycle: null
+  scheduleEnabled: true
+  schedules: []
+  sequence:
+    commands:
+    - exec: echo STARTING VM UPDATE
+    - description: Update pip
+      jobref:
+        group: Toolkit
+        importOptions: true
+        name: Update pip
+        uuid: 1650225f-c454-4940-8eb5-b65d6d2c496e
+    - exec: echo STOPPING VM UPDATE
+    keepgoing: false
+    strategy: node-first
+  uuid: ba637c4f-60ab-4a56-9da0-7b9e297e96f8
+
