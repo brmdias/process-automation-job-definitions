@@ -15,7 +15,7 @@
     \ User Account: Username of the new owner of the jobs\n"
   executionEnabled: true
   group: Use Cases
-  id: c2730319-e6ae-4090-b894-77143ea84b48
+  id: 6305e1be-118a-4f7e-968d-01b81d318809
   loglevel: INFO
   name: Job Scheduler
   nodeFilterEditable: false
@@ -33,9 +33,6 @@
     valueExposed: true
   plugins:
     ExecutionLifecycle: {}
-  runnerSelector:
-    runnerFilterMode: LOCAL
-    runnerFilterType: LOCAL_RUNNER
   scheduleEnabled: true
   schedules: []
   sequence:
@@ -89,5 +86,5 @@
       scriptInterpreter: python
     keepgoing: false
     strategy: node-first
-  uuid: c2730319-e6ae-4090-b894-77143ea84b48
+  uuid: 6305e1be-118a-4f7e-968d-01b81d318809
 

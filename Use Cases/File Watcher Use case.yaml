@@ -13,7 +13,7 @@
     exit 1 \n}\n\nError Handler Step 1\n\n exit 0\n\n "
   executionEnabled: true
   group: Use Cases
-  id: 6cbb2110-f64b-42db-8948-a70dff80ac0d
+  id: 8c37e1fe-b0ce-403b-9d88-f77a8122b7ea
   loglevel: INFO
   name: File Watcher Use case
   nodeFilterEditable: false
@@ -24,9 +24,6 @@
     value: 'true'
   plugins:
     ExecutionLifecycle: {}
-  runnerSelector:
-    runnerFilterMode: LOCAL
-    runnerFilterType: LOCAL_RUNNER
   scheduleEnabled: true
   schedules: []
   sequence:
@@ -47,5 +44,5 @@
             [*] run-in-sequence
             [1] if:option.condition==true
     strategy: ruleset
-  uuid: 6cbb2110-f64b-42db-8948-a70dff80ac0d
+  uuid: 8c37e1fe-b0ce-403b-9d88-f77a8122b7ea
 

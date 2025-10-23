@@ -1,0 +1,40 @@
+- defaultTab: nodes
+  description: ''
+  executionEnabled: true
+  group: Tests/Job Rerun
+  id: ead3b52f-5315-4ff9-9a6b-137cdd593f82
+  loglevel: INFO
+  name: check if file exists
+  nodeFilterEditable: false
+  notification:
+    onfailure:
+      plugin:
+        configuration:
+          action: trigger
+          component: ${job.execid}
+          dedupe_key: ${job.id}_${job.execid}
+          group: ${job.serverUrl}
+          images: https://www.rundeck.com/hubfs/rundeck-app-assets/rundeck-by-pagerduty-icon.png
+          pagerdutyUrl: https://events.eu.pagerduty.com
+          payload_class: ${job.executionType}
+          payload_severity: warning
+          payload_source: Runbook Automation
+          payload_summary: '[${job.status}] "${job.name}" run by ${job.user} (#${job.execid})'
+          service_key_storage_path: keys/pagerduty/pdt-bdias-global-orchestration-key
+        type: PagerDutyEventNotification
+  notifyAvgDurationThreshold: null
+  options:
+  - name: file-path
+    required: true
+    value: /tmp/rerun-test-file
+  plugins:
+    ExecutionLifecycle: {}
+  scheduleEnabled: true
+  schedules: []
+  sequence:
+    commands:
+    - exec: ls ${option.file-path}
+    keepgoing: false
+    strategy: node-first
+  uuid: ead3b52f-5315-4ff9-9a6b-137cdd593f82
+

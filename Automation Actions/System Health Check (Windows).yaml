@@ -2,7 +2,7 @@
   description: ''
   executionEnabled: true
   group: Automation Actions
-  id: d5cbfb48-37be-43ec-943e-585e5eadbe6a
+  id: 29d1c6d6-fe19-4333-aa37-ef8dfc05dc8b
   loglevel: INFO
   name: System Health Check (Windows)
   nodeFilterEditable: false
@@ -20,10 +20,6 @@
   plugins:
     ExecutionLifecycle:
       Send Incident Output to Pagerduty: {}
-  runnerSelector:
-    filter: BDIAS
-    runnerFilterMode: TAGS
-    runnerFilterType: TAG_FILTER_AND
   scheduleEnabled: true
   schedules: []
   sequence:
@@ -52,5 +48,5 @@
           stepStatus: Any
         type: pagerduty-incident-output-capture
     strategy: node-first
-  uuid: d5cbfb48-37be-43ec-943e-585e5eadbe6a
+  uuid: 29d1c6d6-fe19-4333-aa37-ef8dfc05dc8b
 

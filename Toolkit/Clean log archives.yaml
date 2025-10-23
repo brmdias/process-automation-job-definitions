@@ -2,7 +2,7 @@
   description: Clean all log archives (.gz) on the RBA-SH server.
   executionEnabled: true
   group: Toolkit
-  id: df06683c-55c7-478d-b6e9-bc7d64ca06fe
+  id: 94b8c0f7-1c1b-4f3a-8cba-3597d536e368
   loglevel: INFO
   name: Clean log archives
   nodeFilterEditable: false
@@ -20,5 +20,5 @@
         rm *.gz
     keepgoing: false
     strategy: node-first
-  uuid: df06683c-55c7-478d-b6e9-bc7d64ca06fe
+  uuid: 94b8c0f7-1c1b-4f3a-8cba-3597d536e368
 

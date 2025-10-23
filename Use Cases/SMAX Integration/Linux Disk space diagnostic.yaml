@@ -2,7 +2,7 @@
   description: ''
   executionEnabled: true
   group: Use Cases/SMAX Integration
-  id: 37918b8f-ab11-4dd7-889a-6797b8f908fe
+  id: a14435f8-1aad-458d-b37c-5df2f200022e
   loglevel: INFO
   name: Linux Disk space diagnostic
   nodeFilterEditable: false
@@ -18,9 +18,6 @@
     value: MDUyOGY4MzQtZDUxMS00NmUzLWI1MzgtY2QwODdkYzNkZjI0
   plugins:
     ExecutionLifecycle: {}
-  runnerSelector:
-    runnerFilterMode: LOCAL
-    runnerFilterType: LOCAL_RUNNER
   scheduleEnabled: true
   schedules: []
   sequence:
@@ -56,5 +53,5 @@
         }'
     keepgoing: false
     strategy: node-first
-  uuid: 37918b8f-ab11-4dd7-889a-6797b8f908fe
+  uuid: a14435f8-1aad-458d-b37c-5df2f200022e
 

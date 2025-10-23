@@ -1,8 +1,8 @@
 - defaultTab: nodes
   description: ''
   executionEnabled: true
-  group: Ruleset
-  id: 7e8013b1-6804-4920-aa26-7718b24aa6d5
+  group: RBA Features/Ruleset
+  id: 0ad8669a-2dc4-4e9b-8797-12b03887438f
   loglevel: INFO
   name: Referenced job
   nodeFilterEditable: false
@@ -12,10 +12,6 @@
     value: /opt/apps/runner/test-script.sh
   plugins:
     ExecutionLifecycle: {}
-  runnerSelector:
-    filter: LINUX
-    runnerFilterMode: TAGS
-    runnerFilterType: TAG_FILTER_AND
   scheduleEnabled: true
   schedules: []
   sequence:
@@ -45,5 +41,5 @@
         fi
     keepgoing: false
     strategy: node-first
-  uuid: 7e8013b1-6804-4920-aa26-7718b24aa6d5
+  uuid: 0ad8669a-2dc4-4e9b-8797-12b03887438f
 

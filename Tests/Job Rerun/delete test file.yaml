@@ -1,19 +1,23 @@
 - defaultTab: nodes
   description: ''
   executionEnabled: true
-  group: Toolkit
-  id: 1650225f-c454-4940-8eb5-b65d6d2c496e
+  group: Tests/Job Rerun
+  id: 708735ae-3ed9-42df-b4bd-518bf4a3a741
   loglevel: INFO
-  name: Update pip
+  name: delete test file
   nodeFilterEditable: false
+  options:
+  - name: file-path
+    required: true
+    value: /tmp/rerun-test-file
   plugins:
     ExecutionLifecycle: {}
   scheduleEnabled: true
   schedules: []
   sequence:
     commands:
-    - exec: python -m pip install --upgrade pip
+    - exec: rm ${option.file-path}
     keepgoing: false
     strategy: node-first
-  uuid: 1650225f-c454-4940-8eb5-b65d6d2c496e
+  uuid: 708735ae-3ed9-42df-b4bd-518bf4a3a741
 

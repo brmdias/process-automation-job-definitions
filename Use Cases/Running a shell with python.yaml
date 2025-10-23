@@ -2,15 +2,12 @@
   description: ''
   executionEnabled: true
   group: Use Cases
-  id: 03918243-8c89-487b-a8fb-2b5b4c72c1f8
+  id: f9a2de50-5812-4fd2-9468-6925379b4f2e
   loglevel: INFO
   name: Running a shell with python
   nodeFilterEditable: false
   plugins:
     ExecutionLifecycle: null
-  runnerSelector:
-    runnerFilterMode: LOCAL
-    runnerFilterType: LOCAL_RUNNER
   scheduleEnabled: true
   schedules: []
   sequence:
@@ -35,5 +32,5 @@
       scriptInterpreter: python
     keepgoing: false
     strategy: node-first
-  uuid: 03918243-8c89-487b-a8fb-2b5b4c72c1f8
+  uuid: f9a2de50-5812-4fd2-9468-6925379b4f2e
 

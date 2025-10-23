@@ -2,7 +2,7 @@
   description: ''
   executionEnabled: true
   group: Use Cases/MS Teams
-  id: 23af538b-b478-402e-b652-d1541e7e6559
+  id: 9292b89e-54a4-4dbd-b99d-4faa607c0662
   loglevel: INFO
   name: MS Teams post
   nodeFilterEditable: false
@@ -13,9 +13,6 @@
     value: TBD
   plugins:
     ExecutionLifecycle: null
-  runnerSelector:
-    runnerFilterMode: LOCAL
-    runnerFilterType: LOCAL_RUNNER
   scheduleEnabled: true
   schedules: []
   sequence:
@@ -54,5 +51,5 @@
         }' @option.webhook-url@
     keepgoing: false
     strategy: node-first
-  uuid: 23af538b-b478-402e-b652-d1541e7e6559
+  uuid: 9292b89e-54a4-4dbd-b99d-4faa607c0662
 

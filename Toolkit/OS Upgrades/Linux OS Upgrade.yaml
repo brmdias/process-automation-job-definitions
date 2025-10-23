@@ -2,7 +2,7 @@
   description: ''
   executionEnabled: true
   group: Toolkit/OS Upgrades
-  id: 42f1d68c-5eb0-4f60-9a87-07a3c1a48966
+  id: 78b2009f-63f4-4a53-85c8-b952cd3870d7
   loglevel: INFO
   name: Linux OS Upgrade
   nodeFilterEditable: false
@@ -184,5 +184,5 @@
       scriptInterpreter: python -u
     keepgoing: false
     strategy: node-first
-  uuid: 42f1d68c-5eb0-4f60-9a87-07a3c1a48966
+  uuid: 78b2009f-63f4-4a53-85c8-b952cd3870d7
 

@@ -1,0 +1,153 @@
+- defaultTab: nodes
+  description: "The \"Job re-run\" is an automated process designed to re-execute\
+    \ a specific job in Rundeck using a provided Execution ID. \n\nNOTE: please change\
+    \ this job node filter accordingly.\n\nThis job integrates with PagerDuty to log\
+    \ the re-run status and execution details as an incident note. \n\nIt retrieves\
+    \ execution logs, monitors the status of the re-run, and ensures that the results\
+    \ are communicated effectively. \n\nThe job is particularly useful for automating\
+    \ incident management workflows and ensuring transparency in job execution."
+  executionEnabled: true
+  group: Automation Actions
+  id: 94cafc29-0a89-4d2f-a5de-321ef64920df
+  loglevel: INFO
+  name: Job re-run
+  nodeFilterEditable: false
+  options:
+  - description: The unique identifier of the Rundeck execution to be re-run.
+    label: Execution ID
+    name: execution-id
+    type: text
+  - hidden: true
+    name: pd_incident_id
+    value: '123'
+  - hidden: true
+    name: rba-token
+    secure: true
+    storagePath: keys/bdias-rba-token
+    valueExposed: true
+  - description: The base URL of the Rundeck instance where the job will be executed.
+    label: RBA URL
+    name: rba-url
+    required: true
+    type: text
+    value: https://<runbook-automation-url>
+  plugins:
+    ExecutionLifecycle:
+      Send Incident Output to Pagerduty: {}
+  scheduleEnabled: true
+  schedules: []
+  sequence:
+    commands:
+    - configuration:
+        executions: ${option.execution-id}
+        failed nodes: 'false'
+        json display: 'true'
+      description: Job re-run
+      nodeStep: false
+      plugins:
+        LogFilter:
+        - config:
+            extraQuotes: 'false'
+            filter: .[0].id
+            logData: 'true'
+            prefix: execId
+          type: json-mapper
+        - config:
+            extraQuotes: 'false'
+            filter: .[0].job.id
+            logData: 'true'
+            prefix: job-uuid
+          type: json-mapper
+        - config:
+            extraQuotes: 'false'
+            filter: .[0].job.jobName
+            logData: 'true'
+            prefix: job-name
+          type: json-mapper
+        - config:
+            extraQuotes: 'false'
+            filter: .[0].project
+            logData: 'true'
+            prefix: project
+          type: json-mapper
+      type: run-executions
+    - configuration:
+        executions: ${data.execId}
+        fail on failed execution: 'true'
+        json display: 'true'
+        project: ${data.project}
+      description: Waiting for Execution
+      errorhandler:
+        configuration:
+          export: execution-status
+          group: data
+          value: failed
+        keepgoingOnSuccess: true
+        nodeStep: false
+        type: export-var
+      nodeStep: false
+      plugins:
+        LogFilter:
+        - config:
+            extraQuotes: 'false'
+            filter: .[0].status
+            logData: 'true'
+            prefix: execution-status
+          type: json-mapper
+      type: result-executions
+    - configuration:
+        authentication: None
+        headers: |
+          Accept: application/yaml
+          X-Rundeck-Auth-Token: ${option.rba-token}
+        method: GET
+        printResponse: 'true'
+        printResponseCode: 'true'
+        printResponseToFile: 'false'
+        proxySettings: 'false'
+        remoteUrl: ${option.rba-url}/api/52/execution/${data.execId}/output?format=text
+        responseCode: 2xx
+        sslVerify: 'true'
+        timeout: '30000'
+      description: Get logs from rerun execution
+      nodeStep: false
+      type: edu.ohio.ais.rundeck.HttpWorkflowStepPlugin
+    - configuration:
+        api_token: keys/pagerduty/pdt-bdias-api-token
+        email: bdias@pagerduty.com
+        incident_id: ${option.pd_incident_id}
+        note: |-
+          ⚙️ Job re-run was triggered by Automation Actions.
+
+          Job name: ${data.job-name}
+          Re-run status: ${data.execution-status}
+          Execution logs of re-run: ${option.rba-url}project/${data.project}/execution/show/${data.execId}
+      description: Add execution logs as an incident note
+      nodeStep: false
+      type: pd-note-step
+    - configuration:
+        api_token: keys/pagerduty/pdt-bdias-api-token
+        incident_id: ${option.pd_incident_id}
+        resolution: Job re-run was successful.
+        status: resolved
+      description: Resolve incident
+      nodeStep: false
+      type: pd-update-incident-step
+    keepgoing: true
+    pluginConfig:
+      LogFilter:
+      - config:
+          filterName: Job re-run
+          logOutputSettings: All
+          regexPattern: (.*)
+          stepStatus: Any
+        type: pagerduty-incident-output-capture
+      WorkflowStrategy:
+        ruleset:
+          rules: |-
+            [*] run-in-sequence
+            [5] if:data.execution-status!=failed
+    strategy: ruleset
+  tags: pagerduty
+  uuid: 94cafc29-0a89-4d2f-a5de-321ef64920df
+

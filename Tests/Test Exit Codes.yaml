@@ -2,15 +2,12 @@
   description: ''
   executionEnabled: true
   group: Tests
-  id: 63f16381-a9fc-4e45-9aaa-3d80be871bba
+  id: 7d6dce96-2221-4d80-83b9-3b1895206c00
   loglevel: INFO
   name: Test Exit Codes
   nodeFilterEditable: false
   plugins:
     ExecutionLifecycle: null
-  runnerSelector:
-    runnerFilterMode: LOCAL
-    runnerFilterType: LOCAL_RUNNER
   scheduleEnabled: true
   schedules: []
   sequence:
@@ -100,5 +97,5 @@
       type: log-data-step
     keepgoing: true
     strategy: node-first
-  uuid: 63f16381-a9fc-4e45-9aaa-3d80be871bba
+  uuid: 7d6dce96-2221-4d80-83b9-3b1895206c00
 

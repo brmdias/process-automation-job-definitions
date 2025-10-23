@@ -2,7 +2,7 @@
   description: ''
   executionEnabled: true
   group: Use Cases/MS Teams
-  id: b91e0f39-bdca-43cd-8030-0f888f2b5825
+  id: fe2edba4-af36-4504-8131-9578cbc2d684
   loglevel: INFO
   name: Posting a message on MS Teams group chat or channel
   nodeFilterEditable: false
@@ -68,5 +68,5 @@
       type: edu.ohio.ais.rundeck.HttpWorkflowNodeStepPlugin
     keepgoing: false
     strategy: node-first
-  uuid: b91e0f39-bdca-43cd-8030-0f888f2b5825
+  uuid: fe2edba4-af36-4504-8131-9578cbc2d684
 

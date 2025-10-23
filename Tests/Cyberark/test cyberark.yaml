@@ -2,7 +2,7 @@
   description: ''
   executionEnabled: true
   group: Tests/Cyberark
-  id: 09582e52-ec12-4019-a68e-44bf1f11e65d
+  id: b1f28212-1e73-4e64-b5bd-76f112993736
   loglevel: INFO
   name: test cyberark
   nodeFilterEditable: false
@@ -14,9 +14,6 @@
     valueExposed: true
   plugins:
     ExecutionLifecycle: null
-  runnerSelector:
-    runnerFilterMode: LOCAL
-    runnerFilterType: LOCAL_RUNNER
   scheduleEnabled: true
   schedules: []
   sequence:
@@ -25,5 +22,5 @@
     - exec: echo ${option.cyberark-test}
     keepgoing: false
     strategy: node-first
-  uuid: 09582e52-ec12-4019-a68e-44bf1f11e65d
+  uuid: b1f28212-1e73-4e64-b5bd-76f112993736
 

@@ -13,7 +13,7 @@
     \ schedule (schedule-id) where the override will be applied.\n"
   executionEnabled: true
   group: PagerDuty
-  id: 17b99d57-67b2-4390-b7f6-e6f66e91d235
+  id: d1e677c8-5476-449b-9d76-3c2fae8ce9bd
   loglevel: INFO
   name: Create schedule override
   nodeFilterEditable: false
@@ -95,5 +95,5 @@
     keepgoing: false
     strategy: node-first
   tags: pagerduty
-  uuid: 17b99d57-67b2-4390-b7f6-e6f66e91d235
+  uuid: d1e677c8-5476-449b-9d76-3c2fae8ce9bd
 

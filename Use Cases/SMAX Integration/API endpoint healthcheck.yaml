@@ -2,7 +2,7 @@
   description: ''
   executionEnabled: true
   group: Use Cases/SMAX Integration
-  id: 929f0f79-84f4-41ab-b87a-99204eb34294
+  id: 48d04b65-9ce5-4641-9271-cebd360bd139
   loglevel: INFO
   name: API endpoint healthcheck
   nodeFilterEditable: false
@@ -18,9 +18,6 @@
     value: ZmUzZTBhNjItMmM3Mi00Y2QwLWE3Y2MtYzY2MjM0ZDhhMDEw
   plugins:
     ExecutionLifecycle: {}
-  runnerSelector:
-    runnerFilterMode: LOCAL
-    runnerFilterType: LOCAL_RUNNER
   scheduleEnabled: true
   schedules: []
   sequence:
@@ -81,5 +78,5 @@
       type: edu.ohio.ais.rundeck.HttpWorkflowStepPlugin
     keepgoing: false
     strategy: node-first
-  uuid: 929f0f79-84f4-41ab-b87a-99204eb34294
+  uuid: 48d04b65-9ce5-4641-9271-cebd360bd139
 

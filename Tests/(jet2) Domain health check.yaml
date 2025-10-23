@@ -2,7 +2,7 @@
   description: ''
   executionEnabled: true
   group: Tests
-  id: 6b15441f-d8c3-410e-a81b-502e00a7eb0f
+  id: a789dfa0-3a5c-427f-9f7a-aaa3d53f71d6
   loglevel: INFO
   name: (jet2) Domain health check
   nodeFilterEditable: false
@@ -27,5 +27,5 @@
       type: iterate-json-script-nodestep-plugin
     keepgoing: false
     strategy: node-first
-  uuid: 6b15441f-d8c3-410e-a81b-502e00a7eb0f
+  uuid: a789dfa0-3a5c-427f-9f7a-aaa3d53f71d6
 

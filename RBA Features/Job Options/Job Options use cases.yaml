@@ -1,10 +1,13 @@
-- defaultTab: nodes
-  description: ''
+- defaultTab: output
+  description: |-
+    Job using job options as:
+    - Nod filters
+    - Notification targets
   executionEnabled: true
-  group: Toolkit/OS Upgrades
-  id: 12fda892-0ac7-4bb8-92af-5fd32ba96cbb
+  group: RBA Features/Job Options
+  id: 321ce69d-7b6f-41c4-9b1e-f9c8101ef80f
   loglevel: INFO
-  name: Job schedule takeover
+  name: Job Options use cases
   nodeFilterEditable: false
   nodefilters:
     dispatch:
@@ -15,6 +18,14 @@
       threadcount: '1'
     filter: ${option.online-server}
   nodesSelectedByDefault: true
+  notification:
+    onfailure:
+      email:
+        attachLog: true
+        attachLogInFile: true
+        recipients: ${option.email-recipient}
+        subject: ${option.online-server} is down!!
+  notifyAvgDurationThreshold: null
   options:
   - hidden: true
     name: rba-token
@@ -38,8 +49,16 @@
     name: online-server
     required: true
     type: text
+    value: bdias-rd-server-01-64
+  - name: timeout
+    type: text
+    value: '60'
+  - label: Email Recipient
+    name: email-recipient
+    type: text
+    value: bdias@pagerduty.com
   plugins:
-    ExecutionLifecycle: null
+    ExecutionLifecycle: {}
   scheduleEnabled: true
   schedules: []
   sequence:
@@ -78,5 +97,6 @@
       scriptInterpreter: python -u
     keepgoing: false
     strategy: node-first
-  uuid: 12fda892-0ac7-4bb8-92af-5fd32ba96cbb
+  timeout: ${option.timeout}
+  uuid: 321ce69d-7b6f-41c4-9b1e-f9c8101ef80f
 

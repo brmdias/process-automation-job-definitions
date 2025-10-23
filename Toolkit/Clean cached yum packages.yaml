@@ -2,7 +2,7 @@
   description: ''
   executionEnabled: true
   group: Toolkit
-  id: fa7ee705-ab6b-44e9-8dbf-8e764ab4b9ea
+  id: 6c6e29d9-11b2-4f00-9a64-9361a5f2aad1
   loglevel: INFO
   name: Clean cached yum packages
   nodeFilterEditable: false
@@ -16,5 +16,5 @@
       exec: sudo yum clean all
     keepgoing: false
     strategy: node-first
-  uuid: fa7ee705-ab6b-44e9-8dbf-8e764ab4b9ea
+  uuid: 6c6e29d9-11b2-4f00-9a64-9361a5f2aad1
 

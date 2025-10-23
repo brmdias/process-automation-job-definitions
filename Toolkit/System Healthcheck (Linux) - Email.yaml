@@ -2,7 +2,7 @@
   description: ''
   executionEnabled: true
   group: Toolkit
-  id: d13536d4-eaa0-4d59-93fa-eb04fa0dd50e
+  id: 98bdb67a-adba-4378-ab74-04dcbd3fbf4b
   loglevel: INFO
   name: System Healthcheck (Linux) - Email
   nodeFilterEditable: false
@@ -19,9 +19,6 @@
   plugins:
     ExecutionLifecycle:
       Send Incident Output to Pagerduty: {}
-  runnerSelector:
-    runnerFilterMode: LOCAL
-    runnerFilterType: LOCAL_RUNNER
   scheduleEnabled: true
   schedules: []
   sequence:
@@ -44,5 +41,5 @@
           stepStatus: Any
         type: pagerduty-incident-output-capture
     strategy: node-first
-  uuid: d13536d4-eaa0-4d59-93fa-eb04fa0dd50e
+  uuid: 98bdb67a-adba-4378-ab74-04dcbd3fbf4b
 

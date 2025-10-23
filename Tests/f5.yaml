@@ -1,0 +1,98 @@
+- name: "F5 Pool Member Management"
+  description: "Comprehensive pool member management"
+  executionEnabled: true
+  sequence:
+    commands:
+    - script: |
+        #!/bin/bash
+        set -e
+        
+        # Function for logging
+        log() {
+          echo "[$(date +'%Y-%m-%d %H:%M:%S')] $1"
+        }
+        
+        # Function to get auth token
+        get_auth_token() {
+          local response
+          response=$(curl -sk -X POST \
+            -H "Content-Type: application/json" \
+            -d "{\"username\":\"${option.username}\",\"password\":\"${option.password}\"}" \
+            "https://${option.f5_host}/mgmt/shared/authn/login")
+          
+          if ! echo "$response" | jq -e .token.token > /dev/null; then
+            log "ERROR: Authentication failed"
+            exit 1
+          fi
+          
+          echo "$response" | jq -r .token.token
+        }
+        
+        # Main execution
+        log "Starting F5 operation"
+        
+        AUTH_TOKEN=$(get_auth_token)
+        if [ -z "$AUTH_TOKEN" ]; then
+          log "Failed to obtain auth token"
+          exit 1
+        }
+        
+        # Perform requested operation
+        case "${option.operation}" in
+          "status")
+            response=$(curl -sk -H "X-F5-Auth-Token: $AUTH_TOKEN" \
+              "https://${option.f5_host}/mgmt/tm/ltm/pool/${option.pool_name}/members")
+            echo "$response" | jq '.'
+            ;;
+          "enable")
+            response=$(curl -sk -X PATCH \
+              -H "X-F5-Auth-Token: $AUTH_TOKEN" \
+              -H "Content-Type: application/json" \
+              -d '{"state":"user-up"}' \
+              "https://${option.f5_host}/mgmt/tm/ltm/pool/${option.pool_name}/members/~${option.partition}~${option.member_name}")
+            log "Enable operation completed"
+            echo "$response" | jq '.'
+            ;;
+          "disable")
+            response=$(curl -sk -X PATCH \
+              -H "X-F5-Auth-Token: $AUTH_TOKEN" \
+              -H "Content-Type: application/json" \
+              -d '{"state":"user-down"}' \
+              "https://${option.f5_host}/mgmt/tm/ltm/pool/${option.pool_name}/members/~${option.partition}~${option.member_name}")
+            log "Disable operation completed"
+            echo "$response" | jq '.'
+            ;;
+          *)
+            log "ERROR: Invalid operation specified"
+            exit 1
+            ;;
+        esac
+  options:
+    f5_host:
+      required: true
+      description: "F5 Load Balancer hostname"
+    username:
+      required: true
+      secure: true
+      description: "F5 API username"
+    password:
+      required: true
+      secure: true
+      description: "F5 API password"
+    operation:
+      required: true
+      description: "Operation to perform"
+      values:
+        - "status"
+        - "enable"
+        - "disable"
+    pool_name:
+      required: true
+      description: "Name of the pool"
+    partition:
+      required: false
+      default: "Common"
+      description: "Partition name"
+    member_name:
+      required: false
+      description: "Pool member name (required for enable/disable operations)"

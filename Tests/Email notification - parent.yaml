@@ -2,7 +2,7 @@
   description: ''
   executionEnabled: true
   group: Tests
-  id: bbd1c819-2004-4eae-bcee-28019e7e6d02
+  id: 2d40cbd2-efe7-4e18-a04a-62177d1efb33
   loglevel: INFO
   name: Email notification - parent
   nodeFilterEditable: false
@@ -33,5 +33,5 @@
     - exec: echo "Parent job execution completed"
     keepgoing: false
     strategy: node-first
-  uuid: bbd1c819-2004-4eae-bcee-28019e7e6d02
+  uuid: 2d40cbd2-efe7-4e18-a04a-62177d1efb33
 

@@ -2,7 +2,7 @@
   description: ''
   executionEnabled: true
   group: Tests
-  id: ce945968-3dae-44b1-aac9-8956478766d7
+  id: 0266c6ed-5cb7-4736-9e64-7f902f1090fa
   loglevel: INFO
   name: test step execution var
   nodeFilterEditable: false
@@ -17,9 +17,6 @@
   nodesSelectedByDefault: true
   plugins:
     ExecutionLifecycle: null
-  runnerSelector:
-    runnerFilterMode: LOCAL
-    runnerFilterType: LOCAL_RUNNER
   scheduleEnabled: true
   schedules: []
   sequence:
@@ -29,5 +26,5 @@
       exec: echo "ExitCode Step1 - ${1:exec.exitCode*}"
     keepgoing: true
     strategy: node-first
-  uuid: ce945968-3dae-44b1-aac9-8956478766d7
+  uuid: 0266c6ed-5cb7-4736-9e64-7f902f1090fa
 

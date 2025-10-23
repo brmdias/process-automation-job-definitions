@@ -2,7 +2,7 @@
   description: Using `Linux OS Upgrade` job to upgrade RD-SERVER-02 from RD-SERVER-01.
   executionEnabled: true
   group: Toolkit/OS Upgrades
-  id: e11c220b-8e05-48bb-a706-6b5a5726d06a
+  id: 4877ce1d-d09d-4298-8d15-cd52f4d83f47
   loglevel: INFO
   name: Upgrade RD-SERVER-02
   nodeFilterEditable: false
@@ -37,5 +37,5 @@
         uuid: 78b2009f-63f4-4a53-85c8-b952cd3870d7
     keepgoing: false
     strategy: node-first
-  uuid: e11c220b-8e05-48bb-a706-6b5a5726d06a
+  uuid: 4877ce1d-d09d-4298-8d15-cd52f4d83f47
 

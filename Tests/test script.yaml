@@ -2,16 +2,12 @@
   description: ''
   executionEnabled: true
   group: Tests
-  id: 3dcf684d-904b-435c-a086-091b7645b8c2
+  id: 45dd0230-f01e-467e-b7eb-2744aa5f740c
   loglevel: INFO
   name: test script
   nodeFilterEditable: false
   plugins:
     ExecutionLifecycle: null
-  runnerSelector:
-    filter: LINUX
-    runnerFilterMode: TAGS
-    runnerFilterType: TAG_FILTER_AND
   scheduleEnabled: true
   schedules: []
   sequence:
@@ -20,5 +16,5 @@
     - scriptfile: /opt/apps/runner/test-script.sh
     keepgoing: true
     strategy: node-first
-  uuid: 3dcf684d-904b-435c-a086-091b7645b8c2
+  uuid: 45dd0230-f01e-467e-b7eb-2744aa5f740c
 

@@ -2,7 +2,7 @@
   description: ''
   executionEnabled: true
   group: Automation Actions
-  id: f79ac1c3-39f9-4b2e-b633-06b50e79a7cc
+  id: 532f0968-75f7-444f-bf1c-3891a799e730
   loglevel: INFO
   name: System Healthcheck (Linux)
   nodeFilterEditable: false
@@ -20,10 +20,6 @@
   plugins:
     ExecutionLifecycle:
       Send Incident Output to Pagerduty: {}
-  runnerSelector:
-    filter: BDIAS
-    runnerFilterMode: TAGS
-    runnerFilterType: TAG_FILTER_AND
   scheduleEnabled: true
   schedules: []
   sequence:
@@ -50,5 +46,5 @@
           stepStatus: Any
         type: pagerduty-incident-output-capture
     strategy: node-first
-  uuid: f79ac1c3-39f9-4b2e-b633-06b50e79a7cc
+  uuid: 532f0968-75f7-444f-bf1c-3891a799e730
 

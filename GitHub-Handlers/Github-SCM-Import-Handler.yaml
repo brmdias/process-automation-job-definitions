@@ -2,7 +2,7 @@
   description: ''
   executionEnabled: true
   group: GitHub-Handlers
-  id: 2c2f576f-8f67-4313-a5ef-e13cf8d503f2
+  id: d6dee956-0cbd-4a59-963a-10695849c8c9
   loglevel: INFO
   name: Github-SCM-Import-Handler
   nodeFilterEditable: false
@@ -17,9 +17,6 @@
     valueExposed: true
   plugins:
     ExecutionLifecycle: null
-  runnerSelector:
-    runnerFilterMode: LOCAL
-    runnerFilterType: LOCAL_RUNNER
   scheduleEnabled: true
   schedules: []
   sequence:
@@ -45,5 +42,5 @@
         }'
     keepgoing: false
     strategy: node-first
-  uuid: 2c2f576f-8f67-4313-a5ef-e13cf8d503f2
+  uuid: d6dee956-0cbd-4a59-963a-10695849c8c9
 

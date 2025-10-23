@@ -10,8 +10,8 @@
      - 1 step halting the execution in case of an error. This step also runs based in a job option value.
      - 1 final step to wrap-up the workflow (which only runs after specific steps)
   executionEnabled: true
-  group: Ruleset
-  id: c8ea99c7-7728-4a21-9735-a8fa83f7324e
+  group: RBA Features/Ruleset
+  id: 10c57ba1-721a-46bf-a4d8-d363db4a1468
   loglevel: INFO
   name: Ruleset example - Application upgrade
   nodeFilterEditable: false
@@ -36,11 +36,7 @@
     - '1'
     valuesListDelimiter: ','
   plugins:
-    ExecutionLifecycle: null
-  runnerSelector:
-    filter: LINUX
-    runnerFilterMode: TAGS
-    runnerFilterType: TAG_FILTER_AND
+    ExecutionLifecycle: {}
   scheduleEnabled: true
   schedules: []
   sequence:
@@ -115,5 +111,5 @@
             [7] if:export.step-result==NOK if:option.mode==HaltExecution
     strategy: ruleset
   tags: ruleset
-  uuid: c8ea99c7-7728-4a21-9735-a8fa83f7324e
+  uuid: 10c57ba1-721a-46bf-a4d8-d363db4a1468
 
