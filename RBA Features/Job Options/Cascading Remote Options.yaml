@@ -21,6 +21,9 @@
     valuesUrl: file:/var/lib/rundeck/var/dynamic_options/${option.distro.value}
   plugins:
     ExecutionLifecycle: {}
+  runnerSelector:
+    runnerFilterMode: LOCAL
+    runnerFilterType: LOCAL_RUNNER
   scheduleEnabled: true
   schedules: []
   sequence:

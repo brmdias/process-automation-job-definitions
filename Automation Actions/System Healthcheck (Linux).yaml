@@ -4,6 +4,7 @@
   group: Automation Actions
   id: 532f0968-75f7-444f-bf1c-3891a799e730
   loglevel: INFO
+  multipleExecutions: true
   name: System Healthcheck (Linux)
   nodeFilterEditable: false
   nodefilters:
@@ -13,13 +14,17 @@
       rankOrder: ascending
       successOnEmptyNodeFilter: false
       threadcount: '1'
-    filter: 'osFamily: unix'
+    filter: .*worker.*
   nodesSelectedByDefault: true
   options:
   - name: pd_incident_id
   plugins:
     ExecutionLifecycle:
       Send Incident Output to Pagerduty: {}
+  runnerSelector:
+    filter: BDIAS
+    runnerFilterMode: TAGS
+    runnerFilterType: TAG_FILTER_AND
   scheduleEnabled: true
   schedules: []
   sequence:
@@ -34,8 +39,6 @@
       exec: ifstat -t 1 5
     - description: System load
       exec: uptime
-    - description: User Logins
-      exec: who
     keepgoing: true
     pluginConfig:
       LogFilter:

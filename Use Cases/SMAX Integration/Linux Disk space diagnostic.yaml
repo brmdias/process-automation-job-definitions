@@ -18,6 +18,9 @@
     value: MDUyOGY4MzQtZDUxMS00NmUzLWI1MzgtY2QwODdkYzNkZjI0
   plugins:
     ExecutionLifecycle: {}
+  runnerSelector:
+    runnerFilterMode: LOCAL
+    runnerFilterType: LOCAL_RUNNER
   scheduleEnabled: true
   schedules: []
   sequence:

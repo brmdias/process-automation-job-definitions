@@ -1,0 +1,33 @@
+- defaultTab: nodes
+  description: ''
+  executionEnabled: true
+  group: Tests
+  id: d01f13fd-53d3-4e6c-bcfb-306c3775fa24
+  loglevel: INFO
+  name: Test LDAP
+  nodeFilterEditable: false
+  nodefilters:
+    dispatch:
+      excludePrecedence: true
+      keepgoing: false
+      rankOrder: ascending
+      successOnEmptyNodeFilter: false
+      threadcount: '1'
+    filter: pdt-bdias-aws-rundeckers
+  nodesSelectedByDefault: true
+  plugins:
+    ExecutionLifecycle: {}
+  scheduleEnabled: true
+  schedules: []
+  sequence:
+    commands:
+    - autoSecureInput: 'false'
+      passSecureInput: 'false'
+      script: |-
+        nslookup pdt-bdias.myrundeck.com
+
+        sudo realm join --user=bruno pdt-bdias.myrundeck.com
+    keepgoing: false
+    strategy: node-first
+  uuid: d01f13fd-53d3-4e6c-bcfb-306c3775fa24
+

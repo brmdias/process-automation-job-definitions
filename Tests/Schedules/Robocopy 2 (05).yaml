@@ -1,0 +1,32 @@
+- defaultTab: nodes
+  description: ''
+  executionEnabled: true
+  group: Tests/Schedules
+  id: 73f9a6c6-59ca-4bd8-9ca4-af76ed51f042
+  loglevel: INFO
+  name: Robocopy 2 (05)
+  nodeFilterEditable: false
+  plugins:
+    ExecutionLifecycle: {}
+  schedule:
+    dayofmonth:
+      day: '*'
+    month: '*'
+    time:
+      hour: '*'
+      minute: 5/15
+      seconds: '0'
+    year: '*'
+  scheduleEnabled: false
+  schedules:
+  - jobParams: null
+    name: Schedule-05min
+  sequence:
+    commands:
+    - exec: echo "Running this job at $uptime"
+    - exec: sleep 30s
+    - exec: echo "Job completed"
+    keepgoing: false
+    strategy: node-first
+  uuid: 73f9a6c6-59ca-4bd8-9ca4-af76ed51f042
+

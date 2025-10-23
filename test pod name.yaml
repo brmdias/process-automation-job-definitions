@@ -1,0 +1,43 @@
+- defaultTab: nodes
+  description: ''
+  executionEnabled: true
+  id: e0b30d1a-c613-4267-82e8-22fb2dd552f9
+  loglevel: INFO
+  name: test pod name
+  nodeFilterEditable: false
+  nodefilters:
+    dispatch:
+      excludePrecedence: true
+      keepgoing: false
+      rankOrder: ascending
+      successOnEmptyNodeFilter: false
+      threadcount: '1'
+    filter: .*-runner
+  nodesSelectedByDefault: true
+  plugins:
+    ExecutionLifecycle: null
+  scheduleEnabled: true
+  schedules: []
+  sequence:
+    commands:
+    - autoSecureInput: 'false'
+      fileExtension: .py
+      interpreterArgsQuoted: false
+      passSecureInput: 'false'
+      script: |-
+        import re
+
+        title = "[#28971] Parameter / O2_ELK / IDVS_-_idvs-gui-service-688cb99597-c545b_ASG373_CAT044_949e79dc-8824-4066-9855-"
+
+        # Regex to match the pod name pattern
+        match = re.search(r'([a-z0-9-]+-\d{9,}-[a-z0-9]{5})', title)
+        if match:
+            pod_name = match.group(1)
+            print(pod_name)
+        else:
+            print("Pod name not found.")
+      scriptInterpreter: python -u
+    keepgoing: false
+    strategy: node-first
+  uuid: e0b30d1a-c613-4267-82e8-22fb2dd552f9
+

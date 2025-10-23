@@ -1,0 +1,62 @@
+- defaultTab: nodes
+  description: ''
+  executionEnabled: true
+  group: Tests/Roche/Email Issue
+  id: aaf74327-e6f1-4ce7-8613-86b4c98f506c
+  loglevel: INFO
+  name: Email
+  nodeFilterEditable: false
+  nodefilters:
+    dispatch:
+      excludePrecedence: true
+      keepgoing: false
+      rankOrder: ascending
+      successOnEmptyNodeFilter: false
+      threadcount: '1'
+    filter: pdt.*
+  nodesSelectedByDefault: true
+  notification:
+    onavgduration:
+      email:
+        recipients: bdias@pagerduty.com
+        subject: System Health Check notification - CHILD (DELAYED)
+    onfailure:
+      email:
+        recipients: bdias@pagerduty.com
+        subject: '[FAILURE] System Health Check notification'
+    onsuccess:
+      email:
+        attachLog: true
+        attachLogInline: true
+        recipients: bdias@pagerduty.com
+        subject: '[SUCCESS] System Health Check notification'
+  notifyAvgDurationThreshold: 30s
+  options:
+  - label: File Path
+    name: file-path
+  orchestrator:
+    configuration:
+      attribute: tags
+      sort: lowest
+    type: orchestrator-highest-lowest-attribute
+  plugins:
+    ExecutionLifecycle: {}
+  runnerSelector:
+    runnerFilterMode: LOCAL
+    runnerFilterType: LOCAL_RUNNER
+  scheduleEnabled: true
+  schedules: []
+  sequence:
+    commands:
+    - description: List files
+      exec: ls -l
+    - description: Print file
+      exec: cat ${option.file-path}
+    keepgoing: false
+    pluginConfig:
+      WorkflowStrategy:
+        ruleset:
+          rules: '[*] run-in-sequence'
+    strategy: ruleset
+  uuid: aaf74327-e6f1-4ce7-8613-86b4c98f506c
+

@@ -103,6 +103,10 @@
       roi-metrics:
         userRoiData: '[{"key":"min","label":"Minutes","value":"30","desc":"Minutes
           saved in manual work (Field key: min)"}]'
+  runnerSelector:
+    filter: US-WEST
+    runnerFilterMode: TAGS
+    runnerFilterType: TAG_FILTER_AND
   scheduleEnabled: true
   schedules: []
   sequence:

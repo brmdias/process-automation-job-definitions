@@ -1,0 +1,32 @@
+- defaultTab: nodes
+  description: ''
+  executionEnabled: true
+  group: Tests/Schedules
+  id: 8444d862-fc33-4d85-b666-33f6b9407e1c
+  loglevel: INFO
+  name: Robocopy 3 (10)
+  nodeFilterEditable: false
+  plugins:
+    ExecutionLifecycle: {}
+  schedule:
+    dayofmonth:
+      day: '*'
+    month: '*'
+    time:
+      hour: '*'
+      minute: 10/15
+      seconds: '0'
+    year: '*'
+  scheduleEnabled: false
+  schedules:
+  - jobParams: null
+    name: Schedule-10min
+  sequence:
+    commands:
+    - exec: echo "Running this job at $time"
+    - exec: sleep 30s
+    - exec: echo "Job completed"
+    keepgoing: false
+    strategy: node-first
+  uuid: 8444d862-fc33-4d85-b666-33f6b9407e1c
+
