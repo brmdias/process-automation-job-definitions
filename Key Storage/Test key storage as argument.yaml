@@ -1,0 +1,27 @@
+- defaultTab: nodes
+  description: ''
+  executionEnabled: true
+  group: Key Storage
+  id: 684c3272-a0cd-4be0-882d-0b0f740f12f9
+  loglevel: INFO
+  name: Test key storage as argument
+  nodeFilterEditable: false
+  options:
+  - name: job-option-password
+    secure: true
+    storagePath: keys/project/dev/pagerduty/test-password
+    valueExposed: true
+  plugins:
+    ExecutionLifecycle: {}
+  runnerSelector:
+    runnerFilterMode: LOCAL
+    runnerFilterType: LOCAL_RUNNER
+  scheduleEnabled: true
+  schedules: []
+  sequence:
+    commands:
+    - exec: 'echo "trying to print a password: ${option.job-option-password}"'
+    keepgoing: false
+    strategy: node-first
+  uuid: 684c3272-a0cd-4be0-882d-0b0f740f12f9
+
