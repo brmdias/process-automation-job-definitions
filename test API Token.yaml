@@ -1,0 +1,30 @@
+- defaultTab: nodes
+  description: ''
+  executionEnabled: true
+  id: 8a3c5bc0-6db7-4e1b-8bff-9ce1db65b1b2
+  loglevel: INFO
+  name: test API Token
+  nodeFilterEditable: false
+  options:
+  - name: project
+  - hidden: true
+    name: rba-token
+    secure: true
+    storagePath: keys/bdias-rba-token
+    valueExposed: true
+  plugins:
+    ExecutionLifecycle: null
+  scheduleEnabled: true
+  schedules: []
+  sequence:
+    commands:
+    - autoSecureInput: 'false'
+      passSecureInput: 'false'
+      script: |+
+        curl https://<rba-url>
+         --header X-RUNDECK-AUTH: @option.rba-token@
+
+    keepgoing: false
+    strategy: node-first
+  uuid: 8a3c5bc0-6db7-4e1b-8bff-9ce1db65b1b2
+

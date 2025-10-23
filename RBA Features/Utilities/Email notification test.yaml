@@ -16,6 +16,9 @@
   notifyAvgDurationThreshold: null
   plugins:
     ExecutionLifecycle: {}
+  runnerSelector:
+    runnerFilterMode: LOCAL
+    runnerFilterType: LOCAL_RUNNER
   schedule:
     month: '*'
     time:

@@ -1,0 +1,36 @@
+- defaultTab: nodes
+  description: ''
+  executionEnabled: true
+  group: Tests/Run Later
+  id: 737e33e6-5f49-4066-a9f6-24d471d852fb
+  loglevel: INFO
+  name: Test RunAtTime
+  nodeFilterEditable: false
+  options:
+  - name: api-token
+    secure: true
+    storagePath: keys/rba/bdias-rba-token
+    valueExposed: true
+  - label: Job UUID
+    name: jobuuid
+    value: 95d781a6-39ed-4da4-ae90-f197de48c22d
+  plugins:
+    ExecutionLifecycle: null
+  scheduleEnabled: true
+  schedules: []
+  sequence:
+    commands:
+    - autoSecureInput: 'false'
+      passSecureInput: 'false'
+      script: |-
+        run_at_time=$(date -u -d "+1 minute" +"%Y-%m-%dT%H:%M:%SZ")
+        echo "$run_at_time"
+        curl -X POST \
+          -H "Content-Type: application/json" \
+          -H "X-Rundeck-Auth-Token: @option.api-token@" \
+          -d "{\"runAtTime\":\"$run_at_time\"}" \
+          "https://bdias.myrundeck.com/api/44/job/@option.jobuuid@/run"
+    keepgoing: false
+    strategy: node-first
+  uuid: 737e33e6-5f49-4066-a9f6-24d471d852fb
+

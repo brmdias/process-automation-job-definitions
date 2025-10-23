@@ -1,0 +1,46 @@
+- defaultTab: output
+  description: ''
+  executionEnabled: true
+  group: Tests/Cyberark
+  id: db02840c-1888-429d-b919-599c34bfdc52
+  loglevel: INFO
+  multipleExecutions: true
+  name: NodeDispathWithCyberark
+  nodeFilterEditable: false
+  nodefilters:
+    dispatch:
+      excludePrecedence: true
+      keepgoing: true
+      rankOrder: ascending
+      successOnEmptyNodeFilter: false
+      threadcount: '1'
+    filter: 'name: pdt-bdias-worker-1-a '
+  nodesSelectedByDefault: true
+  plugins:
+    ExecutionLifecycle: null
+  runnerSelector:
+    runnerFilterMode: LOCAL
+    runnerFilterType: LOCAL_RUNNER
+  scheduleEnabled: false
+  schedules: []
+  sequence:
+    commands:
+    - exec: hostname
+    - exec: hostname -I
+    - exec: uname -a
+    - autoSecureInput: 'false'
+      passSecureInput: 'false'
+      script: |-
+        whoami
+        pwd
+        ls -l
+        echo Lets add a file
+        touch testfile.txt
+        ls -l
+        echo Lets remove it
+        rm testfile.txt
+        ls -l
+    keepgoing: true
+    strategy: node-first
+  uuid: db02840c-1888-429d-b919-599c34bfdc52
+

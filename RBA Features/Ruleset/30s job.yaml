@@ -6,12 +6,22 @@
   loglevel: INFO
   name: 30s job
   nodeFilterEditable: false
+  notification:
+    onavgduration:
+      email:
+        attachType: file
+        recipients: bdias@pagerduty.com
+        subject: JOB STUCK - ${job.name}
+  notifyAvgDurationThreshold: 5m
   options:
   - label: Sleep time
     name: sleep
     value: 30s
   plugins:
     ExecutionLifecycle: {}
+  runnerSelector:
+    runnerFilterMode: LOCAL
+    runnerFilterType: LOCAL_RUNNER
   scheduleEnabled: true
   schedules: []
   sequence:

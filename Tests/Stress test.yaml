@@ -1,0 +1,29 @@
+- defaultTab: output
+  description: ''
+  executionEnabled: true
+  group: Tests
+  id: b61c30d3-1bb3-4cbf-8ebc-53d79154f758
+  loglevel: INFO
+  multipleExecutions: true
+  name: Stress test
+  nodeFilterEditable: false
+  plugins:
+    ExecutionLifecycle: null
+  runnerSelector:
+    runnerFilterMode: LOCAL
+    runnerFilterType: LOCAL_RUNNER
+  scheduleEnabled: false
+  schedules: []
+  sequence:
+    commands:
+    - exec: hostname
+    - autoSecureInput: 'false'
+      passSecureInput: 'false'
+      script: |
+        #!/bin/bash
+        while :; do :; done
+    keepgoing: true
+    strategy: node-first
+  timeout: 5m
+  uuid: b61c30d3-1bb3-4cbf-8ebc-53d79154f758
+

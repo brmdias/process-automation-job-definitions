@@ -4,8 +4,16 @@
   group: Tests/Checkpoint
   id: dd9c1268-707e-4943-9488-55022b0212f8
   loglevel: INFO
+  multipleExecutions: true
   name: Log Storage Checkpoint test
   nodeFilterEditable: false
+  options:
+  - label: Count
+    name: count
+    value: '20'
+  - label: Interval (in sec)
+    name: interval
+    value: '5'
   plugins:
     ExecutionLifecycle: null
   scheduleEnabled: true
@@ -20,8 +28,8 @@
         # Purpose: Generate log output in defined intervals for checkpoint visibility testing.
         # Adjust COUNT and SLEEP_TIME to make the job run longer/shorter as needed.
 
-        COUNT=20            # Number of lines to print
-        SLEEP_TIME=5        # Seconds to wait between lines
+        COUNT=@option.count@                # Number of lines to print
+        SLEEP_TIME=@option.interval@        # Seconds to wait between lines
 
         echo "Checkpoint test begins: printing $COUNT lines, every $SLEEP_TIME seconds."
 

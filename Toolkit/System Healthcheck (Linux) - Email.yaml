@@ -19,6 +19,9 @@
   plugins:
     ExecutionLifecycle:
       Send Incident Output to Pagerduty: {}
+  runnerSelector:
+    runnerFilterMode: LOCAL
+    runnerFilterType: LOCAL_RUNNER
   scheduleEnabled: true
   schedules: []
   sequence:

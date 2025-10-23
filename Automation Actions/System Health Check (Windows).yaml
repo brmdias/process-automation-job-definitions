@@ -20,6 +20,10 @@
   plugins:
     ExecutionLifecycle:
       Send Incident Output to Pagerduty: {}
+  runnerSelector:
+    filter: BDIAS
+    runnerFilterMode: TAGS
+    runnerFilterType: TAG_FILTER_AND
   scheduleEnabled: true
   schedules: []
   sequence:
@@ -48,5 +52,6 @@
           stepStatus: Any
         type: pagerduty-incident-output-capture
     strategy: node-first
+  tags: critical
   uuid: 29d1c6d6-fe19-4333-aa37-ef8dfc05dc8b
 

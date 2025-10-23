@@ -1,0 +1,111 @@
+- defaultTab: nodes
+  description: "\n\n# Description: \n\nThis Automation Job, named **Check External\
+    \ SSL Certificates**, is designed to validate the SSL certificate validity of\
+    \ a list of specified websites. It is a simple shell script that iterates through\
+    \ each site listed, checking the SSL validity using OpenSSL Client. If a certificate\
+    \ is found to expire within a specified number of days (default is 7 days), it\
+    \ generates a PagerDuty alert. This requires configuring a routing key as a password\
+    \ in the keystore.\n\n## Author\n\nJustyn Roberts\n\n## Last modified\n\nNot specified.\n\
+    \n# Prerequisites\n\n- RBA has a Runner installed or PAOP\n- Bash script relies\
+    \ on OpenSSL Client\n- Linux tested\n- A valid email address of a PD user and\
+    \ a valid integration key stored as a password in the keystore are required.\n\
+    \n# Options\n\n| Option          | Description                               \
+    \            | Default Value |\n|-----------------|-------------------------------------------------------|---------------|\n\
+    | Validity Days   | How many days to leave grace before considering \"at risk\"\
+    \ | 7             |\n\n# Disclaimer\n\nThis document and the described automation\
+    \ job are provided \"as is\" without warranty of any kind, express or implied.\
+    \ The user assumes all risks associated with the use of this job. The creators\
+    \ or contributors are not liable for any direct, indirect, incidental, special,\
+    \ exemplary, or consequential damages (including, but not limited to, procurement\
+    \ of substitute goods or services; loss of use, data, or profits; or business\
+    \ interruption) caused and on any theory of liability, whether in contract, strict\
+    \ liability, or tort (including negligence or otherwise) arising in any way out\
+    \ of the use of this job, even if advised of the possibility of such damage.\n"
+  executionEnabled: true
+  group: Security
+  id: 0d30fafc-1930-4081-af8d-54696e18401a
+  loglevel: INFO
+  name: 'Check External SSL Certificates '
+  nodeFilterEditable: false
+  nodefilters:
+    dispatch:
+      excludePrecedence: true
+      keepgoing: false
+      rankOrder: ascending
+      successOnEmptyNodeFilter: false
+      threadcount: '1'
+    filter: .*runner
+  nodesSelectedByDefault: true
+  options:
+  - description: How many days to leave grace before considering "at risk"
+    label: 'Validity Days '
+    name: days
+    value: '7'
+  plugins:
+    ExecutionLifecycle:
+      result-data-json-template:
+        jsonTemplate: '{"export":{"justyn":"1"}}'
+  runnerSelector:
+    filter: MAIN-LINUX
+    runnerFilterMode: TAGS
+    runnerFilterType: TAG_FILTER_AND
+  scheduleEnabled: true
+  schedules: []
+  sequence:
+    commands:
+    - args: website
+      autoSecureInput: 'false'
+      description: 'Website List - (Line Separated, Use this UI to edit) - Could equally
+        be stored in SCM.'
+      interpreterArgsQuoted: false
+      passSecureInput: 'false'
+      script: |-
+        virtual-access-gate.telefonica.de
+        telefonica.de
+        www.pagerduty.com
+        bdias.myrundeck.com
+      scriptInterpreter: \cp -fR
+    - autoSecureInput: 'false'
+      description: Execute check for each website.
+      passSecureInput: 'false'
+      plugins:
+        LogFilter:
+        - config:
+            captureMultipleKeysValues: 'true'
+            hideOutput: 'false'
+            logData: 'true'
+            name: abnormaloutput
+            regex: ^.*Certificate\sfor\s(.*)
+          type: key-value-data-multilines
+      script: "#!/bin/bash\n\n# Script checks site, with optional time out of 2s\n\
+        # DOMAINS= \"\" : path to line delimited external file of sites to check\n\
+        \nTIMEOUT=2\nDOMAINS=\"website\"\nDAYS=@option.days@\n\nfunction child_timeout\
+        \ () {\n        child=$!\n        timeout=$1\n        (\n        #trap --\
+        \ \"\" SIGINT\n\n        sleep $timeout\n        if [ $(ps -o pid= -o comm=\
+        \ --ppid $$ | grep -o $child) ]; then\n                kill -9 $child\n  \
+        \      fi\n        ) &\nwait $child > /dev/null 2>&1\n\n}\n\nfunction checksite\
+        \ () {\n\nexpirationdate=$(echo | openssl s_client -servername \"$TARGET\"\
+        \ -connect \"$TARGET:443\" 2>/dev/null \\\n    | openssl x509 -noout -enddate\
+        \ \\\n    | cut -d= -f2 \\\n    | xargs -I{} date -d \"{}\" +%s)\nin7days=$(($(date\
+        \ +%s) + (86400*DAYS)));\n   \nif [ \"$in7days\" -gt \"$expirationdate\" ];\
+        \ then\n      echo \"🟥 Certificate for 🌍[$TARGET] expired/expires in less\
+        \ than $DAYS days, on $(date -d @\"$expirationdate\" '+%Y-%m-%d')\" ;\n  \
+        \    # raisePDevevent() - Could use PDCLI or Webhook here.\nelse     \n\n\
+        \      echo \"🟩 $TARGET - $(date -d @\"$expirationdate\" '+%Y-%m-%d')\";\n\
+        \  fi;\n}\n\n# Main loop\nwhile read -r TARGET; do\n(checksite) & child_timeout\
+        \ $TIMEOUT\ndone<\"${DOMAINS}\""
+    - configuration:
+        export: output
+        group: export
+        value: ${data.abnormaloutput*}
+      description: Convert Output To Variable
+      errorhandler:
+        exec: echo "No issues found"
+        keepgoingOnSuccess: true
+      nodeStep: false
+      type: export-var
+    keepgoing: false
+    strategy: node-first
+  tags: security
+  uuid: 0d30fafc-1930-4081-af8d-54696e18401a
+

@@ -1,0 +1,40 @@
+- defaultTab: nodes
+  description: with API Key
+  executionEnabled: true
+  group: Tests/Email
+  id: 732eff03-298b-4be5-b661-c3d6c89a1d8d
+  loglevel: INFO
+  name: Email via AWS SNS v1
+  nodeFilterEditable: false
+  notification:
+    onsuccess:
+      plugin:
+        configuration:
+          authentication: None
+          body: |-
+            {
+              "message": "Job Failure Notification\n\nProject: ${job.project}\nJob Name: ${job.name}\nJob Id: ${job.id}\nJob Exec Id: ${job.execid}\nUsername: ${job.username}\nExec Id: ${job.execid}\nFailed Exec Logs: ${job.href}"
+            }
+          contentType: application/json
+          headers: 'x-api-key: ${option.api-gateway-key}'
+          method: POST
+          remoteUrl: https://bnm6uisjn1.execute-api.us-west-2.amazonaws.com/v1/
+          timeout: '30000'
+        type: HttpNotification
+  notifyAvgDurationThreshold: null
+  options:
+  - name: api-gateway-key
+    secure: true
+    storagePath: keys/aws/api-gateway/pdt-bdias-api-for-emails
+    valueExposed: true
+  plugins:
+    ExecutionLifecycle: null
+  scheduleEnabled: true
+  schedules: []
+  sequence:
+    commands:
+    - exec: echo Hello World!
+    keepgoing: false
+    strategy: node-first
+  uuid: 732eff03-298b-4be5-b661-c3d6c89a1d8d
+

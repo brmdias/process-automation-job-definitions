@@ -1,0 +1,29 @@
+- defaultTab: nodes
+  description: ''
+  executionEnabled: true
+  id: 98477982-045c-4262-8e4f-43085e5e14af
+  loglevel: INFO
+  name: test-sophos
+  nodeFilterEditable: false
+  plugins:
+    ExecutionLifecycle: null
+  runnerSelector:
+    runnerFilterMode: LOCAL
+    runnerFilterType: LOCAL_RUNNER
+  scheduleEnabled: true
+  schedules: []
+  sequence:
+    commands:
+    - autoSecureInput: 'false'
+      fileExtension: .py
+      interpreterArgsQuoted: false
+      passSecureInput: 'false'
+      script: |-
+        print("Hello")
+        print("Hello")
+        print("Hello")
+      scriptInterpreter: python
+    keepgoing: false
+    strategy: node-first
+  uuid: 98477982-045c-4262-8e4f-43085e5e14af
+

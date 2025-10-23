@@ -1,0 +1,23 @@
+- defaultTab: nodes
+  description: ''
+  executionEnabled: true
+  group: Tests/Roche/Email Issue
+  id: dc78e8af-413a-449d-8d73-947262fdcf27
+  loglevel: INFO
+  name: Parent job with email on it
+  nodeFilterEditable: false
+  plugins:
+    ExecutionLifecycle: {}
+  scheduleEnabled: true
+  schedules: []
+  sequence:
+    commands:
+    - jobref:
+        group: Tests/Roche/Email Issue
+        name: Email
+        nodeStep: 'true'
+        uuid: aaf74327-e6f1-4ce7-8613-86b4c98f506c
+    keepgoing: false
+    strategy: node-first
+  uuid: dc78e8af-413a-449d-8d73-947262fdcf27
+

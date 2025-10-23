@@ -1,0 +1,23 @@
+- defaultTab: nodes
+  description: ''
+  executionEnabled: true
+  group: Tests/Cyberark
+  id: 5f9484d4-0504-4975-a495-e0b6161ca2b5
+  loglevel: INFO
+  name: Test Cyberark connection via curl
+  nodeFilterEditable: false
+  plugins:
+    ExecutionLifecycle: null
+  scheduleEnabled: true
+  schedules: []
+  sequence:
+    commands:
+    - autoSecureInput: 'false'
+      passSecureInput: 'false'
+      script: |-
+        curl -k \
+          "https://services-uscentral.skytap.com:14417/AIMWebService/api/Accounts?AppID=testappid&Safe=Test&Object=Operating System-UnixSSHKeys-bdias-worker-1-ec2-user"
+    keepgoing: false
+    strategy: node-first
+  uuid: 5f9484d4-0504-4975-a495-e0b6161ca2b5
+

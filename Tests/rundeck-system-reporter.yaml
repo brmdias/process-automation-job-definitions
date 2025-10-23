@@ -1,0 +1,508 @@
+- defaultTab: nodes
+  description: |-
+    System/Rundeck analyzer and reporter
+
+    _Collects useful data from Rundeck's environment as much as possible to reduce time consuming troubleshooting in an all-in-one log output:_
+
+    - Get Rundeck's System Report
+    - Checks and set variables based on system report's data
+    - Provides help for Java Virtual Machine troubleshooting
+    - Get system statistics
+      - Machine info, CPU, memory, max/current open file descriptors, large size folders
+      - Rundeck user info, storage size, service status
+    - Get Rundeck's healthcheck metrics
+    - Get filesystem IO statistics
+    - Get Java processes running
+    - Get Rundeck processes running
+    - Get Rundeck's processes/threads via TOP
+    - Get dump of Rundeck threads and Garbage collector
+    - Get database statistics
+      - Database type, version, tables, user privileges, current processlist, schema size
+  executionEnabled: true
+  group: Tests
+  id: 223a313e-81e2-4572-86e9-29f8759d4656
+  loglevel: INFO
+  name: rundeck-system-reporter
+  nodeFilterEditable: false
+  options:
+  - description: Job's platform availability
+    enforced: true
+    name: rundeck-platform
+    value: Linux
+    values:
+    - Linux
+    valuesListDelimiter: ','
+  - description: Login username to authenticate
+    name: username
+    required: true
+    value: admin
+  - description: Login password to authenticate
+    name: password
+    required: true
+    secure: true
+    valueExposed: true
+  plugins:
+    ExecutionLifecycle: null
+  runnerSelector:
+    runnerFilterMode: LOCAL
+    runnerFilterType: LOCAL_RUNNER
+  scheduleEnabled: true
+  schedules: []
+  sequence:
+    commands:
+    - description: check-platform
+      errorhandler:
+        exec: 'echo "Platform ${option.rundeck-platform} not matching current node:
+          ${node.os-name}"'
+      exec: '[[ "${option.rundeck-platform}" == "${node.os-name}" ]] || exit 1'
+    - description: set-configs
+      plugins:
+        LogFilter:
+        - config:
+            filter: .
+            logData: 'false'
+            prefix: result
+          type: json-mapper
+        - config:
+            loglevel: verbose
+            matchLoglevel: all
+            quietMatch: 'true'
+          type: quiet-output
+      script: |+
+        #!/bin/bash
+
+        ## SET CONFIGS
+        cat << EOF
+        {
+          "api":"40",
+          "exitcode":"0",
+          "jobname":"@job.name@",
+          "tempfile":"/tmp/@job.name@",
+          "rdurl":"@job.serverUrl@",
+          "rdusername":"@option.username@",
+          "rdpassword":"@option.password@",
+          "logrotation":"@option.log-rotation@",
+          "restart":"@option.restart@"
+        }
+        EOF
+
+    - description: create-cookie
+      plugins:
+        LogFilter: []
+      script: |+
+        #!/bin/bash
+
+        TEMPFILE="@data.tempfile@"
+        RDURL="@data.rdurl@"
+        RDUSER="@data.rdusername@"
+        RDPASS="@data.rdpassword@"
+
+
+        ## CREATE WEB COOKIE
+        curl -k -s -X POST $RDURL/j_security_check -d "j_username=$RDUSER&j_password=$RDPASS" -c $TEMPFILE.cookie
+
+    - description: get-rd-sysreport
+      plugins:
+        LogFilter:
+        - config:
+            filter: .
+            logData: 'true'
+            prefix: result
+          type: json-mapper
+        - config:
+            captureMultipleKeysValues: 'false'
+            hideOutput: 'true'
+            logData: 'false'
+            name: sysreport
+            regex: ^(.+)
+          type: key-value-data-multilines
+        - config:
+            loglevel: verbose
+            matchLoglevel: all
+            quietMatch: 'true'
+          type: quiet-output
+      script: |+
+        #!/bin/bash
+
+        TEMPFILE="@data.tempfile@"
+        RDURL="@data.rdurl@"
+
+
+        ## GET SYSTEM REPORT
+        curl -k -s -X POST $RDURL/systemReport/doExport -b $TEMPFILE.cookie -H Accept:application/json \
+          -d "systemStats=on&rundeckStats=on&threadDump=on&licensing=on&projectStats=on&frameworkConfig=on&rundeckConfig=on&systemEnv=on&fullConfig=on&exportFormat=json" \
+          > $TEMPFILE.json
+
+        cat $TEMPFILE.json
+
+    - description: checks-set
+      plugins:
+        LogFilter:
+        - config:
+            filter: .
+            logData: 'true'
+            prefix: result
+          type: json-mapper
+        - config:
+            loglevel: verbose
+            matchLoglevel: all
+            quietMatch: 'true'
+            regex: ^.*db(username|password).*
+          type: quiet-output
+      script: "#!/bin/bash\n\nRDURL=\"@data.rdurl@\"\nJOBNAME=\"@data.jobname@\"\n\
+        PID=\"@data.config.full.PID@\"\nRDCONFPATH=\"@data.config.full.rdeck.config@\"\
+        \nRDBASEPATH=\"@data.config.environment.HOME@\"\n\n\n## CHECKS AND SET\nif\
+        \ [[ \"$PID\" -gt 0 ]]; then\n  if [[ $RDBASEPATH =~ \"/var/lib\" ]]; then\n\
+        \    RDLOGPATH=\"/var/log/rundeck\"\n  else\n    RDLOGPATH=\"$RDBASEPATH/var/log\"\
+        \n  fi\n\n  FRAMEWORKPROPS=\"$RDCONFPATH/framework.properties\"\n  RDCONFIGPROPS=\"\
+        $RDCONFPATH/rundeck-config.properties\"\n  DBDRIVER=\"`grep dataSource.driverClassName\
+        \ $RDCONFIGPROPS | grep -v '#' | cut -d '=' -f 2 | xargs`\"\n  DBURL=\"jdbc`grep\
+        \ dataSource.url $RDCONFIGPROPS | grep -v '#' | sed 's#^data.*jdbc##g' | xargs`\"\
+        \n  DBUSERNAME=\"`grep dataSource.username $RDCONFIGPROPS | grep -v '#' |\
+        \ cut -d '=' -f 2 | xargs`\"\n  DBPASSWORD=\"`grep dataSource.password $RDCONFIGPROPS\
+        \ | grep -v '#' | cut -d '=' -f 2 | xargs`\"\n  \n  if [[ \"$DBURL\" =~ \"\
+        mysql\" ]]; then\n    DBQUERY=\"$DBQUERY SELECT VERSION(); SELECT '';\" #\
+        \ VERSION/INFO\n    DBQUERY=\"$DBQUERY SHOW TABLES; SELECT '';\" # TABLES\n\
+        \    DBQUERY=\"$DBQUERY SELECT COUNT(id) FROM execution; SELECT '';\" # EXECUTIONS\
+        \ COUNT\n    DBQUERY=\"$DBQUERY SHOW PRIVILEGES; SELECT '';\" # USER PRIVILEGES\n\
+        \    DBQUERY=\"$DBQUERY SHOW FULL PROCESSLIST; SELECT '';\" # CURRENT CONNECTIONS\n\
+        \    DBQUERY=\"$DBQUERY SHOW GLOBAL VARIABLES LIKE '%connect%'; SELECT '';\"\
+        \ # CONNECTION SETTINGS\n    DBQUERY=\"$DBQUERY SHOW TABLE STATUS; SELECT\
+        \ '';\" # TABLES SIZE\n\n  elif [[ \"$DBURL\" =~ \"postgresql\" ]]; then\n\
+        \    DBQUERY=\"$DBQUERY \\dt+; SELECT '';\" # TABLES\n    DBQUERY=\"$DBQUERY\
+        \ SELECT datname,client_addr,state,query FROM pg_stat_activity; SELECT '';\"\
+        \ # CURRENT CONNECTIONS\n    DBQUERY=\"$DBQUERY SHOW max_connections; SELECT\
+        \ '';\" # CONNECTION SETTINGS\n\n  elif [[ \"$DBURL\" =~ \"mssql\" ]]; then\n\
+        \    DBQUERY=\"$DBQUERY EXEC sp_spaceused; SELECT '';\" # TABLES SIZE\n\n\
+        \  elif [[ \"$DBURL\" =~ \"oracle\" ]]; then\n    DBQUERY=\"$DBQUERY SELECT\
+        \ name,version,open_mode,status FROM v\\$database,v\\$instance;\" # VERSION/INFO\n\
+        \    DBQUERY=\"$DBQUERY SELECT table_name FROM all_tables WHERE OWNER='$DBUSERNAME';\"\
+        \ # TABLES\n    DBQUERY=\"$DBQUERY SELECT username,granted_role,admin FROM\
+        \ USER_ROLE_PRIVS;\" # USER PRIVILEGES\n    DBQUERY=\"$DBQUERY SELECT grantee,granted_role\
+        \ FROM DBA_ROLE_PRIVS;\" # USER PRIVILEGES\n    DBQUERY=\"$DBQUERY SELECT\
+        \ username,account_status,last_login FROM DBA_USERS;\" # USER INFO\n    DBQUERY=\"\
+        $DBQUERY SELECT COUNT(username),username FROM v\\$session WHERE username IS\
+        \ NOT NULL;\" # CURRENT CONNECTIONS\n    DBQUERY=\"$DBQUERY SELECT logins\
+        \ FROM v\\$instance;\"\n  fi\n\n  cat << EOF\n{\n  \"rdlogpath\":\"$RDLOGPATH\"\
+        ,\n  \"frameworkprops\":\"$FRAMEWORKPROPS\",\n  \"rdconfigprops\":\"$RDCONFIGPROPS\"\
+        ,\n  \"dbdriver\":\"$DBDRIVER\",\n  \"dburl\":\"$DBURL\",\n  \"dbusername\"\
+        :\"$DBUSERNAME\",\n  \"dbpassword\":\"$DBPASSWORD\",\n  \"dbquery\":\"$DBQUERY\"\
+        \n}\nEOF\n\nelse\n  echo \"{ \\\"error\\\":\\\"Cancelling job. PID not retrieved\
+        \ on $RDURL\\\" }\"\n  exit 1\nfi\n\n"
+    - description: start-reporter
+      plugins:
+        LogFilter: []
+      script: |+
+        #!/bin/bash
+
+        RDURL="@data.rdurl@"
+        JOBNAME="@data.jobname@"
+        PID="@data.config.full.PID@"
+        PROJECT="@job.project@"
+        EXECID="@job.execid@"
+
+
+        ## START SYSTEM REPORTER
+        echo "$JOBNAME on $RDURL (PID: $PID) [`date`]"
+        echo "This report can be downloaded with below link:"
+        echo "$RDURL/project/$PROJECT/execution/downloadOutput/$EXECID?view=inline&formatted=false&stripansi=true"
+
+    - description: help-java
+      plugins:
+        LogFilter: []
+      script: |+
+        #!/bin/bash
+
+        API="@data.api@"
+        RDURL="@data.rdurl@"
+        JOBNAME="@data.jobname@"
+        TEMPFILE="@data.tempfile@"
+        PID="@data.config.full.PID@"
+        RDCONFPATH="@data.config.full.rdeck.config@"
+        RDBASEPATH="@data.config.environment.HOME@"
+        RDLOGPATH="@data.rdlogpath@"
+        SERVICELOG="$RDLOGPATH/service.log"
+        CONFIGFILE="`mktemp /tmp/${job.name}-XXX.conf`"
+        RESTART="@option.restart@"
+        JAVAVERSION="@data.jvm.java.version@"
+
+
+        ## PROVIDE JAVA ADDITIONAL HELP
+        echo -e "\n\nHelp provision for Java Virtual Machine ###########################################\n\n"
+        cat << EOF
+        CPU  spikes, Memory leaks, Slowness (causes)
+        - High CPU usage
+          - Look for RUNNABLE state threads in conjunction with Top output to determine what threads are consuming OS resources.
+
+        - Rundeck and Database server with non-sufficient resources
+          - Check OS resources like memory, disk space, CPU cores, etc.
+
+        - JDBC connection and Threads pools at max usage
+          - Balance the dataSource and threadPool values depending on cluster members, server resources and how much load/activity is use.
+          Sample and dataSource info (https://tomcat.apache.org/tomcat-7.0-doc/jdbc-pool.html):
+            dataSource.pooled=true
+            dataSource.properties.removeAbandoned=true
+            dataSource.properties.removeAbandonedTimeout=120
+            dataSource.properties.testOnBorrow=true
+            dataSource.properties.testOnConnect=true
+            dataSource.properties.testOnReturn=true
+            dataSource.properties.testWhileIdle=true
+            dataSource.properties.maxActive=100
+            dataSource.properties.maxWait=20000
+            dataSource.properties.maxIdle=20
+            dataSource.properties.minIdle=5
+            dataSource.properties.initialSize=5
+
+            quartz.threadPool.threadCount=50
+
+        - OutOfMemory errors (Metaspace and Heap)
+          - For Heap, default setting in JVM settings is -Xms256m -Xmx1024m. Set it to a higher/sufficient value for Rundeck’s activities.
+          - For Metaspace, default setting in JVM settings is -XX:MaxMetaspaceSize=256m. Set it to a higher value or remove that setting to let the JVM handle the sizing dynamically (~ 1GB).
+          - More info: https://docs.rundeck.com/docs/administration/maintenance/tuning-rundeck.html#memory-and-threads-example
+
+        - Excessive logging
+          - Potentially expensive in resource usage. Some loggers can generate Gigabytes of logs in a few minutes/hours, causing a full disk space and massive IO activity. Most common case are audit logs and large repetitive error stacktraces.
+
+        - Repeated full GC
+          - If application happens to have memory leak, then “Full GC” will start to run repeatedly without reclaiming any memory. When ‘Full GC’ runs repeatedly, CPU will start to spike up and never come down.
+          - A script to monitor garbage collection log file of the application for every 2 minutes. If the script notices more than 3 ‘Full GC’ runs in a 10-minute window, then the JVM causes CPU spikes. JVM should be recycled after capturing thread dump and heap dump.
+
+        - Non-terminating loops
+          - Due to certain data condition or bug in the code that may never get satisfied. In such scenario, thread would be spinning infinitely in the while loop. This would cause the CPU to spike up. Unless JVM is restarted, CPU maxing out wouldn’t stop at all.
+          - Take 3 thread dumps in a 10 seconds interval between each dump – right when problem is happening. Every thread in “runnable” state in the first taken thread dump should be noted down. Same threads state in the second thread dump should be compared. If in the second thread dump also those threads remain the “runnable” state within the same method, then it would indicate in which part of the code thread(s) are looping infinitely.
+
+        - Non-synchronized access of java.util.HashMap
+          - When multiple threads tries to access HashMap’s get() and put() APIs concurrently it would cause threads go into infinite looping.
+          - Take 1 thread dump – right when problem is happening. You need to see which are threads that are in “runnable” state. If that thread happens to be working on HashMap’s get() or put() API, then it’s indicative that HashMap is causing CPU spike. HashMap can be replaced with ConcurrentHashMap.
+        EOF
+
+        echo "To enable JVM's Garbage Collector, the below is needed (restart required)"
+        if [[ "$JAVAVERSION" =~ "1.8." ]]; then
+          cat << EOF
+          Add JVM flags on launcher or rundeckd startup file:
+          -XX:+PrintGCDetails -XX:+PrintGCDateStamps -XX:+PrintGCTimeStamps -Xloggc:/tmp/gc.log
+          -XX:+UseGCLogFileRotation -XX:NumberOfGCLogFiles=5 -XX:GCLogFileSize=20M
+          -XX:+PrintGCCause -XX:+ExplicitGCInvokesConcurrent
+        EOF
+        else
+          cat << EOF
+          Add JVM flags on launcher or rundeckd startup file:
+          -Xlog:gc* -Xlog:gc:/tmp/gc.log
+        EOF
+        fi
+
+        echo "To enable JVM's internal operations monitor via JMX, the below is needed (restart required)"
+        cat << EOF
+        Add JVM flags on launcher or rundeckd startup file:
+        RDECK_JVM_SETTINGS="\$RDECK_JVM_SETTINGS -Dcom.sun.management.jmxremote"
+
+        Collect data with:
+        jconsole $PID
+        EOF
+
+    - description: get-system-stats
+      plugins:
+        LogFilter: []
+      script: |+
+        #!/bin/bash
+
+        RDURL="@data.rdurl@"
+        JOBNAME="@data.jobname@"
+        PID="@data.config.full.PID@"
+        RDCONFPATH="@data.config.full.rdeck.config@"
+        RDBASEPATH="@data.config.environment.HOME@"
+        RDLOGPATH="@data.rdlogpath@"
+
+
+        ## GET SYSTEM STATS
+        echo -e "\n\nSystem Statistics ###########################################\n\n"
+        echo "MACHINE INFO: `echo ; uname -a`"
+        echo "HOST: `echo ; cat /etc/hostname`"
+        echo "CPU: `echo ; lscpu | egrep 'Arch|CPU' || echo ?`"
+        echo "MEM: `echo ; free -h | egrep 'total|Mem' || echo ?`"
+        echo "SYSTEM'S MAX OPEN FILES: `echo ; cat /proc/sys/fs/file-nr /proc/sys/fs/file-max || echo ?`"
+        echo "SYSTEM'S CURRENT OPENED FILES: `echo ; lsof | wc -l || echo ?`"
+        echo "ULIMIT: `echo ; ulimit -a || echo ?`"
+        echo "LARGE SIZE FOLDERS: `echo ; du -h / 2> /dev/null | grep '^[1-9][0-9]G'`"
+        echo "USER INFO: `echo ; id rundeck || id`"
+        echo "USER CURRENT LOCATION: `echo ; pwd`"
+        echo "RUNDECK'S CURRENT OPENED FILES: `echo ; lsof -p $PID | wc -l || echo ?`"
+        echo "RUNDECK STORAGE: `echo ; df -h / ; du -sh $RDCONFPATH $RDBASEPATH $RDLOGPATH 2> /dev/null`"
+        echo "RUNDECK SERVICE: `echo ; systemctl status rundeckd || echo ?`"
+
+    - description: get-rd-healthchecks
+      plugins:
+        LogFilter: []
+      script: |+
+        #!/bin/bash
+
+        API="@data.api@"
+        RDURL="@data.rdurl@"
+        JOBNAME="@data.jobname@"
+        TEMPFILE="@data.tempfile@"
+        PID="@data.config.full.PID@"
+        RDCONFPATH="@data.config.full.rdeck.config@"
+        RDBASEPATH="@data.config.environment.HOME@"
+        RDLOGPATH="@data.rdlogpath@"
+
+
+        ## GET DATASOURCE/SCHEDULER HEALTCHECK
+        echo -e "\n\nDatasource/Scheduler healthcheck ###########################################\n\n"
+        curl -k -s -X GET $RDURL/api/$API/metrics/healthcheck -b $TEMPFILE.cookie -H Accept:application/json
+
+    - description: get-io-stats
+      plugins:
+        LogFilter: []
+      script: |+
+        #!/bin/bash
+
+        API="@data.api@"
+        RDURL="@data.rdurl@"
+        JOBNAME="@data.jobname@"
+        TEMPFILE="@data.tempfile@"
+        PID="@data.config.full.PID@"
+        RDCONFPATH="@data.config.full.rdeck.config@"
+        RDBASEPATH="@data.config.environment.HOME@"
+        RDLOGPATH="@data.rdlogpath@"
+        UUID="$RANDOM"
+
+
+        ## GET IO STATISTICS
+        echo -e "\n\nIO statistics ###########################################\n\n"
+        for times in `seq 1 2`; do
+          echo "Writing (2G, zero) size block file to $RDLOGPATH"
+          time dd if=/dev/zero of=$RDLOGPATH/$UUID.block bs=1G count=2
+          echo "Writing (2G, random) size block file to $RDLOGPATH"
+          time dd if=/dev/random of=$RDLOGPATH/$UUID.block bs=1G count=2
+          echo "Writing (2G, random) size block file to /tmp"
+          time dd if=/dev/random of=$TEMPFILE.block bs=1G count=2
+        done
+
+        rm -f $RDLOGPATH/$UUID.block
+        rm -f $TEMPFILE.block
+
+    - description: get-ps-java
+      plugins:
+        LogFilter: []
+      script: |+
+        #!/bin/bash
+
+        ## GET JAVA PROCESSES
+        echo -e "\n\nJava processes running ###########################################\n\n"
+        jps -v 2> /dev/null || ps xau | egrep 'CPU|MEM|java'
+
+    - description: get-ps-rd
+      plugins:
+        LogFilter: []
+      script: |+
+        #!/bin/bash
+
+        ## GET RUNDECK PROCESSES
+        echo -e "\n\nRundeck processes running ###########################################\n\n"
+        jps -v 2> /dev/null || ps xau | egrep 'CPU|MEM|rundeck'
+
+    - description: get-top-stats
+      plugins:
+        LogFilter: []
+      script: |+
+        #!/bin/bash
+
+        API="@data.api@"
+        RDURL="@data.rdurl@"
+        JOBNAME="@data.jobname@"
+        TEMPFILE="@data.tempfile@"
+        PID="@data.config.full.PID@"
+        RDCONFPATH="@data.config.full.rdeck.config@"
+        RDBASEPATH="@data.config.environment.HOME@"
+        RDLOGPATH="@data.rdlogpath@"
+
+
+        ## GET TOP STATISTICS
+        echo -e "\n\nTop statistics from $PID ###########################################\n\n"
+        TOP="`top -b -n 1 -d 3 -S -H -p $PID`"
+
+        echo -e "$TOP" | grep java | awk '{print $9}' | uniq | grep ".*[5-9][0-9].[0-9].*" \
+          && echo -e "\nHIGH CPU USAGE ABOVE 50%\n\n"
+        echo -e "$TOP" | grep java | awk '{print $10}' | uniq | grep ".*[5-9][0-9].[0-9].*" \
+          && echo -e "\nHIGH MEMORY USAGE ABOVE 50%\n\n"
+
+        echo -e "$TOP"
+
+    - description: get-java-dump
+      plugins:
+        LogFilter: []
+      script: |+
+        #!/bin/bash
+
+        API="@data.api@"
+        RDURL="@data.rdurl@"
+        JOBNAME="@data.jobname@"
+        TEMPFILE="@data.tempfile@"
+        PID="@data.config.full.PID@"
+        RDCONFPATH="@data.config.full.rdeck.config@"
+        RDBASEPATH="@data.config.environment.HOME@"
+        RDLOGPATH="@data.rdlogpath@"
+        SERVICELOG="$RDLOGPATH/service.log"
+
+
+        ## GET JAVA THREADS/GARBAGE-COLLECTOR DUMP
+        echo -e "\n\nJava threads/Garbage-Collector dump ###########################################\n\n"
+        rm -f $TEMPFILE.dump || true
+        for num in `seq 1 3`; do
+          #jstack -l $RDPID #>> $TEMPFILE.dump
+          #jcmd $RDPID Thread.print #>> $TEMPFILE.dump
+          tail -c 0 -f $SERVICELOG >> $TEMPFILE.dump &
+          RDTAIL=$!
+          sleep 2
+          kill -3 $PID
+          sleep 2
+          kill -9 $RDTAIL 2> /dev/null
+          sleep 10
+        done
+        cat $TEMPFILE.dump
+
+    - configuration:
+        commit: 'false'
+        jdbcDriver: ${data.dbdriver}
+        jdbcUrl: ${data.dburl}
+        password: ${data.dbpassword}
+        scriptBody: ${data.dbquery}
+        statementDelimiter: ;
+        user: ${data.dbusername}
+      description: get-db-stats
+      errorhandler:
+        configuration:
+          command: 'echo -e "\n\nSkipping step ###########################################\n\n"'
+        keepgoingOnSuccess: true
+        nodeStep: true
+        type: localexec
+      nodeStep: true
+      type: org.rundeck.sqlrunner.SQLRunnerNodeStepPlugin
+    - description: clean-up
+      plugins:
+        LogFilter: []
+      script: |+
+        #!/bin/bash
+
+        API="@data.api@"
+        RDURL="@data.rdurl@"
+        JOBNAME="@data.jobname@"
+        TEMPFILE="@data.tempfile@"
+        PID="@data.config.full.PID@"
+        RDCONFPATH="@data.config.full.rdeck.config@"
+        RDBASEPATH="@data.config.environment.HOME@"
+        RDLOGPATH="@data.rdlogpath@"
+        SERVICELOG="$RDLOGPATH/service.log"
+        CONFIGFILE="`mktemp /tmp/${job.name}-XXX.conf`"
+        RESTART="@option.restart@"
+
+
+        ## CLEAN UP
+        echo -e "\n\nCleaning up ###########################################\n\n"
+        rm -f $TEMPFILE* || true
+
+    keepgoing: false
+    strategy: node-first
+  tags: 'healthcheck,java,reporter,rundeck,system'
+  uuid: 223a313e-81e2-4572-86e9-29f8759d4656
+
