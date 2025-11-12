@@ -23,7 +23,10 @@
     commands:
     - autoSecureInput: 'false'
       passSecureInput: 'false'
-      script: dnf install java -y
+      script: |-
+        dnf install java -y
+
+        java --version
     keepgoing: false
     strategy: node-first
   user: ni-uae-job-developer
