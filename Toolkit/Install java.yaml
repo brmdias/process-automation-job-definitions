@@ -27,6 +27,8 @@
         dnf install java -y
 
         java --version
+
+        echo "Java is now installed!"
     keepgoing: false
     strategy: node-first
   user: ni-uae-job-developer
