@@ -1,5 +1,5 @@
 - defaultTab: nodes
-  description: ''
+  description: Run an health check on a Linux host.
   executionEnabled: true
   group: Automation Actions
   id: 532f0968-75f7-444f-bf1c-3891a799e730
@@ -29,8 +29,23 @@
   schedules: []
   sequence:
     commands:
-    - description: Check disk space
-      exec: df -H
+    - autoSecureInput: 'false'
+      description: Disk Space
+      passSecureInput: 'false'
+      script: |
+        #!/bin/bash
+
+        echo "1. Check disk space"
+        disk_output=$(df -H / | grep -v Filesystem | awk '{print $5 " " $6}')
+        used_pct=$(echo $disk_output | awk '{print $1}' | sed 's/%//')
+        echo "Filesystem      Size  Used Avail Use% Mounted on"
+        df -H / | grep -v Filesystem
+        if [ "$used_pct" -ge 90 ]; then
+          echo "🔴 Fault detected: Disk usage critical on ${disk_output}"
+        else
+          echo "🟢 No fault detected: Disk usage within normal parameters (${disk_output})"
+        fi
+        echo ""
     - description: Top 5 processes by CPU utilization
       exec: 'ps -eo pid,comm,%cpu --sort=-%cpu | head -n 6'
     - description: Top 5 Processes by Memory Usage
@@ -49,5 +64,7 @@
           stepStatus: Any
         type: pagerduty-incident-output-capture
     strategy: node-first
+  timeout: 5m
+  user: admin
   uuid: 532f0968-75f7-444f-bf1c-3891a799e730
 
