@@ -53,5 +53,6 @@
         type: pagerduty-incident-output-capture
     strategy: node-first
   tags: critical
+  user: admin
   uuid: 29d1c6d6-fe19-4333-aa37-ef8dfc05dc8b
 

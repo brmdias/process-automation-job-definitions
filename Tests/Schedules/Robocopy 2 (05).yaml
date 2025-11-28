@@ -28,5 +28,6 @@
     - exec: echo "Job completed"
     keepgoing: false
     strategy: node-first
+  user: admin
   uuid: 73f9a6c6-59ca-4bd8-9ca4-af76ed51f042
 

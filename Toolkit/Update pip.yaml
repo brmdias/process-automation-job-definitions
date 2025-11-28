@@ -18,5 +18,6 @@
     - exec: echo "Im updating application ${option.application-name}"
     keepgoing: false
     strategy: node-first
+  user: admin
   uuid: 1650225f-c454-4940-8eb5-b65d6d2c496e
 

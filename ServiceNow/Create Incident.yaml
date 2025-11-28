@@ -1,0 +1,29 @@
+- defaultTab: nodes
+  description: ''
+  executionEnabled: true
+  group: ServiceNow
+  id: 3bb76247-d34b-412c-b8d2-204cef6edcec
+  loglevel: INFO
+  name: Create Incident
+  nodeFilterEditable: false
+  plugins:
+    ExecutionLifecycle: {}
+  scheduleEnabled: true
+  schedules: []
+  sequence:
+    commands:
+    - configuration:
+        assignmentGroup: Project Mgmt
+        caller: abel.tuter
+        description: This is a test incident - please ignore.
+        impact: '2'
+        priority: '3'
+        shortDescription: Test incident
+        urgency: '2'
+      nodeStep: false
+      type: Service-Now-Incident-Create
+    keepgoing: false
+    strategy: node-first
+  user: admin
+  uuid: 3bb76247-d34b-412c-b8d2-204cef6edcec
+

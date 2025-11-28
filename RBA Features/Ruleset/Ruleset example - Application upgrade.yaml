@@ -115,5 +115,6 @@
             [7] if:export.step-result==NOK if:option.mode==HaltExecution
     strategy: ruleset
   tags: ruleset
+  user: admin
   uuid: 10c57ba1-721a-46bf-a4d8-d363db4a1468
 

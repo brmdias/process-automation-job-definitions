@@ -59,5 +59,6 @@
       type: iterate-json-command-plugin
     keepgoing: false
     strategy: node-first
+  user: admin
   uuid: efb5850e-5de4-4ea0-86c7-d437621fce15
 

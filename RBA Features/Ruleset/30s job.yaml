@@ -29,5 +29,6 @@
     - exec: sleep ${option.sleep}
     keepgoing: false
     strategy: node-first
+  user: admin
   uuid: 561417af-b203-4370-8e8f-915613b343e2
 

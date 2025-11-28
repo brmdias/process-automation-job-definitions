@@ -29,5 +29,6 @@
         sudo realm join --user=bruno pdt-bdias.myrundeck.com
     keepgoing: false
     strategy: node-first
+  user: admin
   uuid: d01f13fd-53d3-4e6c-bcfb-306c3775fa24
 

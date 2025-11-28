@@ -45,5 +45,6 @@
         fi
     keepgoing: false
     strategy: node-first
+  user: admin
   uuid: 0ad8669a-2dc4-4e9b-8797-12b03887438f
 

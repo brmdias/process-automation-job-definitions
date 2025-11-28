@@ -42,5 +42,6 @@
         ls -l
     keepgoing: true
     strategy: node-first
+  user: admin
   uuid: db02840c-1888-429d-b919-599c34bfdc52
 

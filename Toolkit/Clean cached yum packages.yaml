@@ -16,5 +16,6 @@
       exec: sudo yum clean all
     keepgoing: false
     strategy: node-first
+  user: admin
   uuid: 6c6e29d9-11b2-4f00-9a64-9361a5f2aad1
 

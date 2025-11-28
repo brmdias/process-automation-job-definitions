@@ -107,5 +107,6 @@
     keepgoing: false
     strategy: node-first
   tags: security
+  user: admin
   uuid: 0d30fafc-1930-4081-af8d-54696e18401a
 

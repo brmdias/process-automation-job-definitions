@@ -35,5 +35,6 @@
       scriptInterpreter: python
     keepgoing: false
     strategy: node-first
+  user: admin
   uuid: f9a2de50-5812-4fd2-9468-6925379b4f2e
 

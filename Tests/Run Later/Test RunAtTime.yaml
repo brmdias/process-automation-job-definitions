@@ -32,5 +32,6 @@
           "https://bdias.myrundeck.com/api/44/job/@option.jobuuid@/run"
     keepgoing: false
     strategy: node-first
+  user: admin
   uuid: 737e33e6-5f49-4066-a9f6-24d471d852fb
 

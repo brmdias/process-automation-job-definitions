@@ -68,5 +68,6 @@
       type: edu.ohio.ais.rundeck.HttpWorkflowNodeStepPlugin
     keepgoing: false
     strategy: node-first
+  user: admin
   uuid: fe2edba4-af36-4504-8131-9578cbc2d684
 

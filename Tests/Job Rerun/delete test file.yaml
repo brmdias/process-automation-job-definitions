@@ -19,5 +19,6 @@
     - exec: rm ${option.file-path}
     keepgoing: false
     strategy: node-first
+  user: admin
   uuid: 708735ae-3ed9-42df-b4bd-518bf4a3a741
 

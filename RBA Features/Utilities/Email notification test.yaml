@@ -65,5 +65,6 @@
         # ifconfig
     keepgoing: false
     strategy: node-first
+  user: admin
   uuid: 8c639b19-5986-4969-b591-a086264e4a18
 

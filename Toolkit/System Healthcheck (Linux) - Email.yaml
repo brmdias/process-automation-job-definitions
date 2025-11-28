@@ -44,5 +44,6 @@
           stepStatus: Any
         type: pagerduty-incident-output-capture
     strategy: node-first
+  user: admin
   uuid: 98bdb67a-adba-4378-ab74-04dcbd3fbf4b
 

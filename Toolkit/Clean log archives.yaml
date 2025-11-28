@@ -20,5 +20,6 @@
         rm *.gz
     keepgoing: false
     strategy: node-first
+  user: admin
   uuid: 94b8c0f7-1c1b-4f3a-8cba-3597d536e368
 

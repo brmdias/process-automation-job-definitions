@@ -118,5 +118,6 @@
             [4] if:option.new-incident==true
     strategy: ruleset
   tags: windows
+  user: admin
   uuid: 66437aed-9d4f-46ad-96d6-997799ec035f
 

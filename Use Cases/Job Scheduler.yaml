@@ -89,5 +89,6 @@
       scriptInterpreter: python
     keepgoing: false
     strategy: node-first
+  user: admin
   uuid: 6305e1be-118a-4f7e-968d-01b81d318809
 

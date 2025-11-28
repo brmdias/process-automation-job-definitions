@@ -1,0 +1,207 @@
+- defaultTab: nodes
+  description: ''
+  executionEnabled: true
+  group: Utilities
+  id: dab86943-1f92-4409-8ed3-b26e959c59f7
+  loglevel: INFO
+  maxMultipleExecutions: '10'
+  multipleExecutions: true
+  name: RBA Token Expiration Validation
+  nodeFilterEditable: false
+  nodefilters:
+    dispatch:
+      excludePrecedence: true
+      keepgoing: false
+      rankOrder: ascending
+      successOnEmptyNodeFilter: false
+      threadcount: '1'
+    filter: .*runner
+  nodesSelectedByDefault: true
+  options:
+  - description: expirationdays
+    label: expirationdays
+    name: expirationdays
+    required: true
+    value: '30'
+    values:
+    - '1'
+    - '5'
+    - '15'
+    - '30'
+    - '40'
+    - '50'
+    - '60'
+    - '70'
+    valuesListDelimiter: ','
+  - hidden: true
+    name: api-token
+    secure: true
+    storagePath: keys/rba/bdias-rba-token
+    valueExposed: true
+  - hidden: true
+    name: pd-orchestration-key
+    secure: true
+    storagePath: keys/pagerduty/pdt-bdias-global-orchestration-key
+    valueExposed: true
+  - name: rba-url
+    value: bdias.myrundeck.com
+  plugins:
+    ExecutionLifecycle:
+      Send Incident Output to Pagerduty: {}
+  runnerSelector:
+    filter: OREGON_AWS_NODE
+    runnerFilterMode: TAGS
+    runnerFilterType: TAG_FILTER_AND
+  scheduleEnabled: true
+  schedules: []
+  sequence:
+    commands:
+    - autoSecureInput: 'false'
+      passSecureInput: 'false'
+      plugins:
+        LogFilter:
+        - config:
+            invalidKeyPattern: \s|\$|\{|\}|\\
+            logData: 'true'
+            name: TOKEN_ALERT
+            regex: ^RUNDECK:DATA:\s*([^\s]+?)\s*=\s*(.+)$
+            replaceFilteredResult: 'false'
+          type: key-value-data
+        - config:
+            captureMultipleKeysValues: 'true'
+            hideOutput: 'false'
+            logData: 'true'
+            name: tokens
+            regex: (?s)(?<=---START-TOKENS---\s*).*?(?=\s*---END-TOKENS---)
+          type: key-value-data-multilines
+        - config:
+            filterName: RBA Expired Tokens
+            logOutputSettings: All
+            stepStatus: Any
+          type: pagerduty-incident-output-capture
+      script: "#!/bin/bash\n# Script: Token Expiration Checker with Alert Variable\
+        \ (no xmlstarlet dependency)\n# This script connects to the Rundeck tokens\
+        \ endpoint, retrieves the token information,\n# and evaluates the expiration\
+        \ date of each one.\n#\n# If a token will expire within the next 30 days (or\
+        \ has already expired), it will be displayed in a table with:\n#   - Creator\n\
+        #   - Name\n#   - Expiration (processed date)\n#   - Status (expired or the\
+        \ number of days remaining until expiration)\n#\n# Additionally, the TOKEN_ALERT\
+        \ variable is assigned the value 'ALERT' if at least one token\n# is nearing\
+        \ expiration or has already expired, or 'OK' otherwise.\n#\n# Configuration:\
+        \ Adjust the values of API_TOKEN and RUNDECK_URL to match your environment.\n\
+        \n# Configuration\nAPI_TOKEN=\"@option.api-token@\"\nRUNDECK_URL=\"https://@option.rba-url@/api/49/tokens\"\
+        \nTHRESHOLD_DAYS=30\n\necho \"Querying Rundeck API: $RUNDECK_URL\" >&2\n\n\
+        # Connect to the endpoint (uses --fail for HTTP errors)\nresponse=$(curl -s\
+        \ -L --fail -H \"X-Rundeck-Auth-Token: $API_TOKEN\" \"$RUNDECK_URL\")\nif\
+        \ [ $? -ne 0 ]; then\n    echo \"Error: Unable to connect to the endpoint.\
+        \ Please check the URL, the token, or your connectivity.\" >&2\n    exit 1\n\
+        fi\n\nif [ -z \"$response\" ]; then\n    echo \"Error: No response received\
+        \ from the API.\" >&2\n    exit 1\nfi\n\n# Verify that the response is XML\
+        \ by checking for the <token> tag.\nif ! echo \"$response\" | grep -i -q \"\
+        <token\"; then\n    echo \"Error: The response is not the expected XML (the\
+        \ <token> tag was not found).\" >&2\n    exit 1\nfi\n\n# Extract individual\
+        \ <token> elements using grep.\n# This assumes that each token is contained\
+        \ within a single element block.\ntokens=$(echo \"$response\" | grep -oP '<token\\\
+        b.*?</token>')\n\nif [ -z \"$tokens\" ]; then\n    echo \"No token information\
+        \ was extracted.\" >&2\n    exit 1\nfi\n\n# Function to parse dates into Unix\
+        \ timestamp.\nif [[ \"$(uname)\" == \"Darwin\" ]]; then\n    parse_date()\
+        \ { date -j -f \"%Y-%m-%d %H:%M:%S %z\" \"$1\" +%s 2>/dev/null; }\nelse\n\
+        \    parse_date() { date -d \"$1\" +%s 2>/dev/null; }\nfi\n\nnow_ts=$(date\
+        \ +%s)\nrows=()\nexpiringCount=0\n\n# Process each token element.\necho \"\
+        $tokens\" | while IFS= read -r token; do\n    # Extract attributes from the\
+        \ token element using grep and sed.\n    creator=$(echo \"$token\" | grep\
+        \ -oP 'creator=\"\\K[^\"]+')\n    token_id=$(echo \"$token\" | grep -oP 'id=\"\
+        \\K[^\"]+')\n    name=$(echo \"$token\" | grep -oP 'name=\"\\K[^\"]+')\n \
+        \   expiration=$(echo \"$token\" | grep -oP '<expiration>\\K[^<]+')\n    expired_flag=$(echo\
+        \ \"$token\" | grep -oP '<expired>\\K[^<]+')\n\n    \n    # Skip tokens without\
+        \ a valid expiration date.\n    if [ -z \"$expiration\" ] || [ \"$expiration\"\
+        \ == \"null\" ]; then\n        continue\n    fi\n\n    # Clean the expiration\
+        \ date: remove milliseconds (e.g., \".315\") and adjust the time zone.\n \
+        \   exp_clean=$(echo \"$expiration\" | sed -E 's/\\.[0-9]+//' | sed 's/ GMT$/\
+        \ +0000/')\n    \n    exp_ts=$(parse_date \"$exp_clean\")\n    if [ -z \"\
+        $exp_ts\" ]; then\n        echo \"Warning: Unable to parse the date for token\
+        \ '$name' with: $exp_clean\" >&2\n        continue\n    fi\n\n    diff_seconds=$((\
+        \ exp_ts - now_ts ))\n    diff_days=$(( diff_seconds / 86400 ))\n\n    # If\
+        \ the token has already expired or will expire within THRESHOLD_DAYS days.\n\
+        \    if [ $diff_seconds -le $(( THRESHOLD_DAYS * 86400 )) ]; then\n      \
+        \  if [ $diff_seconds -lt 0 ]; then\n            status=\"Expired\"\n    \
+        \    else\n            status=\"Expires in ${diff_days} day(s)\"\n       \
+        \ fi\n        # Append the row to a temporary file for later processing.\n\
+        \        echo \"$token_id|$creator|$name|$exp_clean|$status\"\n        # Increase\
+        \ a counter; using a temp file because we're in a subshell.\n        echo\
+        \ \"increment\" >> /tmp/token_check_count.txt\n    fi\ndone > /tmp/token_rows.txt\n\
+        \n# Combine the increments from the subshell.\nif [ -f /tmp/token_check_count.txt\
+        \ ]; then\n    expiringCount=$(grep -c \"increment\" /tmp/token_check_count.txt)\n\
+        \    rm /tmp/token_check_count.txt\nfi\n\n# Print marker for regex\necho \"\
+        ---START-TOKENS---\"\n\n# Print the table if tokens are found.\nif [ -s /tmp/token_rows.txt\
+        \ ]; then\n    {\n      echo \"ID|Creator|Name|Expiration|Status\"\n     \
+        \ cat /tmp/token_rows.txt\n    } | column -t -s '|'\n    rm /tmp/token_rows.txt\n\
+        else\n    echo \"There are no tokens expiring within the next $THRESHOLD_DAYS\
+        \ days.\"\nfi\n\n# Print marker for regex\necho \"---END-TOKENS---\"\n\n#\
+        \ Set the TOKEN_ALERT variable based on the existence of tokens nearing expiration.\n\
+        if [ $expiringCount -gt 0 ]; then\n    TOKEN_ALERT=\"ALERT\"\nelse\n    TOKEN_ALERT=\"\
+        OK\"\nfi\n\n# Print the final result in a format compatible with Rundeck.\n\
+        echo \"RUNDECK:DATA: TOKEN_ALERT=$TOKEN_ALERT\""
+    - configuration:
+        export: TOKEN_ALERT
+        group: export
+        value: ${data.TOKEN_ALERT*}
+      nodeStep: false
+      type: export-var
+    - exec: echo ${export.TOKEN_ALERT}
+    - autoSecureInput: 'false'
+      passSecureInput: 'false'
+      script: |2
+                # This script sends an alert to PagerDuty using the Events API v2.
+                # It reads the expiration threshold from the job option RD_OPTION_EXPIRATIONDAYS and
+                # constructs an alert message notifying that there are tokens expiring within the threshold,
+                # without listing token names.
+                #
+                # This step should run only when the Ruleset condition triggers it (i.e. when TOKEN_ALERT equals "ALERT").
+
+                # PagerDuty Routing Key (your integration/routing key)
+                PAGERDUTY_ROUTING_KEY="@option.pd-orchestration-key@"
+
+                # Get the expiration threshold from the job option; default to 30 if not provided.
+                THRESHOLD_DAYS="${RD_OPTION_EXPIRATIONDAYS}"
+                if [ -z "$THRESHOLD_DAYS" ]; then
+                  THRESHOLD_DAYS=30
+                fi
+
+                # Construct the custom alert message using the dynamic threshold.
+                alert_message="There are Tokens that are going to expire in the following ${THRESHOLD_DAYS} day(s), please check your RBA instance. Go to Profile Icon then select Profile menu and check User API Tokens section for more details"
+                tokens_list=""
+
+                echo "TOKEN_ALERT condition met. Triggering PagerDuty alert..."
+                echo "Custom alert message: ${alert_message}"
+
+                # Send alert to PagerDuty via the Events API v2.
+                response=$(curl -s -X POST -H "Content-Type: application/json" \
+                    -d '{
+                          "routing_key": "'"${PAGERDUTY_ROUTING_KEY}"'",
+                          "event_action": "trigger",
+                          "dedup_key": "@job.id@",
+                          "payload": {
+                              "summary": "Alert: Tokens near expiration in Rundeck",
+                              "source": "Runbook Automation",
+                              "severity": "warning",
+                              "custom_details": {
+                                  "info": "'"${alert_message}"'"
+                              }
+                          }
+                        }' \
+                    "https://events.pagerduty.com/v2/enqueue")
+
+                echo "PagerDuty response: $response"
+    keepgoing: false
+    pluginConfig:
+      WorkflowStrategy:
+        ruleset:
+          rules: |
+            [*] run-in-sequence
+            [4] if:export.TOKEN_ALERT==ALERT
+    strategy: ruleset
+  tags: token
+  user: admin
+  uuid: dab86943-1f92-4409-8ed3-b26e959c59f7
+
