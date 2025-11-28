@@ -58,5 +58,6 @@
         ruleset:
           rules: '[*] run-in-sequence'
     strategy: ruleset
+  user: admin
   uuid: 405a959e-0fea-4276-9a08-2b3fa5f6d977
 

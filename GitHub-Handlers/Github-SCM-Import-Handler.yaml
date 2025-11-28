@@ -45,5 +45,6 @@
         }'
     keepgoing: false
     strategy: node-first
+  user: admin
   uuid: d6dee956-0cbd-4a59-963a-10695849c8c9
 

@@ -184,5 +184,6 @@
       scriptInterpreter: python -u
     keepgoing: false
     strategy: node-first
+  user: admin
   uuid: 78b2009f-63f4-4a53-85c8-b952cd3870d7
 

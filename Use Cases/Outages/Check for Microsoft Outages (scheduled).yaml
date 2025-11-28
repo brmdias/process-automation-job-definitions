@@ -74,5 +74,6 @@
     - exec: echo hello world
     keepgoing: false
     strategy: node-first
+  user: admin
   uuid: d99b4048-c65e-4904-a8eb-ade75ea97f0e
 

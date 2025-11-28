@@ -21,5 +21,6 @@
     - exec: echo ${option.key}
     keepgoing: false
     strategy: node-first
+  user: admin
   uuid: 27efca5f-b3be-42b8-a9e4-d4fae71c2b50
 

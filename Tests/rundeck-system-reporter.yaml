@@ -504,5 +504,6 @@
     keepgoing: false
     strategy: node-first
   tags: 'healthcheck,java,reporter,rundeck,system'
+  user: admin
   uuid: 223a313e-81e2-4572-86e9-29f8759d4656
 

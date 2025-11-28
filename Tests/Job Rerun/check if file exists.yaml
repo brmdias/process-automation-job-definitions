@@ -36,5 +36,6 @@
     - exec: ls ${option.file-path}
     keepgoing: false
     strategy: node-first
+  user: admin
   uuid: ead3b52f-5315-4ff9-9a6b-137cdd593f82
 

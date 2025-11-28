@@ -47,5 +47,6 @@
             [*] run-in-sequence
             [1] if:option.condition==true
     strategy: ruleset
+  user: admin
   uuid: 8c37e1fe-b0ce-403b-9d88-f77a8122b7ea
 

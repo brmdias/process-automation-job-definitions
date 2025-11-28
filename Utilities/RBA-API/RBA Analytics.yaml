@@ -323,5 +323,6 @@
     keepgoing: false
     strategy: node-first
   tags: analytics
+  user: admin
   uuid: b6b87ed6-d6e4-4576-8fc4-bdff175d5ec8
 

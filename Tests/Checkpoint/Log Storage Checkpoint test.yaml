@@ -42,5 +42,6 @@
         echo "Checkpoint test complete."
     keepgoing: false
     strategy: node-first
+  user: admin
   uuid: dd9c1268-707e-4943-9488-55022b0212f8
 

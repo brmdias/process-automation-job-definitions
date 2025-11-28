@@ -1,10 +1,10 @@
 - defaultTab: nodes
   description: ''
   executionEnabled: true
-  group: Tests/beyond-trust
-  id: bcd90040-f1a6-403d-a0c8-5413a1692784
+  group: Tests/Windows
+  id: 2fa94e6b-077a-4497-88db-05bed3bee412
   loglevel: INFO
-  name: send-command
+  name: Using SSH with Windows (v2)
   nodeFilterEditable: false
   nodefilters:
     dispatch:
@@ -13,7 +13,7 @@
       rankOrder: ascending
       successOnEmptyNodeFilter: false
       threadcount: '1'
-    filter: .*beyondtrust
+    filter: 'osFamily: windows'
   nodesSelectedByDefault: true
   plugins:
     ExecutionLifecycle: null
@@ -21,9 +21,15 @@
   schedules: []
   sequence:
     commands:
-    - exec: hostname
+    - exec: dir
+    - autoSecureInput: 'false'
+      fileExtension: .ps1
+      interpreterArgsQuoted: false
+      passSecureInput: 'false'
+      script: Get-Service sshd
+      scriptInterpreter: powershell
     keepgoing: false
     strategy: node-first
-  user: Admin
-  uuid: bcd90040-f1a6-403d-a0c8-5413a1692784
+  user: admin
+  uuid: 2fa94e6b-077a-4497-88db-05bed3bee412
 

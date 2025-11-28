@@ -54,5 +54,6 @@
         }' @option.webhook-url@
     keepgoing: false
     strategy: node-first
+  user: admin
   uuid: 9292b89e-54a4-4dbd-b99d-4faa607c0662
 

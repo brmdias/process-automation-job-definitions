@@ -168,5 +168,6 @@
     keepgoing: false
     strategy: node-first
   tags: pagerduty
+  user: admin
   uuid: 86b0229a-63b8-421d-866b-11c15b4bc8e0
 

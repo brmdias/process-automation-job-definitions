@@ -19,5 +19,6 @@
           "https://services-uscentral.skytap.com:14417/AIMWebService/api/Accounts?AppID=testappid&Safe=Test&Object=Operating System-UnixSSHKeys-bdias-worker-1-ec2-user"
     keepgoing: false
     strategy: node-first
+  user: admin
   uuid: 5f9484d4-0504-4975-a495-e0b6161ca2b5
 

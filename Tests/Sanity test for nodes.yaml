@@ -1,11 +1,11 @@
 - defaultTab: output
   description: ''
   executionEnabled: true
-  group: Tests/Cyberark
-  id: db02840c-1888-429d-b919-599c34bfdc52
+  group: Tests
+  id: 95d781a6-39ed-4da4-ae90-f197de48c22d
   loglevel: INFO
   multipleExecutions: true
-  name: NodeDispathWithCyberark
+  name: Sanity test for nodes
   nodeFilterEditable: false
   nodefilters:
     dispatch:
@@ -14,7 +14,7 @@
       rankOrder: ascending
       successOnEmptyNodeFilter: false
       threadcount: '1'
-    filter: 'name: pdt-bdias-worker-1-a '
+    filter: 'osFamily: unix'
   nodesSelectedByDefault: true
   plugins:
     ExecutionLifecycle: null
@@ -43,5 +43,5 @@
     keepgoing: true
     strategy: node-first
   user: admin
-  uuid: db02840c-1888-429d-b919-599c34bfdc52
+  uuid: 95d781a6-39ed-4da4-ae90-f197de48c22d
 

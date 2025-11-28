@@ -57,5 +57,6 @@
             [2] if:option.vm==Windows
     strategy: ruleset
   tags: 'cascading,dynamic'
+  user: admin
   uuid: 1be216bc-7cca-4568-8476-ee770895c68e
 

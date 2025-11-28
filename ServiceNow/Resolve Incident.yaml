@@ -1,0 +1,31 @@
+- defaultTab: nodes
+  description: ''
+  executionEnabled: true
+  group: ServiceNow
+  id: ead07f2f-8a82-4948-85dd-5a51a19cb5eb
+  loglevel: INFO
+  name: Resolve Incident
+  nodeFilterEditable: false
+  options:
+  - label: Comment
+    name: comment
+    value: This is an automated message from Rundeck.
+  - label: Incident ID
+    name: snow-incident-id
+    value: INC00100
+  plugins:
+    ExecutionLifecycle: {}
+  scheduleEnabled: true
+  schedules: []
+  sequence:
+    commands:
+    - configuration:
+        comment: ${option.comment}
+        id: ${option.snow-incident-id}
+      nodeStep: false
+      type: Service-Now-Comment
+    keepgoing: false
+    strategy: node-first
+  user: admin
+  uuid: ead07f2f-8a82-4948-85dd-5a51a19cb5eb
+

@@ -149,5 +149,6 @@
             [5] if:data.execution-status!=failed
     strategy: ruleset
   tags: 'critical,pagerduty'
+  user: admin
   uuid: 94cafc29-0a89-4d2f-a5de-321ef64920df
 

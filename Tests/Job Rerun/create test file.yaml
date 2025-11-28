@@ -19,5 +19,6 @@
     - exec: touch ${option.file-path}
     keepgoing: false
     strategy: node-first
+  user: admin
   uuid: 852f87bb-da29-47af-9758-789780c08151
 

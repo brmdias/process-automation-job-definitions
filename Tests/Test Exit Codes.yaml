@@ -100,5 +100,6 @@
       type: log-data-step
     keepgoing: true
     strategy: node-first
+  user: admin
   uuid: 7d6dce96-2221-4d80-83b9-3b1895206c00
 

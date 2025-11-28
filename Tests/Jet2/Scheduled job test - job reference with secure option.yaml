@@ -1,0 +1,24 @@
+- defaultTab: nodes
+  description: ''
+  executionEnabled: true
+  group: Tests/Jet2
+  id: 48ed45b5-dd54-4467-92c7-c9f09a1088f9
+  loglevel: INFO
+  name: Scheduled job test - job reference with secure option
+  nodeFilterEditable: false
+  plugins:
+    ExecutionLifecycle: {}
+  scheduleEnabled: true
+  schedules: []
+  sequence:
+    commands:
+    - description: Triggering the job with default values
+      jobref:
+        group: Tests/Jet2
+        name: Scheduled job test - with secure option
+        uuid: 3b9e43d4-a6b2-44fe-9f50-ee0c16e6eed9
+    keepgoing: false
+    strategy: node-first
+  user: admin
+  uuid: 48ed45b5-dd54-4467-92c7-c9f09a1088f9
+
