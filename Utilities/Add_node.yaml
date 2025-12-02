@@ -1,0 +1,104 @@
+- defaultTab: nodes
+  description: >-
+    Job to add a node to the File Node Source, based in the job options
+    provided.
+  executionEnabled: true
+  group: Node Sources
+  id: b9c67c51-4909-444a-843c-7411816bdf53
+  loglevel: INFO
+  name: Add or update node
+  nodeFilterEditable: false
+  nodefilters:
+    dispatch:
+      excludePrecedence: true
+      keepgoing: false
+      rankOrder: ascending
+      successOnEmptyNodeFilter: false
+      threadcount: '1'
+    filter: .*runner
+  nodesSelectedByDefault: true
+  options:
+    - description: This is optional.
+      label: Description
+      name: description
+    - label: Hostname or IP Address
+      name: hostname
+      required: true
+      value: node99.example.com
+    - name: nodename
+      description: This will be the YAML list key.
+      label: Node Name
+      required: true
+      value: node99
+    - enforced: true
+      label: OS Family
+      name: osFamily
+      required: true
+      values:
+        - windows
+        - unix
+      valuesListDelimiter: ','
+    - description: This is optional.
+      label: Tags
+      name: tags
+  plugins:
+    ExecutionLifecycle: {}
+  scheduleEnabled: true
+  schedules: []
+  sequence:
+    commands:
+      - exec: cat /etc/rundeck/node-sources/resources.yaml
+        description: Display current nodes before addition
+      - autoSecureInput: 'false'
+        description: Add node to File Node Source
+        passSecureInput: 'false'
+        script: >
+          #!/bin/bash
+
+          # Populate YAML file with node data
+
+          cd /etc/rundeck/node-sources
+
+
+          OUTPUT_FILE="resources.yaml"
+
+          NODENAME="@option.nodename@"
+
+          HOSTNAME="@option.hostname@"
+
+          DESCRIPTION="@option.description@"
+
+          OS_FAMILY="@option.osFamily@"
+
+          TAGS="@option.tags@"
+
+
+          # Append the new node data to the YAML file
+
+          #cat <<EOL >> $OUTPUT_FILE
+
+          #nodename: "$NODENAME"
+
+          #  hostname: "$HOSTNAME"
+
+          #  description: "$DESCRIPTION"
+
+          #  osFamily: "$OS_FAMILY"
+
+          #  tags: "$TAGS"
+
+          #EOL
+
+
+          yq ".${NODENAME} = {\"nodename\": \"$NODENAME\", \"hostname\":
+          \"$HOSTNAME\", \"description\": \"$DESCRIPTION\", \"osFamily\":
+          \"$OS_FAMILY\", \"tags\": \"$TAGS\"}" -i $OUTPUT_FILE
+
+
+          echo "Added node $NODENAME to $OUTPUT_FILE"
+      - exec: cat /etc/rundeck/node-sources/resources.yaml
+        description: Display updated nodes after addition
+    keepgoing: false
+    strategy: node-first
+  user: admin
+  uuid: b9c67c51-4909-444a-843c-7411816bdf53
