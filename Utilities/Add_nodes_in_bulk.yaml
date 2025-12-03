@@ -1,0 +1,151 @@
+- defaultTab: nodes
+  description: This is using the job 'Add or update node' to add nodes in bulk.
+  executionEnabled: true
+  group: Windows Patching
+  id: f0c09b7e-432c-479f-aa51-b53565fef75c
+  loglevel: INFO
+  name: Add nodes in bulk
+  nodeFilterEditable: false
+  nodefilters:
+    dispatch:
+      excludePrecedence: true
+      keepgoing: false
+      rankOrder: ascending
+      successOnEmptyNodeFilter: false
+      threadcount: '1'
+    filter: .*runner
+  nodesSelectedByDefault: true
+  options:
+    - hidden: true
+      name: rba-token
+      secure: true
+      storagePath: keys/rba/bdias-rba-token
+      valueExposed: true
+    - hidden: true
+      name: job-uuid
+      value: 577e94fd-352c-4bd8-af7d-7852c15b5c44
+      description: UUID of the 'Add or update node' job to be triggered.
+      label: Job UUID
+      required: true
+  plugins:
+    ExecutionLifecycle: {}
+  scheduleEnabled: true
+  schedules: []
+  sequence:
+    commands:
+      - autoSecureInput: 'false'
+        passSecureInput: 'false'
+        script: |-
+          RUNDECK_API_TOKEN=@option.rba-token@
+          RUNDECK_URL="https://bdias.myrundeck.com"
+          PROJECT_NAME="roche"
+          JOB_ID="@option.job-uuid@" # Job: Add or update node
+
+          # Define nodes to add (array of node configurations)
+          # Format: "nodename|hostname|description|osFamily|tags"
+          NODES=(
+           # "node01|node01.example.com|Web Server 1|windows|web,production"
+           # "node02|node02.example.com|Database Server|windows|database,production"
+           # "node03|node03.example.com|Application Server|unix|app,staging"
+           # "node04|192.168.1.100|Test Server|windows|test,development"
+           # "node05|node05.example.com|Backup Server|unix|backup,production"
+            "bdias-worker-win-1|172.31.44.248||windows|windows-patching-group"
+            "bdias-worker-win-2|172.31.43.4||windows|windows-patching-group"
+            "bdias-worker-win-3|172.31.37.88||windows|windows-patching-group"
+          )
+
+          # Function to trigger job for a single node
+          trigger_job() {
+            local nodename=$1
+            local hostname=$2
+            local description=$3
+            local osFamily=$4
+            local tags=$5
+            
+            echo "=========================================="
+            echo "Adding node: $nodename"
+            echo "Hostname: $hostname"
+            echo "OS Family: $osFamily"
+            echo "=========================================="
+            
+            RESPONSE=$(curl -s -X POST \
+              "${RUNDECK_URL}/api/40/job/${JOB_ID}/run" \
+              -H "Accept: application/json" \
+              -H "Content-Type: application/json" \
+              -H "X-Rundeck-Auth-Token: ${RUNDECK_API_TOKEN}" \
+              -d '{
+                "options": {
+                  "nodename": "'"${nodename}"'",
+                  "hostname": "'"${hostname}"'",
+                  "description": "'"${description}"'",
+                  "osFamily": "'"${osFamily}"'",
+                  "tags": "'"${tags}"'"
+                }
+              }')
+            
+            # Check if the request was successful
+            if [ $? -eq 0 ]; then
+              EXECUTION_ID=$(echo "$RESPONSE" | grep -o '"id":[0-9]*' | head -1 | cut -d':' -f2)
+              
+              if [ -n "$EXECUTION_ID" ]; then
+                echo "[SUCCESS] Job triggered successfully!"
+                echo "Execution ID: $EXECUTION_ID"
+                echo "View execution: ${RUNDECK_URL}/project/${PROJECT_NAME}/execution/show/${EXECUTION_ID}"
+                echo ""
+                return 0
+              else
+                echo "[ERROR] Job trigger failed. Response:"
+                echo "$RESPONSE"
+                echo ""
+                return 1
+              fi
+            else
+              echo "[ERROR] Failed to connect to Rundeck API"
+              echo ""
+              return 1
+            fi
+          }
+
+          # Main execution
+          echo "Starting bulk node addition..."
+          echo "Total nodes to add: ${#NODES[@]}"
+          echo ""
+
+          SUCCESS_COUNT=0
+          FAILURE_COUNT=0
+
+          # Loop through all nodes and trigger the job
+          for node_config in "${NODES[@]}"; do
+            # Split the configuration string
+            IFS='|' read -r nodename hostname description osFamily tags <<< "$node_config"
+            
+            # Trigger the job
+            if trigger_job "$nodename" "$hostname" "$description" "$osFamily" "$tags"; then
+              ((SUCCESS_COUNT++))
+            else
+              ((FAILURE_COUNT++))
+            fi
+            
+            # Optional: Add delay between job triggers to avoid overwhelming Rundeck
+            sleep 2
+          done
+
+          # Summary
+          echo "=========================================="
+          echo "BULK NODE ADDITION COMPLETE"
+          echo "=========================================="
+          echo "Total nodes processed: ${#NODES[@]}"
+          echo "Successful additions: $SUCCESS_COUNT"
+          echo "Failed additions: $FAILURE_COUNT"
+          echo "=========================================="
+
+          # Exit with error code if any failures occurred
+          if [ $FAILURE_COUNT -gt 0 ]; then
+            exit 1
+          fi
+
+          exit 0
+    keepgoing: false
+    strategy: node-first
+  user: admin
+  uuid: f0c09b7e-432c-479f-aa51-b53565fef75c

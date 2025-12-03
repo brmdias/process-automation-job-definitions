@@ -3,6 +3,8 @@
     Job to add a node to the File Node Source, based in the job options
     provided.
   executionEnabled: true
+  jobQueueEnabled: 'true'
+  jobQueueSizeLimit: 100
   group: Node Sources
   id: b9c67c51-4909-444a-843c-7411816bdf53
   loglevel: INFO
