@@ -1,0 +1,62 @@
+- defaultTab: nodes
+  description: ''
+  executionEnabled: true
+  group: Tests/Sophos
+  id: 9432dc5d-933c-4b92-af81-856a102a42e8
+  loglevel: INFO
+  name: Jira field update
+  nodeFilterEditable: false
+  nodefilters:
+    dispatch:
+      excludePrecedence: true
+      keepgoing: false
+      rankOrder: ascending
+      successOnEmptyNodeFilter: false
+      threadcount: '1'
+    filter: .*runner
+  nodesSelectedByDefault: true
+  options:
+  - name: jira-api-key
+    secure: true
+    storagePath: keys/jira/jira-api-key
+    valueExposed: true
+  plugins:
+    ExecutionLifecycle: {}
+  scheduleEnabled: true
+  schedules: []
+  sequence:
+    commands:
+    - autoSecureInput: 'false'
+      fileExtension: .py
+      interpreterArgsQuoted: false
+      passSecureInput: 'false'
+      script: |-
+        import requests
+
+        # Pre-encoded base64 string (email:token)
+        auth_base64 = "@option.jira-api-key@"
+        headers = {
+            "Authorization": f"Basic {auth_base64}",
+            "Accept": "application/json"
+        }
+
+        # GET request
+        get_url = "https://pdt-bdias.atlassian.net/rest/api/3/issue/KAN-8"
+        response_get = requests.get(get_url, headers=headers)
+        print("GET response:", response_get.status_code, response_get.json())
+
+        # PUT request
+        put_url = "https://pdt-bdias.atlassian.net/rest/api/2/issue/KAN-8"
+        payload = {"fields": {"id": "10022", "value": "SEV-1"}}
+        response_put = requests.put(
+            put_url,
+            headers={**headers, "Content-Type": "application/json"},
+            json=payload
+        )
+        print("PUT response:", response_put.status_code, response_put.json())
+      scriptInterpreter: python -u
+    keepgoing: false
+    strategy: node-first
+  user: Bruno Dias
+  uuid: 9432dc5d-933c-4b92-af81-856a102a42e8
+
