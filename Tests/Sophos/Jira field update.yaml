@@ -20,6 +20,12 @@
     secure: true
     storagePath: keys/jira/jira-api-key
     valueExposed: true
+  - name: pd-api-key
+    secure: true
+    storagePath: keys/pagerduty/pd-api-key
+    valueExposed: true
+  - name: pd-incident-id
+    value: Q0T8C01L08GEC9
   plugins:
     ExecutionLifecycle: {}
   scheduleEnabled: true
@@ -27,11 +33,50 @@
   sequence:
     commands:
     - autoSecureInput: 'false'
+      description: Get PD Incident Data
+      fileExtension: .py
+      interpreterArgsQuoted: false
+      passSecureInput: 'false'
+      plugins:
+        LogFilter:
+        - config:
+            extraQuotes: 'false'
+            filter: .incident.external_references[0].external_id
+            logData: 'true'
+            prefix: result
+          type: json-mapper
+        - config:
+            extraQuotes: 'false'
+            filter: .incident.priority.summary
+            logData: 'true'
+            prefix: priority
+          type: json-mapper
+      script: |
+        import requests
+        import json
+
+        url = "https://api.eu.pagerduty.com/incidents/@option.pd-incident-id@?include[]=external_references"
+
+        payload = {}
+        headers = {
+          'Accept': 'application/vnd.pagerduty+json;version=2',
+          'Content-Type': 'application/json',
+          'Authorization': 'Token @option.pd-api-key@'
+        }
+
+        response = requests.request("GET", url, headers=headers, data=payload)
+
+        print(response.text)
+      scriptInterpreter: python -u
+    - autoSecureInput: 'false'
+      description: Update Jira Ticket
       fileExtension: .py
       interpreterArgsQuoted: false
       passSecureInput: 'false'
       script: |-
         import requests
+
+        print("Captured value: " + @results.result@)
 
         # Pre-encoded base64 string (email:token)
         auth_base64 = "@option.jira-api-key@"
@@ -46,16 +91,17 @@
         print("GET response:", response_get.status_code, response_get.json())
 
         # PUT request
-        put_url = "https://pdt-bdias.atlassian.net/rest/api/2/issue/KAN-8"
-        payload = {"fields": {"id": "10022", "value": "SEV-1"}}
-        response_put = requests.put(
-            put_url,
-            headers={**headers, "Content-Type": "application/json"},
-            json=payload
-        )
-        print("PUT response:", response_put.status_code, response_put.json())
+        #put_url = "https://pdt-bdias.atlassian.net/rest/api/2/issue/KAN-8"
+        #payload = {"fields": {"customfield_10037": {"id": "10021"}}}
+        #response_put = requests.put(
+        #    put_url,
+        #    headers={**headers, "Content-Type": "application/json"},
+        #    json=payload
+        #)
+
+        #print("PUT response:", response_put.status_code, response_put.text)
       scriptInterpreter: python -u
-    keepgoing: false
+    keepgoing: true
     strategy: node-first
   user: Bruno Dias
   uuid: 9432dc5d-933c-4b92-af81-856a102a42e8
