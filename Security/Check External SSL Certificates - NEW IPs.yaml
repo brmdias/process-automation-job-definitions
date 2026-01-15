@@ -1,0 +1,209 @@
+- defaultTab: nodes
+  description: "# Description: \n\nThis Automation Job, named **Check External SSL\
+    \ Certificates**, is designed to validate the SSL certificate validity of a list\
+    \ of specified websites. It is a simple shell script that iterates through each\
+    \ site listed, checking the SSL validity using OpenSSL Client. If a certificate\
+    \ is found to expire within a specified number of days (default is 7 days), it\
+    \ generates a PagerDuty alert. This requires configuring a routing key as a password\
+    \ in the keystore.\n\n## Author\n\nJustyn Roberts\n\n## Last modified\n\nNot specified.\n\
+    \n# Prerequisites\n\n- RBA has a Runner installed or PAOP\n- Bash script relies\
+    \ on OpenSSL Client\n- Linux tested\n- A valid email address of a PD user and\
+    \ a valid integration key stored as a password in the keystore are required.\n\
+    \n# Options\n\n| Option          | Description                               \
+    \            | Default Value |\n|-----------------|-------------------------------------------------------|---------------|\n\
+    | Validity Days   | How many days to leave grace before considering \"at risk\"\
+    \ | 7             |\n\n# Disclaimer\n\nThis document and the described automation\
+    \ job are provided \"as is\" without warranty of any kind, express or implied.\
+    \ The user assumes all risks associated with the use of this job. The creators\
+    \ or contributors are not liable for any direct, indirect, incidental, special,\
+    \ exemplary, or consequential damages (including, but not limited to, procurement\
+    \ of substitute goods or services; loss of use, data, or profits; or business\
+    \ interruption) caused and on any theory of liability, whether in contract, strict\
+    \ liability, or tort (including negligence or otherwise) arising in any way out\
+    \ of the use of this job, even if advised of the possibility of such damage.\n"
+  executionEnabled: true
+  group: Security
+  id: 5db08032-4312-4690-9a68-4ad2d58a7ef0
+  loglevel: INFO
+  name: Check External SSL Certificates - NEW IPs
+  nodeFilterEditable: false
+  nodefilters:
+    dispatch:
+      excludePrecedence: true
+      keepgoing: false
+      rankOrder: ascending
+      successOnEmptyNodeFilter: false
+      threadcount: '1'
+    filter: .*runner
+  nodesSelectedByDefault: true
+  options:
+  - description: How many days to leave grace before considering "at risk"
+    label: 'Validity Days '
+    name: days
+    value: '30'
+  - hidden: true
+    name: PD_integration_key
+    secure: true
+    storagePath: keys/pagerduty/pdt-bdias-global-orchestration-key
+    valueExposed: true
+  - name: rundeck_token
+    secure: true
+    storagePath: keys/rba/bdias-rba-token
+    valueExposed: true
+  plugins:
+    ExecutionLifecycle:
+      result-data-json-template:
+        jsonTemplate: '{"export":{"justyn":"1"}}'
+  runnerSelector:
+    filter: MAIN-LINUX
+    runnerFilterMode: TAGS
+    runnerFilterType: TAG_FILTER_AND
+  schedule:
+    month: '*'
+    time:
+      hour: '07'
+      minute: '00'
+      seconds: '0'
+    weekday:
+      day: '*'
+    year: '*'
+  scheduleEnabled: true
+  schedules: []
+  sequence:
+    commands:
+    - args: website
+      autoSecureInput: 'false'
+      description: 'Website List - (Line Separated, Use this UI to edit) - Could equally
+        be stored in SCM.'
+      interpreterArgsQuoted: false
+      passSecureInput: 'false'
+      script: |
+        pagerduty.com
+        www.bbc.com
+        www.microsoft.com
+        www.google.com
+        www.apple.com
+      scriptInterpreter: \cp -fR
+    - autoSecureInput: 'false'
+      description: Execute check for each website.
+      passSecureInput: 'false'
+      plugins:
+        LogFilter:
+        - config:
+            captureMultipleKeysValues: 'true'
+            hideOutput: 'false'
+            logData: 'true'
+            name: abnormaloutput
+            regex: ^.*Certificate\sfor\s(.*)
+          type: key-value-data-multilines
+      script: "#!/bin/bash\n\n# Script checks site, with optional time out of 2s\n\
+        # DOMAINS= \"\" : path to line delimited external file of sites to check\n\
+        \nTIMEOUT=2\nDOMAINS=\"website\"\nDAYS=@option.days@\n\nfunction child_timeout\
+        \ () {\n        child=$!\n        timeout=$1\n        (\n        #trap --\
+        \ \"\" SIGINT\n\n        sleep $timeout\n        if [ $(ps -o pid= -o comm=\
+        \ --ppid $$ | grep -o $child) ]; then\n                kill -9 $child\n  \
+        \      fi\n        ) &\nwait $child > /dev/null 2>&1\n\n}\n\nfunction checksite\
+        \ () {\n\nexpirationdate=$(echo | openssl s_client -servername \"$TARGET\"\
+        \ -connect \"$TARGET:443\" 2>/dev/null \\\n    | openssl x509 -noout -enddate\
+        \ \\\n    | cut -d= -f2 \\\n    | xargs -I{} date -d \"{}\" +%s)\nin7days=$(($(date\
+        \ +%s) + (86400*DAYS)));\n   \nif [ \"$in7days\" -gt \"$expirationdate\" ];\
+        \ then\n      echo \"🟥 Certificate for 🌍[$TARGET] expired/expires in less\
+        \ than $DAYS days, on $(date -d @\"$expirationdate\" '+%Y-%m-%d')\" ;\n  \
+        \    # raisePDevevent() - Could use PDCLI or Webhook here.\nelse     \n\n\
+        \      echo \"🟩 $TARGET - $(date -d @\"$expirationdate\" '+%Y-%m-%d')\";\n\
+        \  fi;\n}\n\n# Main loop\nwhile read -r TARGET; do\n(checksite) & child_timeout\
+        \ $TIMEOUT\ndone<\"${DOMAINS}\""
+    - configuration:
+        export: output
+        group: export
+        value: ${data.abnormaloutput*}
+      description: Convert Output To Variable
+      errorhandler:
+        exec: echo "No issues found"
+        keepgoingOnSuccess: true
+      nodeStep: false
+      type: export-var
+    - autoSecureInput: 'false'
+      description: Create PagerDuty events for expiring certificates
+      fileExtension: .py
+      interpreterArgsQuoted: false
+      passSecureInput: 'false'
+      script: |-
+        import requests
+        import re
+
+        # Rundeck API configuration
+        RUNDECK_BASE_URL = "https://bdias.myrundeck.com"
+        RUNDECK_API_TOKEN = "@option.rundeck_token@"
+        TARGET_JOB_UUID = "c5bfdd78-8569-471e-a52d-06e2d44c1267"
+
+        # Get the output from the previous step
+        output = """@export.output@"""
+        print(f"{output}")
+
+        if not output:
+            print("No expiring certificates found. No incidents to create.")
+            exit(0)
+
+        # Parse the output to find expiring certificates
+        # Expected format: 🟥 Certificate for 🌍[domain.com] expired/expires in less than X days, on YYYY-MM-DD
+        pattern = re.compile(
+            r'^\s*🌍\[(?P<domain>[^\]]+)\]\s+expired/expires in less than\s+(?P<days>\d+)\s+days, on\s+(?P<date>\d{4}-\d{2}-\d{2})\s*$'
+        )
+
+        lines = output.splitlines()
+        jobs_triggered = 0
+
+        for line in lines:
+            m = pattern.search(line)
+            if not m:
+                continue
+            domain = m.group('domain')
+            expiry_date = m.group('date')
+            # days = int(m.group('days'))  # if you need it
+
+            # Trigger Rundeck job
+            payload = {
+                "options": {
+                    "domain": domain,
+                    "expiry_date": expiry_date
+                }
+            }
+
+            try:
+                response = requests.post(
+                    f"{RUNDECK_BASE_URL}/api/45/job/{TARGET_JOB_UUID}/run",
+                    headers={
+                        "Content-Type": "application/json",
+                        "X-Rundeck-Auth-Token": RUNDECK_API_TOKEN
+                    },
+                    json=payload
+                )
+
+                if response.status_code == 200:
+                    execution_id = response.json().get('id')
+                    print(f"✅ Rundeck job triggered for {domain} (expires: {expiry_date}) - Execution ID: {execution_id}")
+                    jobs_triggered += 1
+                else:
+                    print(f"❌ Failed to trigger job for {domain}: {response.status_code} - {response.text}")
+            except Exception as e:
+                print(f"❌ Error triggering job for {domain}: {str(e)}")
+
+        if jobs_triggered > 0:
+            print(f"\n📊 Summary: Triggered {jobs_triggered} Rundeck job execution(s)")
+        else:
+            print("\n⚠️  No jobs were triggered")
+      scriptInterpreter: python -u
+    keepgoing: false
+    pluginConfig:
+      WorkflowStrategy:
+        ruleset:
+          rules: |-
+            [*] run-in-sequence
+            [4] unless:!export.output
+    strategy: ruleset
+  tags: security
+  timeZone: Europe/Lisbon
+  user: admin
+  uuid: 5db08032-4312-4690-9a68-4ad2d58a7ef0
+
