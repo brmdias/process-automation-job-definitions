@@ -1,7 +1,7 @@
 - defaultTab: nodes
   description: Checks for any global/widespread issues specifically related to Microsoft.
   executionEnabled: true
-  group: Use Cases/Outages
+  group: Monitoring
   id: 747298c3-2ed5-487d-833f-54403ed628f5
   loglevel: INFO
   name: Check for GCP Outages (scheduled)

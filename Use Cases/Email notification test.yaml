@@ -1,7 +1,7 @@
 - defaultTab: nodes
   description: Includes mail notification using GMAIL SMTP.
   executionEnabled: true
-  group: Use Cases
+  group: RBA Features
   id: 91669599-0425-4c4f-bfc5-33f48564841d
   loglevel: INFO
   name: Email notification test

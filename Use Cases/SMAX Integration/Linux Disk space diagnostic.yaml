@@ -1,7 +1,7 @@
 - defaultTab: nodes
   description: ''
   executionEnabled: true
-  group: Use Cases/SMAX Integration
+  group: SMAX Integration
   id: a14435f8-1aad-458d-b37c-5df2f200022e
   loglevel: INFO
   name: Linux Disk space diagnostic

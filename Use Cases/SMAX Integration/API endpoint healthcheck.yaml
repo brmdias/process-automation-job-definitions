@@ -1,7 +1,7 @@
 - defaultTab: nodes
   description: ''
   executionEnabled: true
-  group: Use Cases/SMAX Integration
+  group: SMAX Integration
   id: 48d04b65-9ce5-4641-9271-cebd360bd139
   loglevel: INFO
   name: API endpoint healthcheck

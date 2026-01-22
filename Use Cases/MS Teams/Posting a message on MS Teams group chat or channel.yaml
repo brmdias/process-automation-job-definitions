@@ -1,7 +1,7 @@
 - defaultTab: nodes
   description: ''
   executionEnabled: true
-  group: Use Cases/MS Teams
+  group: ChatOps
   id: fe2edba4-af36-4504-8131-9578cbc2d684
   loglevel: INFO
   name: Posting a message on MS Teams group chat or channel

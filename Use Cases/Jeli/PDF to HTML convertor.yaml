@@ -1,7 +1,7 @@
 - defaultTab: nodes
   description: ''
   executionEnabled: true
-  group: Use Cases/Jeli
+  group: Utilities
   id: 9432e417-4320-4f0c-a044-9caf9178137f
   loglevel: INFO
   name: PDF to HTML convertor

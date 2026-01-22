@@ -14,7 +14,7 @@
     \ with option values:\n    1. Job ID: ID of the job to get a new owner\n    2.\
     \ User Account: Username of the new owner of the jobs\n"
   executionEnabled: true
-  group: Use Cases
+  group: RBA Features
   id: 6305e1be-118a-4f7e-968d-01b81d318809
   loglevel: INFO
   name: Job Scheduler

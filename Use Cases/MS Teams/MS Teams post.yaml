@@ -1,7 +1,7 @@
 - defaultTab: nodes
   description: ''
   executionEnabled: true
-  group: Use Cases/MS Teams
+  group: ChatOps
   id: 9292b89e-54a4-4dbd-b99d-4faa607c0662
   loglevel: INFO
   name: MS Teams post

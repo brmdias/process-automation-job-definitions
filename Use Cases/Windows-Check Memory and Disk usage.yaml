@@ -1,7 +1,7 @@
 - defaultTab: nodes
   description: ''
   executionEnabled: true
-  group: Use Cases
+  group: Healthcheck
   id: 66437aed-9d4f-46ad-96d6-997799ec035f
   loglevel: INFO
   name: Windows-Check Memory and Disk usage

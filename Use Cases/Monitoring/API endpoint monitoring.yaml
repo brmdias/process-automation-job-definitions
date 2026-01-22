@@ -1,7 +1,7 @@
 - defaultTab: nodes
   description: ''
   executionEnabled: true
-  group: Use Cases/Monitoring
+  group: Monitoring
   id: bc0c726f-a617-4f15-8232-c7b9bfa04422
   loglevel: INFO
   name: API endpoint monitoring

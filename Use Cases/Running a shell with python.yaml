@@ -1,7 +1,7 @@
 - defaultTab: nodes
   description: ''
   executionEnabled: true
-  group: Use Cases
+  group: Toolkit
   id: f9a2de50-5812-4fd2-9468-6925379b4f2e
   loglevel: INFO
   name: Running a shell with python
