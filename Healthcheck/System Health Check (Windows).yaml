@@ -1,7 +1,7 @@
 - defaultTab: nodes
   description: ''
   executionEnabled: true
-  group: Automation Actions
+  group: Healthcheck
   id: 29d1c6d6-fe19-4333-aa37-ef8dfc05dc8b
   loglevel: INFO
   name: System Health Check (Windows)

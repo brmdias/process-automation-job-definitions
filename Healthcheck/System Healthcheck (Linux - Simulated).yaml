@@ -1,7 +1,7 @@
 - defaultTab: nodes
   description: ''
   executionEnabled: true
-  group: Automation Actions
+  group: Healthcheck
   id: c4782521-77e1-43bb-9d54-e1b5d5643862
   loglevel: INFO
   name: System Healthcheck (Linux - Simulated)
