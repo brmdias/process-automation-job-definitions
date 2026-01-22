@@ -1,7 +1,7 @@
 - defaultTab: nodes
   description: Job to send a PagerDuty event using the RBA plugin.
   executionEnabled: true
-  group: Security
+  group: PagerDuty
   id: c5bfdd78-8569-471e-a52d-06e2d44c1267
   loglevel: INFO
   maxMultipleExecutions: '50'
