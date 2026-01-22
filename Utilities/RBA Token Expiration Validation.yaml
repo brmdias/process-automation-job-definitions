@@ -54,7 +54,7 @@
     runnerFilterType: TAG_FILTER_AND
   scheduleEnabled: true
   schedules:
-  - jobParams: null
+  - jobParams: -expirationdays 5
     name: RBA Tokens Expiration Date
   sequence:
     commands:

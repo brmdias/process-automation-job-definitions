@@ -1,0 +1,139 @@
+- defaultTab: nodes
+  description: ''
+  executionEnabled: true
+  group: Use Cases/Jeli
+  id: 9432e417-4320-4f0c-a044-9caf9178137f
+  loglevel: INFO
+  name: PDF to HTML convertor
+  nodeFilterEditable: false
+  nodefilters:
+    dispatch:
+      excludePrecedence: true
+      keepgoing: false
+      rankOrder: ascending
+      successOnEmptyNodeFilter: false
+      threadcount: '1'
+    filter: .*runner
+  nodesSelectedByDefault: true
+  notification:
+    onsuccess:
+      email:
+        attachLog: true
+        attachLogInline: true
+        recipients: bdias@pagerduty.com
+        subject: PDF to HTML Job Result
+  notifyAvgDurationThreshold: null
+  options:
+  - name: aws-api-gateway-api-key
+    secure: true
+    storagePath: keys/project/bdias-dev/aws-sns/api-secret
+    valueExposed: true
+  - label: PDF File Path
+    name: pdf-file-path
+    value: /opt/apps/runner/jeli-pdf.pdf
+  plugins:
+    ExecutionLifecycle: {}
+  scheduleEnabled: true
+  schedules: []
+  sequence:
+    commands:
+    - args: ${option.pdf-file-path}
+      autoSecureInput: 'false'
+      description: Convert PDF to HTML
+      fileExtension: .py
+      interpreterArgsQuoted: false
+      passSecureInput: 'false'
+      plugins:
+        LogFilter:
+        - config:
+            captureMultipleKeysValues: 'false'
+            hideOutput: 'false'
+            logData: 'false'
+            name: job-log-output
+            regex: (.*)
+          type: key-value-data-multilines
+      script: "#!/usr/bin/env python3\n\"\"\"\nConvert a PDF to an HTML file that\
+        \ visually matches the PDF by:\n- Rendering each page to an image (captures\
+        \ all visuals)\n- Overlaying a selectable text layer\n- Preserving external\
+        \ links\n\nProduces a single self-contained HTML (embeds page images as base64).\n\
+        \"\"\"\nimport base64\nimport io\nfrom pathlib import Path\nimport sys\nimport\
+        \ fitz  # PyMuPDF\n\ndef rgba_to_css(color):\n    # color is typically a tuple\
+        \ like (r, g, b)\n    if not color:\n        return \"rgba(0,0,0,1)\"\n  \
+        \  r, g, b = [int(c) for c in color[:3]]\n    return f\"rgba({r},{g},{b},1)\"\
+        \n\ndef page_to_image_b64(page, zoom=2.0):\n    mat = fitz.Matrix(zoom, zoom)\n\
+        \    pix = page.get_pixmap(matrix=mat, alpha=False)\n    img_bytes = pix.tobytes(\"\
+        png\")\n    return base64.b64encode(img_bytes).decode(\"ascii\"), pix.width,\
+        \ pix.height\n\ndef build_html(pdf_path: str, output_path: str = None, zoom:\
+        \ float = 2.0) -> str:\n    doc = fitz.open(pdf_path)\n    pages_html = []\n\
+        \n    for page_index in range(len(doc)):\n        page = doc[page_index]\n\
+        \        # Render page to image\n        img_b64, img_w, img_h = page_to_image_b64(page,\
+        \ zoom=zoom)\n\n        # Extract words for text layer\n        # Each word:\
+        \ (x0, y0, x1, y1, \"text\", block_no, line_no, word_no)\n        words =\
+        \ page.get_text(\"words\")  # sorted by y, then x\n        # Extract links\n\
+        \        links = page.get_links()\n\n        # Build absolutely positioned\
+        \ text spans\n        text_spans = []\n        for x0, y0, x1, y1, text, *_\
+        \ in words:\n            # Scale coordinates to rendered image size\n    \
+        \        x = x0 * zoom\n            y = y0 * zoom\n            w = (x1 - x0)\
+        \ * zoom\n            h = (y1 - y0) * zoom\n            # Slight padding helps\
+        \ selection feel more natural\n            style = f\"left:{x:.2f}px; top:{y:.2f}px;\
+        \ width:{w:.2f}px; height:{h:.2f}px;\"\n            # Use transparent text\
+        \ with text-shadow for invisibility but selectable text.\n            span\
+        \ = f'<span class=\"text\" style=\"{style}\">{text}</span>'\n            text_spans.append(span)\n\
+        \n        # Build absolutely positioned link overlays\n        link_spans\
+        \ = []\n        for link in links or []:\n            if link.get(\"uri\"\
+        ):  # external link\n                rect = link[\"from\"]  # fitz.Rect\n\
+        \                x = rect.x0 * zoom\n                y = rect.y0 * zoom\n\
+        \                w = rect.width * zoom\n                h = rect.height *\
+        \ zoom\n                style = f\"left:{x:.2f}px; top:{y:.2f}px; width:{w:.2f}px;\
+        \ height:{h:.2f}px;\"\n                link_spans.append(\n              \
+        \      f'<a class=\"link\" href=\"{link[\"uri\"]}\" target=\"_blank\" style=\"\
+        {style}\"></a>'\n                )\n\n        page_html = f\"\"\"\n      \
+        \  <section class=\"page\" id=\"page-{page_index+1}\" style=\"width:{img_w}px;\
+        \ height:{img_h}px;\">\n            <img class=\"bg\" src=\"data:image/png;base64,{img_b64}\"\
+        \ width=\"{img_w}\" height=\"{img_h}\" alt=\"Page {page_index+1}\">\n    \
+        \        <div class=\"overlay\">\n                {''.join(link_spans)}\n\
+        \                {''.join(text_spans)}\n            </div>\n        </section>\n\
+        \        \"\"\"\n        pages_html.append(page_html)\n\n    html = f\"\"\"\
+        <!DOCTYPE html>\n<html lang=\"en\">\n<head>\n<meta charset=\"utf-8\">\n<title>{Path(pdf_path).stem}</title>\n\
+        <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\n\
+        <style>\n  body {{\n    margin: 0;\n    background: #f6f7f9;\n    font-family:\
+        \ system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;\n  }}\n \
+        \ .doc {{\n    max-width: 100%;\n    margin: 0 auto;\n    padding: 24px;\n\
+        \    box-sizing: border-box;\n  }}\n  .page {{\n    position: relative;\n\
+        \    margin: 0 auto 24px;\n    box-shadow: 0 2px 12px rgba(0,0,0,0.08);\n\
+        \    background: white;\n  }}\n  .bg {{\n    display: block;\n  }}\n  .overlay\
+        \ {{\n    position: absolute;\n    left: 0; top: 0; right: 0; bottom: 0;\n\
+        \  }}\n  .text {{\n    position: absolute;\n    white-space: nowrap;\n   \
+        \ color: transparent;            /* invisible text, but selectable */\n  \
+        \  text-shadow: 0 0 0 rgba(0,0,0,0.01);\n    -webkit-user-select: text;\n\
+        \    user-select: text;\n    pointer-events: none;          /* allow clicks\
+        \ to fall through to links */\n  }}\n  .link {{\n    position: absolute;\n\
+        \    display: block;\n    pointer-events: auto;          /* clickable */\n\
+        \  }}\n\n  /* Optional: responsive scale down on narrow screens */\n  .page-wrapper\
+        \ {{\n    overflow-x: auto;\n  }}\n</style>\n</head>\n<body>\n  <main class=\"\
+        doc\">\n    {\"\".join(pages_html)}\n  </main>\n</body>\n</html>\"\"\"\n \
+        \   if output_path:\n        Path(output_path).write_text(html, encoding=\"\
+        utf-8\")\n    return html\n\ndef main():\n    if len(sys.argv) < 2:\n    \
+        \    print(\"Usage: python pdf_to_html_overlay.py input.pdf [output.html]\
+        \ [zoom]\")\n        sys.exit(1)\n    pdf = sys.argv[1]\n    out = sys.argv[2]\
+        \ if len(sys.argv) > 2 else Path(pdf).with_suffix(\".html\")\n    zoom = float(sys.argv[3])\
+        \ if len(sys.argv) > 3 else 2.0\n    \n    try:\n        html_content = build_html(pdf,\
+        \ out, zoom)\n        print(html_content)\n    except Exception as e:\n  \
+        \      print(f\"Error: Failed to convert PDF to HTML - {e}\", file=sys.stderr)\n\
+        \        raise\n\nif __name__ == \"__main__\":\n    main()"
+      scriptInterpreter: python3 -u
+    - configuration:
+        export: job-log-output
+        group: export
+        value: ${data.job-log-output*}
+      nodeStep: false
+      type: export-var
+    - configuration:
+        debugOnly: 'false'
+      nodeStep: false
+      type: log-data-step
+    keepgoing: false
+    strategy: node-first
+  user: admin
+  uuid: 9432e417-4320-4f0c-a044-9caf9178137f
+

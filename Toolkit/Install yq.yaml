@@ -1,0 +1,37 @@
+- defaultTab: nodes
+  description: ''
+  executionEnabled: true
+  group: Toolkit
+  id: 47b1223c-0271-41d6-82da-c7e45e367d3d
+  loglevel: INFO
+  name: Install yq
+  nodeFilterEditable: false
+  nodefilters:
+    dispatch:
+      excludePrecedence: true
+      keepgoing: false
+      rankOrder: ascending
+      successOnEmptyNodeFilter: false
+      threadcount: '1'
+    filter: .*
+  nodesSelectedByDefault: true
+  plugins:
+    ExecutionLifecycle: {}
+  scheduleEnabled: true
+  schedules: []
+  sequence:
+    commands:
+    - args: -e
+      autoSecureInput: 'false'
+      passSecureInput: 'false'
+      script: |-
+        dnf install yq
+
+        yq --version
+
+        echo "YQ is now installed!"
+    keepgoing: false
+    strategy: node-first
+  user: admin
+  uuid: 47b1223c-0271-41d6-82da-c7e45e367d3d
+

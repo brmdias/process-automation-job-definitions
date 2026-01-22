@@ -4,23 +4,30 @@
     \ a list of specified websites. It is a simple shell script that iterates through\
     \ each site listed, checking the SSL validity using OpenSSL Client. If a certificate\
     \ is found to expire within a specified number of days (default is 7 days), it\
-    \ generates a PagerDuty alert. This requires configuring a routing key as a password\
-    \ in the keystore.\n\n## Author\n\nJustyn Roberts\n\n## Last modified\n\nNot specified.\n\
-    \n# Prerequisites\n\n- RBA has a Runner installed or PAOP\n- Bash script relies\
-    \ on OpenSSL Client\n- Linux tested\n- A valid email address of a PD user and\
-    \ a valid integration key stored as a password in the keystore are required.\n\
-    \n# Options\n\n| Option          | Description                               \
-    \            | Default Value |\n|-----------------|-------------------------------------------------------|---------------|\n\
+    \ automatically creates a PagerDuty incident for each expiring certificate. This\
+    \ requires configuring a routing key as a password in the keystore.\n\n## Author\n\
+    \nJustyn Roberts\n\n## Last modified\n\nModified to add PagerDuty incident creation\
+    \ workflow step.\n\n# Prerequisites\n\n- RBA has a Runner installed or PAOP\n\
+    - Bash script relies on OpenSSL Client\n- Python 3.x with requests library\n-\
+    \ Linux tested\n- A valid PagerDuty integration key (routing key) stored in Key\
+    \ Storage at keys/pagerduty/ssl-cert-monitoring-key\n\n# Options\n\n| Option \
+    \         | Description                                            | Default Value\
+    \ |\n|-----------------|-------------------------------------------------------|---------------|\n\
     | Validity Days   | How many days to leave grace before considering \"at risk\"\
-    \ | 7             |\n\n# Disclaimer\n\nThis document and the described automation\
-    \ job are provided \"as is\" without warranty of any kind, express or implied.\
-    \ The user assumes all risks associated with the use of this job. The creators\
-    \ or contributors are not liable for any direct, indirect, incidental, special,\
-    \ exemplary, or consequential damages (including, but not limited to, procurement\
-    \ of substitute goods or services; loss of use, data, or profits; or business\
-    \ interruption) caused and on any theory of liability, whether in contract, strict\
-    \ liability, or tort (including negligence or otherwise) arising in any way out\
-    \ of the use of this job, even if advised of the possibility of such damage.\n"
+    \ | 7             |\n| PagerDuty Routing Key | Integration key for creating PagerDuty\
+    \ incidents | (from Key Storage) |\n\n# Workflow\n\n1. Loads list of websites\
+    \ to check\n2. Checks SSL certificate expiration for each website\n3. Identifies\
+    \ certificates expiring within threshold\n4. Captures expiring certificates as\
+    \ data variables\n5. **Creates a PagerDuty incident for each expiring certificate**\n\
+    \n# Disclaimer\n\nThis document and the described automation job are provided\
+    \ \"as is\" without warranty of any kind, express or implied. The user assumes\
+    \ all risks associated with the use of this job. The creators or contributors\
+    \ are not liable for any direct, indirect, incidental, special, exemplary, or\
+    \ consequential damages (including, but not limited to, procurement of substitute\
+    \ goods or services; loss of use, data, or profits; or business interruption)\
+    \ caused and on any theory of liability, whether in contract, strict liability,\
+    \ or tort (including negligence or otherwise) arising in any way out of the use\
+    \ of this job, even if advised of the possibility of such damage.\n"
   executionEnabled: true
   group: Security
   id: 0d30fafc-1930-4081-af8d-54696e18401a
@@ -41,6 +48,12 @@
     label: 'Validity Days '
     name: days
     value: '7'
+  - description: PagerDuty Integration Key (Routing Key) for creating incidents
+    label: PagerDuty Routing Key
+    name: pd-routing-key
+    secure: true
+    storagePath: keys/pagerduty/ssl-cert-monitoring-key
+    valueExposed: true
   plugins:
     ExecutionLifecycle:
       result-data-json-template:
@@ -104,6 +117,80 @@
         keepgoingOnSuccess: true
       nodeStep: false
       type: export-var
+    - autoSecureInput: 'false'
+      description: Create PagerDuty incidents for expiring certificates
+      fileExtension: .py
+      interpreterArgsQuoted: false
+      passSecureInput: 'false'
+      script: |
+        import requests
+        import json
+        import re
+        from datetime import datetime
+
+        # PagerDuty Events API v2 endpoint
+        PD_EVENTS_URL = "https://events.eu.pagerduty.com/v2/enqueue"
+        ROUTING_KEY = "@option.pd-routing-key@"
+
+        # Get the output from the previous step
+        output = "@export.output@"
+
+        if not output or output == "@export.output@":
+            print("No expiring certificates found. No incidents to create.")
+            exit(0)
+
+        # Parse the output to find expiring certificates
+        # Expected format: 🟥 Certificate for 🌍[domain.com] expired/expires in less than X days, on YYYY-MM-DD
+        pattern = r"🟥 Certificate for 🌍\[(.*?)\] expired/expires in less than \d+ days, on (\d{4}-\d{2}-\d{2})"
+
+        lines = output.split('\n')
+        incidents_created = 0
+
+        for line in lines:
+            match = re.search(pattern, line)
+            if match:
+                domain = match.group(1)
+                expiry_date = match.group(2)
+
+                # Create PagerDuty incident
+                payload = {
+                    "routing_key": ROUTING_KEY,
+                    "event_action": "trigger",
+                    "dedup_key": f"ssl-cert-{domain}",
+                    "payload": {
+                        "summary": f"SSL Certificate Expiring Soon: {domain}",
+                        "severity": "warning",
+                        "source": "Runbook Automation - SSL Certificate Monitor",
+                        "component": domain,
+                        "custom_details": {
+                            "domain": domain,
+                            "expiration_date": expiry_date,
+                            "threshold_days": "@option.days@",
+                            "check_time": datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+                        }
+                    }
+                }
+
+                try:
+                    response = requests.post(
+                        PD_EVENTS_URL,
+                        headers={"Content-Type": "application/json"},
+                        data=json.dumps(payload)
+                    )
+
+                    if response.status_code == 202:
+                        print(f"✅ PagerDuty incident created for {domain} (expires: {expiry_date})")
+                        incidents_created += 1
+                    else:
+                        print(f"❌ Failed to create incident for {domain}: {response.status_code} - {response.text}")
+                except Exception as e:
+                    print(f"❌ Error creating incident for {domain}: {str(e)}")
+
+        if incidents_created > 0:
+            print(f"\n📊 Summary: Created {incidents_created} PagerDuty incident(s)")
+        else:
+            print("\n⚠️  No incidents were created")
+      scriptInterpreter: python -u
     keepgoing: false
     strategy: node-first
   tags: security

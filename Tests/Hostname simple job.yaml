@@ -8,6 +8,15 @@
   loglevel: INFO
   name: Hostname simple job
   nodeFilterEditable: false
+  nodefilters:
+    dispatch:
+      excludePrecedence: true
+      keepgoing: true
+      rankOrder: ascending
+      successOnEmptyNodeFilter: false
+      threadcount: '1'
+    filter: .*-sslcert
+  nodesSelectedByDefault: true
   plugins:
     ExecutionLifecycle: {}
   runnerSelector:
