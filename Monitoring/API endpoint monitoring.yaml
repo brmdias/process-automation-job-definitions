@@ -1,0 +1,78 @@
+- defaultTab: nodes
+  description: ''
+  executionEnabled: true
+  group: Monitoring
+  id: bc0c726f-a617-4f15-8232-c7b9bfa04422
+  loglevel: INFO
+  name: API endpoint monitoring
+  nodeFilterEditable: false
+  notification:
+    onfailure:
+      email:
+        attachLog: true
+        attachLogInFile: true
+        recipients: bdias@pagerduty.com
+        subject: '[FAILED] "${job.name}" (#${job.execid})'
+      plugin:
+        configuration:
+          action: trigger
+          component: ${job.execid}
+          dedupe_key: ${job.id}
+          group: ${job.serverUrl}
+          images: https://www.rundeck.com/hubfs/rundeck-app-assets/rundeck-by-pagerduty-icon.png
+          pagerdutyUrl: https://events.eu.pagerduty.com
+          payload_severity: warning
+          payload_source: Runbook Automation
+          payload_summary: '[${job.status}] "${job.name}" run by ${job.user} (#${job.execid})'
+          service_key_storage_path: keys/pagerduty/pdt-bdias-global-orchestration-key
+        type: PagerDutyEventNotification
+    onsuccess:
+      plugin:
+        configuration:
+          action: resolve
+          component: ${job.execid}
+          dedupe_key: ${job.id}
+          group: ${job.serverUrl}
+          images: https://www.rundeck.com/hubfs/rundeck-app-assets/rundeck-by-pagerduty-icon.png
+          pagerdutyUrl: https://events.eu.pagerduty.com
+          payload_severity: warning
+          payload_source: Runbook Automation
+          payload_summary: '[${job.status}] "${job.name}" run by ${job.user} (#${job.execid})'
+          service_key_storage_path: keys/pagerduty/pdt-bdias-global-orchestration-key
+        type: PagerDutyEventNotification
+  notifyAvgDurationThreshold: null
+  options:
+  - name: apiendpoint
+    value: https://www.bbc.com
+  plugins:
+    ExecutionLifecycle: {}
+  runnerSelector:
+    runnerFilterMode: LOCAL
+    runnerFilterType: LOCAL_RUNNER
+  scheduleEnabled: true
+  schedules: []
+  sequence:
+    commands:
+    - configuration:
+        authentication: None
+        checkResponseCode: 'false'
+        headers: '{"content-type": "application/json"}'
+        method: GET
+        printResponse: 'false'
+        printResponseCode: 'true'
+        printResponseToFile: 'false'
+        proxySettings: 'false'
+        remoteUrl: ${option.apiendpoint}/sport/${data.page_id*}
+        sslVerify: 'true'
+        timeout: '30000'
+      nodeStep: false
+      type: edu.ohio.ais.rundeck.HttpWorkflowStepPlugin
+    - configuration:
+        debugOnly: 'false'
+      nodeStep: false
+      type: log-data-step
+    keepgoing: true
+    strategy: node-first
+  user: admin
+  uuid: bc0c726f-a617-4f15-8232-c7b9bfa04422
+

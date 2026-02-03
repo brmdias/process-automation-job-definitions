@@ -1,0 +1,258 @@
+- defaultTab: nodes
+  description: ''
+  executionEnabled: true
+  group: Utilities
+  id: 8d8ecfa5-6a35-4603-98b0-a7cf37e31f89
+  loglevel: INFO
+  maxMultipleExecutions: '10'
+  multipleExecutions: true
+  name: RBA Token Expiration Validation (PowerShell)
+  nodeFilterEditable: false
+  nodefilters:
+    dispatch:
+      excludePrecedence: true
+      keepgoing: false
+      rankOrder: ascending
+      successOnEmptyNodeFilter: false
+      threadcount: '1'
+    filter: 'osFamily: windows'
+  nodesSelectedByDefault: true
+  options:
+  - description: expirationdays
+    label: expirationdays
+    name: expirationdays
+    required: true
+    value: '30'
+    values:
+    - '1'
+    - '5'
+    - '15'
+    - '30'
+    - '40'
+    - '50'
+    - '60'
+    - '70'
+    valuesListDelimiter: ','
+  - hidden: true
+    name: api-token
+    secure: true
+    storagePath: keys/rba/bdias-rba-token
+    valueExposed: true
+  - hidden: true
+    name: pd-orchestration-key
+    secure: true
+    storagePath: keys/pagerduty/pdt-bdias-global-orchestration-key
+    valueExposed: true
+  - name: rba-url
+    value: bdias.myrundeck.com
+  plugins:
+    ExecutionLifecycle:
+      Send Incident Output to Pagerduty: {}
+  runnerSelector:
+    filter: OREGON_AWS_NODE
+    runnerFilterMode: TAGS
+    runnerFilterType: TAG_FILTER_AND
+  scheduleEnabled: true
+  schedules: []
+  sequence:
+    commands:
+    - autoSecureInput: 'false'
+      fileExtension: .ps1
+      interpreterArgsQuoted: false
+      passSecureInput: 'false'
+      plugins:
+        LogFilter:
+        - config:
+            invalidKeyPattern: \s|\$|\{|\}|\\
+            logData: 'true'
+            name: TOKEN_ALERT
+            regex: ^RUNDECK:DATA:\s*([^\s]+?)\s*=\s*(.+)$
+            replaceFilteredResult: 'false'
+          type: key-value-data
+        - config:
+            captureMultipleKeysValues: 'true'
+            hideOutput: 'false'
+            logData: 'true'
+            name: tokens
+            regex: (?s)(?<=---START-TOKENS---\s*).*?(?=\s*---END-TOKENS---)
+          type: key-value-data-multilines
+        - config:
+            filterName: RBA Expired Tokens
+            logOutputSettings: All
+            stepStatus: Any
+          type: pagerduty-incident-output-capture
+      script: |
+        # Script: Token Expiration Checker with Alert Variable (JSON version - PowerShell)
+        # This script connects to the Rundeck tokens endpoint, retrieves the token information,
+        # and evaluates the expiration date of each one.
+        #
+        # If a token will expire within the next 30 days (or has already expired), it will be displayed in a table with:
+        #   - Creator
+        #   - Name
+        #   - Expiration (processed date)
+        #   - Status (expired or the number of days remaining until expiration)
+        #
+        # Additionally, the TOKEN_ALERT variable is assigned the value 'ALERT' if at least one token
+        # is nearing expiration or has already expired, or 'OK' otherwise.
+        #
+        # Configuration: Adjust the values of API_TOKEN and RUNDECK_URL to match your environment.
+
+        # Configuration
+        $API_TOKEN = "@option.api-token@"
+        $RUNDECK_URL = "https://@option.rba-url@/api/52/tokens"
+        $THRESHOLD_DAYS = "@option.expirationdays@"
+
+        Write-Host "Querying Rundeck API: $RUNDECK_URL" -ForegroundColor Yellow
+
+        # Set up headers for the API request
+        $headers = @{
+            "X-Rundeck-Auth-Token" = $API_TOKEN
+        }
+
+        # Connect to the endpoint
+        try {
+            $response = Invoke-RestMethod -Uri $RUNDECK_URL -Headers $headers -Method Get -ErrorAction Stop
+        } catch {
+            Write-Error "Error: Unable to connect to the endpoint. Please check the URL, the token, or your connectivity. Error: $_"
+            exit 1
+        }
+
+        if (-not $response) {
+            Write-Error "Error: No response received from the API."
+            exit 1
+        }
+
+        # Verify that the response is an array
+        if ($response -isnot [Array]) {
+            Write-Error "Error: The response is not a JSON array as expected."
+            exit 1
+        }
+
+        # Get current timestamp
+        $now = Get-Date
+
+        # Initialize variables
+        $expiringTokens = @()
+        $expiringCount = 0
+
+        # Process each token from the JSON array
+        foreach ($token in $response) {
+            # Extract fields from the token object
+            $creator = if ($token.creator) { $token.creator } else { "N/A" }
+            $tokenId = if ($token.id) { $token.id } else { "N/A" }
+            $name = if ($token.name) { $token.name } else { "N/A" }
+            $expiration = if ($token.expiration) { $token.expiration } else { $null }
+            $expiredFlag = if ($token.expired) { $token.expired } else { $false }
+
+            # Skip tokens without a valid expiration date
+            if (-not $expiration -or $expiration -eq "null") {
+                continue
+            }
+
+            # Parse the ISO 8601 date format
+            try {
+                $expirationDate = [DateTime]::Parse($expiration)
+            } catch {
+                Write-Warning "Warning: Unable to parse the date for token '$name' with: $expiration"
+                continue
+            }
+
+            # Calculate the difference in days
+            $timeSpan = $expirationDate - $now
+            $diffDays = [Math]::Floor($timeSpan.TotalDays)
+
+            # If the token has already expired or will expire within THRESHOLD_DAYS days
+            if ($timeSpan.TotalDays -le $THRESHOLD_DAYS) {
+                if ($timeSpan.TotalDays -lt 0) {
+                    $status = "Expired"
+                } else {
+                    $status = "Expires in $diffDays day(s)"
+                }
+
+                # Add to the array
+                $expiringTokens += [PSCustomObject]@{
+                    ID         = $tokenId
+                    Creator    = $creator
+                    Name       = $name
+                    Expiration = $expiration
+                    Status     = $status
+                }
+                $expiringCount++
+            }
+        }
+
+        # Print marker for regex
+        Write-Host "---START-TOKENS---"
+
+        # Print the table if tokens are found
+        if ($expiringTokens.Count -gt 0) {
+            $expiringTokens | Format-Table -AutoSize
+        } else {
+            Write-Host "There are no tokens expiring within the next $THRESHOLD_DAYS days."
+        }
+
+        # Print marker for regex
+        Write-Host "---END-TOKENS---"
+
+        # Set the TOKEN_ALERT variable based on the existence of tokens nearing expiration
+        if ($expiringCount -gt 0) {
+            $TOKEN_ALERT = "ALERT"
+        } else {
+            $TOKEN_ALERT = "OK"
+        }
+
+        # Print the final result in a format compatible with Rundeck
+        Write-Host "RUNDECK:DATA: TOKEN_ALERT=$TOKEN_ALERT"
+      scriptInterpreter: powershell.exe
+    - configuration:
+        export: TOKEN_ALERT
+        group: export
+        value: ${data.TOKEN_ALERT*}
+      nodeStep: false
+      type: export-var
+    - exec: Write-Host ${export.TOKEN_ALERT}
+    - autoSecureInput: 'false'
+      fileExtension: .ps1
+      interpreterArgsQuoted: false
+      passSecureInput: 'false'
+      script: "# Script: PagerDuty Alert for Token Expiration (PowerShell)\n# This\
+        \ script sends an alert to PagerDuty using the Events API v2.\n# It reads\
+        \ the expiration threshold from the job option RD_OPTION_EXPIRATIONDAYS and\n\
+        # constructs an alert message notifying that there are tokens expiring within\
+        \ the threshold,\n# without listing token names.\n#\n# This step should run\
+        \ only when the Ruleset condition triggers it (i.e. when TOKEN_ALERT equals\
+        \ \"ALERT\").\n\n# PagerDuty Routing Key (your integration/routing key)\n\
+        $PAGERDUTY_ROUTING_KEY = \"@option.pd-orchestration-key@\"\n\n# Get the expiration\
+        \ threshold from the job option; default to 30 if not provided.\n$THRESHOLD_DAYS\
+        \ = $env:RD_OPTION_EXPIRATIONDAYS\nif (-not $THRESHOLD_DAYS) {\n    $THRESHOLD_DAYS\
+        \ = 30\n}\n\n# Construct the custom alert message using the dynamic threshold.\n\
+        $alert_message = \"There are Tokens that are going to expire in the following\
+        \ $THRESHOLD_DAYS day(s), please check your RBA instance. Go to Profile Icon\
+        \ then select Profile menu and check User API Tokens section for more details\"\
+        \n\nWrite-Host \"TOKEN_ALERT condition met. Triggering PagerDuty alert...\"\
+        \nWrite-Host \"Custom alert message: $alert_message\"\n\n# Construct the JSON\
+        \ payload for PagerDuty\n$payload = @{\n    routing_key   = $PAGERDUTY_ROUTING_KEY\n\
+        \    event_action  = \"trigger\"\n    dedup_key     = \"@job.id@\"\n    payload\
+        \       = @{\n        summary        = \"Alert: Tokens near expiration in\
+        \ Rundeck\"\n        source         = \"Runbook Automation\"\n        severity\
+        \       = \"warning\"\n        custom_details = @{\n            info = $alert_message\n\
+        \        }\n    }\n} | ConvertTo-Json -Depth 10\n\n# Send alert to PagerDuty\
+        \ via the Events API v2.\ntry {\n    $response = Invoke-RestMethod -Uri \"\
+        https://events.pagerduty.com/v2/enqueue\" `\n        -Method Post `\n    \
+        \    -ContentType \"application/json\" `\n        -Body $payload `\n     \
+        \   -ErrorAction Stop\n    \n    Write-Host \"PagerDuty response: $($response\
+        \ | ConvertTo-Json -Compress)\"\n} catch {\n    Write-Error \"Failed to send\
+        \ PagerDuty alert. Error: $_\"\n    exit 1\n}\n"
+      scriptInterpreter: powershell.exe
+    keepgoing: false
+    pluginConfig:
+      WorkflowStrategy:
+        ruleset:
+          rules: |
+            [*] run-in-sequence
+            [4] if:export.TOKEN_ALERT==ALERT
+    strategy: ruleset
+  tags: token
+  user: admin
+  uuid: 8d8ecfa5-6a35-4603-98b0-a7cf37e31f89
+

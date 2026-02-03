@@ -53,7 +53,9 @@
     runnerFilterMode: TAGS
     runnerFilterType: TAG_FILTER_AND
   scheduleEnabled: true
-  schedules: []
+  schedules:
+  - jobParams: -expirationdays 5
+    name: RBA Tokens Expiration Date
   sequence:
     commands:
     - autoSecureInput: 'false'
@@ -79,69 +81,140 @@
             logOutputSettings: All
             stepStatus: Any
           type: pagerduty-incident-output-capture
-      script: "#!/bin/bash\n# Script: Token Expiration Checker with Alert Variable\
-        \ (no xmlstarlet dependency)\n# This script connects to the Rundeck tokens\
-        \ endpoint, retrieves the token information,\n# and evaluates the expiration\
-        \ date of each one.\n#\n# If a token will expire within the next 30 days (or\
-        \ has already expired), it will be displayed in a table with:\n#   - Creator\n\
-        #   - Name\n#   - Expiration (processed date)\n#   - Status (expired or the\
-        \ number of days remaining until expiration)\n#\n# Additionally, the TOKEN_ALERT\
-        \ variable is assigned the value 'ALERT' if at least one token\n# is nearing\
-        \ expiration or has already expired, or 'OK' otherwise.\n#\n# Configuration:\
-        \ Adjust the values of API_TOKEN and RUNDECK_URL to match your environment.\n\
-        \n# Configuration\nAPI_TOKEN=\"@option.api-token@\"\nRUNDECK_URL=\"https://@option.rba-url@/api/49/tokens\"\
-        \nTHRESHOLD_DAYS=30\n\necho \"Querying Rundeck API: $RUNDECK_URL\" >&2\n\n\
-        # Connect to the endpoint (uses --fail for HTTP errors)\nresponse=$(curl -s\
-        \ -L --fail -H \"X-Rundeck-Auth-Token: $API_TOKEN\" \"$RUNDECK_URL\")\nif\
-        \ [ $? -ne 0 ]; then\n    echo \"Error: Unable to connect to the endpoint.\
-        \ Please check the URL, the token, or your connectivity.\" >&2\n    exit 1\n\
-        fi\n\nif [ -z \"$response\" ]; then\n    echo \"Error: No response received\
-        \ from the API.\" >&2\n    exit 1\nfi\n\n# Verify that the response is XML\
-        \ by checking for the <token> tag.\nif ! echo \"$response\" | grep -i -q \"\
-        <token\"; then\n    echo \"Error: The response is not the expected XML (the\
-        \ <token> tag was not found).\" >&2\n    exit 1\nfi\n\n# Extract individual\
-        \ <token> elements using grep.\n# This assumes that each token is contained\
-        \ within a single element block.\ntokens=$(echo \"$response\" | grep -oP '<token\\\
-        b.*?</token>')\n\nif [ -z \"$tokens\" ]; then\n    echo \"No token information\
-        \ was extracted.\" >&2\n    exit 1\nfi\n\n# Function to parse dates into Unix\
-        \ timestamp.\nif [[ \"$(uname)\" == \"Darwin\" ]]; then\n    parse_date()\
-        \ { date -j -f \"%Y-%m-%d %H:%M:%S %z\" \"$1\" +%s 2>/dev/null; }\nelse\n\
-        \    parse_date() { date -d \"$1\" +%s 2>/dev/null; }\nfi\n\nnow_ts=$(date\
-        \ +%s)\nrows=()\nexpiringCount=0\n\n# Process each token element.\necho \"\
-        $tokens\" | while IFS= read -r token; do\n    # Extract attributes from the\
-        \ token element using grep and sed.\n    creator=$(echo \"$token\" | grep\
-        \ -oP 'creator=\"\\K[^\"]+')\n    token_id=$(echo \"$token\" | grep -oP 'id=\"\
-        \\K[^\"]+')\n    name=$(echo \"$token\" | grep -oP 'name=\"\\K[^\"]+')\n \
-        \   expiration=$(echo \"$token\" | grep -oP '<expiration>\\K[^<]+')\n    expired_flag=$(echo\
-        \ \"$token\" | grep -oP '<expired>\\K[^<]+')\n\n    \n    # Skip tokens without\
-        \ a valid expiration date.\n    if [ -z \"$expiration\" ] || [ \"$expiration\"\
-        \ == \"null\" ]; then\n        continue\n    fi\n\n    # Clean the expiration\
-        \ date: remove milliseconds (e.g., \".315\") and adjust the time zone.\n \
-        \   exp_clean=$(echo \"$expiration\" | sed -E 's/\\.[0-9]+//' | sed 's/ GMT$/\
-        \ +0000/')\n    \n    exp_ts=$(parse_date \"$exp_clean\")\n    if [ -z \"\
-        $exp_ts\" ]; then\n        echo \"Warning: Unable to parse the date for token\
-        \ '$name' with: $exp_clean\" >&2\n        continue\n    fi\n\n    diff_seconds=$((\
-        \ exp_ts - now_ts ))\n    diff_days=$(( diff_seconds / 86400 ))\n\n    # If\
-        \ the token has already expired or will expire within THRESHOLD_DAYS days.\n\
-        \    if [ $diff_seconds -le $(( THRESHOLD_DAYS * 86400 )) ]; then\n      \
-        \  if [ $diff_seconds -lt 0 ]; then\n            status=\"Expired\"\n    \
-        \    else\n            status=\"Expires in ${diff_days} day(s)\"\n       \
-        \ fi\n        # Append the row to a temporary file for later processing.\n\
-        \        echo \"$token_id|$creator|$name|$exp_clean|$status\"\n        # Increase\
-        \ a counter; using a temp file because we're in a subshell.\n        echo\
-        \ \"increment\" >> /tmp/token_check_count.txt\n    fi\ndone > /tmp/token_rows.txt\n\
-        \n# Combine the increments from the subshell.\nif [ -f /tmp/token_check_count.txt\
-        \ ]; then\n    expiringCount=$(grep -c \"increment\" /tmp/token_check_count.txt)\n\
-        \    rm /tmp/token_check_count.txt\nfi\n\n# Print marker for regex\necho \"\
-        ---START-TOKENS---\"\n\n# Print the table if tokens are found.\nif [ -s /tmp/token_rows.txt\
-        \ ]; then\n    {\n      echo \"ID|Creator|Name|Expiration|Status\"\n     \
-        \ cat /tmp/token_rows.txt\n    } | column -t -s '|'\n    rm /tmp/token_rows.txt\n\
-        else\n    echo \"There are no tokens expiring within the next $THRESHOLD_DAYS\
-        \ days.\"\nfi\n\n# Print marker for regex\necho \"---END-TOKENS---\"\n\n#\
-        \ Set the TOKEN_ALERT variable based on the existence of tokens nearing expiration.\n\
-        if [ $expiringCount -gt 0 ]; then\n    TOKEN_ALERT=\"ALERT\"\nelse\n    TOKEN_ALERT=\"\
-        OK\"\nfi\n\n# Print the final result in a format compatible with Rundeck.\n\
-        echo \"RUNDECK:DATA: TOKEN_ALERT=$TOKEN_ALERT\""
+      script: |-
+        #!/bin/bash
+        # Script: Token Expiration Checker with Alert Variable (JSON version)
+        # This script connects to the Rundeck tokens endpoint, retrieves the token information,
+        # and evaluates the expiration date of each one.
+        #
+        # If a token will expire within the next 30 days (or has already expired), it will be displayed in a table with:
+        #   - Creator
+        #   - Name
+        #   - Expiration (processed date)
+        #   - Status (expired or the number of days remaining until expiration)
+        #
+        # Additionally, the TOKEN_ALERT variable is assigned the value 'ALERT' if at least one token
+        # is nearing expiration or has already expired, or 'OK' otherwise.
+        #
+        # Configuration: Adjust the values of API_TOKEN and RUNDECK_URL to match your environment.
+
+        # Configuration
+        API_TOKEN="@option.api-token@"
+        RUNDECK_URL="https://@option.rba-url@/api/52/tokens"
+        THRESHOLD_DAYS=30
+
+        echo "Querying Rundeck API: $RUNDECK_URL" >&2
+
+        # Check if jq is installed
+        if ! command -v jq &> /dev/null; then
+            echo "Error: jq is not installed. Please install jq to parse JSON responses." >&2
+            exit 1
+        fi
+
+        # Connect to the endpoint (uses --fail for HTTP errors)
+        response=$(curl -s -L --fail -H "X-Rundeck-Auth-Token: $API_TOKEN" "$RUNDECK_URL")
+        if [ $? -ne 0 ]; then
+            echo "Error: Unable to connect to the endpoint. Please check the URL, the token, or your connectivity." >&2
+            exit 1
+        fi
+
+        if [ -z "$response" ]; then
+            echo "Error: No response received from the API." >&2
+            exit 1
+        fi
+
+        # Verify that the response is valid JSON
+        if ! echo "$response" | jq empty 2>/dev/null; then
+            echo "Error: The response is not valid JSON. Response: $response" >&2
+            exit 1
+        fi
+
+        # Check if the response is an array
+        if ! echo "$response" | jq -e 'type == "array"' >/dev/null 2>&1; then
+            echo "Error: The response is not a JSON array as expected." >&2
+            exit 1
+        fi
+
+        # Function to parse ISO 8601 dates into Unix timestamp.
+        if [[ "$(uname)" == "Darwin" ]]; then
+            parse_date() { date -j -f "%Y-%m-%dT%H:%M:%SZ" "$1" +%s 2>/dev/null; }
+        else
+            parse_date() { date -d "$1" +%s 2>/dev/null; }
+        fi
+
+        now_ts=$(date +%s)
+        expiringCount=0
+
+        # Process each token from the JSON array.
+        echo "$response" | jq -c '.[]' | while IFS= read -r token; do
+            # Extract fields from the JSON token object.
+            creator=$(echo "$token" | jq -r '.creator // "N/A"')
+            token_id=$(echo "$token" | jq -r '.id // "N/A"')
+            name=$(echo "$token" | jq -r '.name // "N/A"')
+            expiration=$(echo "$token" | jq -r '.expiration // "null"')
+            expired_flag=$(echo "$token" | jq -r '.expired // false')
+
+            # Skip tokens without a valid expiration date.
+            if [ -z "$expiration" ] || [ "$expiration" == "null" ]; then
+                continue
+            fi
+
+            # Parse the ISO 8601 date format (e.g., "2017-03-25T21:16:50Z")
+            exp_ts=$(parse_date "$expiration")
+            if [ -z "$exp_ts" ]; then
+                echo "Warning: Unable to parse the date for token '$name' with: $expiration" >&2
+                continue
+            fi
+
+            diff_seconds=$(( exp_ts - now_ts ))
+            diff_days=$(( diff_seconds / 86400 ))
+
+            # If the token has already expired or will expire within THRESHOLD_DAYS days.
+            if [ $diff_seconds -le $(( THRESHOLD_DAYS * 86400 )) ]; then
+                if [ $diff_seconds -lt 0 ]; then
+                    status="Expired"
+                else
+                    status="Expires in ${diff_days} day(s)"
+                fi
+                # Append the row to a temporary file for later processing.
+                echo "$token_id|$creator|$name|$expiration|$status"
+                # Increase a counter; using a temp file because we're in a subshell.
+                echo "increment" >> /tmp/token_check_count.txt
+            fi
+        done > /tmp/token_rows.txt
+
+        # Combine the increments from the subshell.
+        if [ -f /tmp/token_check_count.txt ]; then
+            expiringCount=$(grep -c "increment" /tmp/token_check_count.txt)
+            rm /tmp/token_check_count.txt
+        fi
+
+        # Print marker for regex
+        echo "---START-TOKENS---"
+
+        # Print the table if tokens are found.
+        if [ -s /tmp/token_rows.txt ]; then
+            {
+              echo "ID|Creator|Name|Expiration|Status"
+              cat /tmp/token_rows.txt
+            } | column -t -s '|'
+            rm /tmp/token_rows.txt
+        else
+            echo "There are no tokens expiring within the next $THRESHOLD_DAYS days."
+        fi
+
+        # Print marker for regex
+        echo "---END-TOKENS---"
+
+        # Set the TOKEN_ALERT variable based on the existence of tokens nearing expiration.
+        if [ $expiringCount -gt 0 ]; then
+            TOKEN_ALERT="ALERT"
+        else
+            TOKEN_ALERT="OK"
+        fi
+
+        # Print the final result in a format compatible with Rundeck.
+        echo "RUNDECK:DATA: TOKEN_ALERT=$TOKEN_ALERT"
     - configuration:
         export: TOKEN_ALERT
         group: export

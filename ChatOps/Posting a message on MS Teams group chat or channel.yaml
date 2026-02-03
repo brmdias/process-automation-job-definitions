@@ -1,0 +1,73 @@
+- defaultTab: nodes
+  description: ''
+  executionEnabled: true
+  group: ChatOps
+  id: fe2edba4-af36-4504-8131-9578cbc2d684
+  loglevel: INFO
+  name: Posting a message on MS Teams group chat or channel
+  nodeFilterEditable: false
+  options:
+  - label: Message to post
+    name: message
+    type: text
+    value: This is a test message from 'pdt-rdtam.runbook.pagerduty.cloud'
+  - description: |-
+      Use the webhook URL provided by PowerAutomate.
+      [Microsoft guide here](https://support.microsoft.com/en-us/office/creating-a-workflow-from-a-chat-in-teams-e3b51c4f-49de-40aa-a6e7-bcff96b99edc)
+    label: Webhook URL
+    name: webhook-url
+    type: text
+  plugins:
+    ExecutionLifecycle: null
+  scheduleEnabled: true
+  schedules: []
+  sequence:
+    commands:
+    - configuration:
+        authentication: None
+        body: |-
+          {
+              "type": "message",
+              "attachments": [
+                  {
+                      "contentType": "application/vnd.microsoft.card.adaptive",
+                      "contentUrl": null,
+                      "content": {
+                          "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
+                          "type": "AdaptiveCard",
+                          "version": "1.2",
+                          "body": [
+                              {
+                                  "type": "TextBlock",
+                                  "text": "Rundeck Job Notification",
+                                  "weight": "Bolder",
+                                  "size": "Large"
+                              },
+                              {
+                                  "type": "TextBlock",
+                                  "text": "${option.message}",
+                                  "wrap": true
+                              }
+                          ]
+                      }
+                  }
+              ]
+          }
+        checkResponseCode: 'true'
+        headers: 'Content-Type: application/json'
+        method: POST
+        printResponse: 'false'
+        printResponseCode: 'true'
+        printResponseToFile: 'false'
+        proxySettings: 'false'
+        remoteUrl: ${option.webhook-url}
+        responseCode: '202'
+        sslVerify: 'true'
+        timeout: '30000'
+      nodeStep: true
+      type: edu.ohio.ais.rundeck.HttpWorkflowNodeStepPlugin
+    keepgoing: false
+    strategy: node-first
+  user: admin
+  uuid: fe2edba4-af36-4504-8131-9578cbc2d684
+

@@ -1,0 +1,131 @@
+- defaultTab: nodes
+  description: Removes runner replica from Rundeck when ASG terminates instance
+  executionEnabled: true
+  id: 93e36785-226d-4784-babb-83aab658e2cb
+  loglevel: INFO
+  name: Cleanup Runner Replica on ASG Termination
+  nodeFilterEditable: true
+  nodefilters:
+    dispatch:
+      excludePrecedence: true
+      keepgoing: false
+      rankOrder: ascending
+      successOnEmptyNodeFilter: false
+      threadcount: '1'
+    filter: .*-runner
+  nodesSelectedByDefault: true
+  options:
+  - description: EC2 Instance ID being terminated
+    name: instance_id
+    required: true
+  - description: ASG Lifecycle Hook Name
+    name: lifecycle_hook_name
+    required: true
+  - description: Auto Scaling Group Name
+    name: asg_name
+    required: true
+  - description: AWS Region
+    name: region
+    required: true
+  - name: sns_message
+    required: true
+  plugins:
+    ExecutionLifecycle: {}
+  scheduleEnabled: false
+  schedules: []
+  sequence:
+    commands:
+    - autoSecureInput: 'false'
+      passSecureInput: 'false'
+      script: |
+        #!/bin/bash
+        # Extract data from webhook (SNS message)
+        INSTANCE_ID="@option.instance_id@"
+        LIFECYCLE_HOOK_NAME="@option.lifecycle_hook_name@"
+        ASG_NAME="@option.asg_name@"
+        REGION="@option.region@"
+
+        echo "=== Runner Replica Cleanup ==="
+        echo "Instance ID: ${INSTANCE_ID}"
+        echo "ASG: ${ASG_NAME}"
+        echo "Lifecycle Hook: ${LIFECYCLE_HOOK_NAME}"
+        echo "Region: ${REGION}"
+
+        # Query EC2 tags to get RunnerID and ReplicaID
+        # SNS only sends EC2InstanceId, not the Runner/Replica IDs
+        echo "Retrieving Runner and Replica IDs from instance tags..."
+        RUNNER_ID=$(aws ec2 describe-tags \
+          --filters "Name=resource-id,Values=${INSTANCE_ID}" "Name=key,Values=RunnerID" \
+          --region ${REGION} \
+          --query "Tags[0].Value" \
+          --output text)
+
+        REPLICA_ID=$(aws ec2 describe-tags \
+          --filters "Name=resource-id,Values=${INSTANCE_ID}" "Name=key,Values=ReplicaID" \
+          --region ${REGION} \
+          --query "Tags[0].Value" \
+          --output text)
+
+        if [ -z "${RUNNER_ID}" ] || [ "${RUNNER_ID}" = "None" ]; then
+          echo "❌ ERROR: RunnerID tag not found on instance ${INSTANCE_ID}"
+          # Complete lifecycle anyway to avoid blocking termination
+          aws autoscaling complete-lifecycle-action \
+            --lifecycle-hook-name "${LIFECYCLE_HOOK_NAME}" \
+            --auto-scaling-group-name "${ASG_NAME}" \
+            --lifecycle-action-result CONTINUE \
+            --instance-id "${INSTANCE_ID}" \
+            --region "${REGION}"
+          exit 1
+        fi
+
+        if [ -z "${REPLICA_ID}" ] || [ "${REPLICA_ID}" = "None" ]; then
+          echo "❌ ERROR: ReplicaID tag not found on instance ${INSTANCE_ID}"
+          # Complete lifecycle anyway to avoid blocking termination
+          aws autoscaling complete-lifecycle-action \
+            --lifecycle-hook-name "${LIFECYCLE_HOOK_NAME}" \
+            --auto-scaling-group-name "${ASG_NAME}" \
+            --lifecycle-action-result CONTINUE \
+            --instance-id "${INSTANCE_ID}" \
+            --region "${REGION}"
+          exit 1
+        fi
+
+        echo "Runner ID: ${RUNNER_ID}"
+        echo "Replica ID: ${REPLICA_ID}"
+
+        # Delete replica via Rundeck API
+        RUNDECK_URL="${framework.RUNDECK_URL}"
+        RUNDECK_TOKEN="${framework.RUNDECK_API_TOKEN}"
+
+        echo "Deleting replica ${REPLICA_ID}..."
+        RESPONSE=$(curl -s -w "\n%{http_code}" -X DELETE \
+          "${RUNDECK_URL}/api/55/runnerManagement/runner/${RUNNER_ID}/replica/${REPLICA_ID}" \
+          -H "X-Rundeck-Auth-Token: ${RUNDECK_TOKEN}")
+
+        HTTP_CODE=$(echo "${RESPONSE}" | tail -n1)
+
+        if [ "${HTTP_CODE}" = "204" ]; then
+          echo "✅ Replica deleted successfully"
+          EXIT_CODE=0
+        else
+          echo "❌ Failed to delete replica. HTTP ${HTTP_CODE}"
+          echo "${RESPONSE}"
+          EXIT_CODE=1
+        fi
+
+        # Complete lifecycle action regardless of cleanup result
+        echo "Completing lifecycle action..."
+        aws autoscaling complete-lifecycle-action \
+          --lifecycle-hook-name "${LIFECYCLE_HOOK_NAME}" \
+          --auto-scaling-group-name "${ASG_NAME}" \
+          --lifecycle-action-result CONTINUE \
+          --instance-id "${INSTANCE_ID}" \
+          --region "${REGION}"
+
+        echo "Lifecycle action completed"
+        exit ${EXIT_CODE}
+    keepgoing: false
+    strategy: node-first
+  user: admin
+  uuid: 93e36785-226d-4784-babb-83aab658e2cb
+

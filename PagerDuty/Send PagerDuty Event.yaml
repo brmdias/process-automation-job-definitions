@@ -1,0 +1,41 @@
+- defaultTab: output
+  description: |-
+    Job to send a PagerDuty event using the RBA plugin.
+    ExecID_Job UUID as dedup key.
+  executionEnabled: true
+  group: PagerDuty
+  id: ba2b66b3-92c1-41c1-a15e-6096d3b9a474
+  loglevel: INFO
+  maxMultipleExecutions: '50'
+  multipleExecutions: true
+  name: Send PagerDuty Event
+  nodeFilterEditable: false
+  options:
+  - name: summary
+    required: true
+    value: 🤖 This is an incident raised by RBA 🤖
+  plugins:
+    ExecutionLifecycle: {}
+  scheduleEnabled: true
+  schedules: []
+  sequence:
+    commands:
+    - configuration:
+        component: ${job.project}
+        dedupe_key: ${job.execid}_${job.id}
+        event_action: trigger
+        images: https://www.rundeck.com/hubfs/rundeck-app-assets/rundeck-by-pagerduty-icon.png
+        payload_class: ${job.executionType}
+        payload_severity: warning
+        payload_source: Runbook Automation
+        payload_summary: ${option.summary}
+        service_key: keys/pagerduty/pdt-bdias-global-orchestration-key
+      description: Send Event
+      nodeStep: false
+      type: pd-sent-event-step
+    keepgoing: false
+    strategy: node-first
+  tags: pagerduty
+  user: admin
+  uuid: ba2b66b3-92c1-41c1-a15e-6096d3b9a474
+
