@@ -46,14 +46,70 @@
           echo "🟢 No fault detected: Disk usage within normal parameters (${disk_output})"
         fi
         echo ""
-    - description: Top 5 processes by CPU utilization
-      exec: 'ps -eo pid,comm,%cpu --sort=-%cpu | head -n 6'
-    - description: Top 5 Processes by Memory Usage
-      exec: 'ps -eo pid,comm,%mem --sort=-%mem | head -n 6'
-    - description: Network usage
-      exec: ifstat -t 1 5
-    - description: System load
-      exec: uptime
+    - autoSecureInput: 'false'
+      description: Top 5 processes by CPU utilization
+      passSecureInput: 'false'
+      script: |
+        #!/bin/bash
+
+        echo "2. Top 5 processes by CPU utilization"
+        cpu_output=$(ps -eo pid,comm,%cpu --sort=-%cpu | head -n 6)
+        echo "$cpu_output"
+
+        top_cpu=$(echo "$cpu_output" | awk 'NR==2 {print $3}')
+        if (( $(echo "$top_cpu > 80" | bc -l) )); then
+          echo "🔴 Fault detected: High CPU usage detected (${top_cpu}%)"
+        else
+          echo "🟢 No fault detected: CPU usage within normal parameters"
+        fi
+        echo ""
+    - autoSecureInput: 'false'
+      description: Top 5 Processes by Memory Usage
+      passSecureInput: 'false'
+      script: |
+        #!/bin/bash
+
+        echo "3. Top 5 Processes by Memory Usage"
+        mem_output=$(ps -eo pid,comm,%mem --sort=-%mem | head -n 6)
+        echo "$mem_output"
+
+        top_mem=$(echo "$mem_output" | awk 'NR==2 {print $3}')
+        if (( $(echo "$top_mem > 80" | bc -l) )); then
+          echo "🔴 Fault detected: High memory usage detected (${top_mem}%)"
+        else
+          echo "🟢 No fault detected: Memory usage within normal parameters"
+        fi
+        echo ""
+    - autoSecureInput: 'false'
+      description: Network usage
+      passSecureInput: 'false'
+      script: |
+        #!/bin/bash
+
+        echo "4. Network usage"
+        ifstat -t 1 5
+        echo "🟢 Network statistics captured"
+        echo ""
+    - autoSecureInput: 'false'
+      description: System load
+      passSecureInput: 'false'
+      script: |
+        #!/bin/bash
+
+        echo "5. System load"
+        uptime_output=$(uptime)
+        echo "$uptime_output"
+
+        load_avg=$(echo "$uptime_output" | awk -F'load average:' '{print $2}' | awk '{print $1}' | sed 's/,//')
+        cpu_count=$(nproc)
+        load_threshold=$(echo "$cpu_count * 0.8" | bc)
+
+        if (( $(echo "$load_avg > $load_threshold" | bc -l) )); then
+          echo "🔴 Fault detected: High system load (${load_avg} on ${cpu_count} CPUs)"
+        else
+          echo "🟢 No fault detected: System load within normal parameters (${load_avg} on ${cpu_count} CPUs)"
+        fi
+        echo ""
     keepgoing: true
     pluginConfig:
       LogFilter:
