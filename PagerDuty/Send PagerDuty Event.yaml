@@ -1,18 +1,19 @@
-- defaultTab: nodes
-  description: Job to send a PagerDuty event using the RBA plugin.
+- defaultTab: output
+  description: |-
+    Job to send a PagerDuty event using the RBA plugin.
+    ExecID_Job UUID as dedup key.
   executionEnabled: true
   group: PagerDuty
-  id: c5bfdd78-8569-471e-a52d-06e2d44c1267
+  id: ba2b66b3-92c1-41c1-a15e-6096d3b9a474
   loglevel: INFO
   maxMultipleExecutions: '50'
   multipleExecutions: true
   name: Send PagerDuty Event
   nodeFilterEditable: false
   options:
-  - name: domain
+  - name: summary
     required: true
-  - name: expiry_date
-    required: true
+    value: 🤖 This is an incident raised by RBA 🤖
   plugins:
     ExecutionLifecycle: {}
   scheduleEnabled: true
@@ -20,20 +21,21 @@
   sequence:
     commands:
     - configuration:
-        component: ${option.domain}
-        dedupe_key: ssl-cert-${option.domain}
+        component: ${job.project}
+        dedupe_key: ${job.execid}_${job.id}
         event_action: trigger
         images: https://www.rundeck.com/hubfs/rundeck-app-assets/rundeck-by-pagerduty-icon.png
+        payload_class: ${job.executionType}
         payload_severity: warning
         payload_source: Runbook Automation
-        payload_summary: 'SSL Certificate Expiring Soon: ${option.domain} - Expiry
-          Date: ${option.expiry_date}'
+        payload_summary: ${option.summary}
         service_key: keys/pagerduty/pdt-bdias-global-orchestration-key
       description: Send Event
       nodeStep: false
       type: pd-sent-event-step
     keepgoing: false
     strategy: node-first
-  user: Bruno Dias
-  uuid: c5bfdd78-8569-471e-a52d-06e2d44c1267
+  tags: pagerduty
+  user: admin
+  uuid: ba2b66b3-92c1-41c1-a15e-6096d3b9a474
 
