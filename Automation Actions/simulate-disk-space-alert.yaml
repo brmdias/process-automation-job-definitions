@@ -64,24 +64,24 @@
         # Build the JSON payload
         PAYLOAD=$(cat <<EOF
         {
-          "routing_key": "${option.pd_integration_key}",
+          "routing_key": "@option.pd_integration_key@",
           "event_action": "trigger",
-          "dedup_key": "disk-space-${option.hostname}-${job.execid}",
+          "dedup_key": "disk-space-@option.hostname@-@job.execid@",
           "payload": {
-            "summary": "🚨 Critical Disk Space Alert on ${option.hostname} - ${option.partition} at ${option.disk_usage}% usage (threshold: ${option.threshold}%)",
+            "summary": "🚨 Critical Disk Space Alert on @option.hostname@ - @option.partition@ at @option.disk_usage@% usage (threshold: @option.threshold@%)",
             "severity": "critical",
             "source": "Runbook Automation",
-            "component": "${option.hostname}",
+            "component": "@option.hostname@",
             "class": "disk_space_monitoring",
             "custom_details": {
-              "hostname": "${option.hostname}",
-              "partition": "${option.partition}",
-              "current_usage": "${option.disk_usage}%",
-              "threshold": "${option.threshold}%",
-              "mount_point": "${option.partition}",
+              "hostname": "@option.hostname@",
+              "partition": "@option.partition@",
+              "current_usage": "@option.disk_usage@%",
+              "threshold": "@option.threshold@%",
+              "mount_point": "@option.partition@",
               "triggered_by": "Runbook Automation - Simulated Alert",
-              "execution_id": "${job.execid}",
-              "job_name": "${job.name}"
+              "execution_id": "@job.execid@",
+              "job_name": "@job.name@"
             }
           },
           "images": [
@@ -92,7 +92,7 @@
           ],
           "links": [
             {
-              "href": "${job.url}",
+              "href": "@job.url@",
               "text": "View Runbook Execution"
             }
           ]
@@ -127,20 +127,20 @@
         # Build the JSON payload for resolve event
         PAYLOAD=$(cat <<EOF
         {
-          "routing_key": "${option.pd_integration_key}",
+          "routing_key": "@option.pd_integration_key@",
           "event_action": "resolve",
-          "dedup_key": "disk-space-${option.hostname}-${job.execid}",
+          "dedup_key": "disk-space-@option.hostname@-@job.execid@",
           "payload": {
-            "summary": "✅ Disk Space Alert Resolved on ${option.hostname} - ${option.partition} cleaned up successfully",
+            "summary": "✅ Disk Space Alert Resolved on @option.hostname@ - @option.partition@ cleaned up successfully",
             "severity": "info",
             "source": "Runbook Automation",
             "custom_details": {
-              "hostname": "${option.hostname}",
-              "partition": "${option.partition}",
+              "hostname": "@option.hostname@",
+              "partition": "@option.partition@",
               "resolution": "Disk space cleaned up - automated cleanup completed",
               "resolved_by": "Runbook Automation - Automated Remediation",
-              "execution_id": "${job.execid}",
-              "job_name": "${job.name}"
+              "execution_id": "@job.execid@",
+              "job_name": "@job.name@"
             }
           }
         }
