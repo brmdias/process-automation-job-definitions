@@ -1,0 +1,238 @@
+- defaultTab: output
+  description: |-
+    Automated disk space remediation workflow for demonstration purposes.
+
+    This job simulates a realistic disk space cleanup process including:
+    1. Initial disk usage assessment
+    2. Temporary file cleanup (/tmp)
+    3. Old log file rotation and compression
+    4. Package manager cache cleanup
+    5. Docker image pruning (if applicable)
+    6. Final disk usage verification
+
+    The job mimics real-world remediation output without actually modifying the system.
+    Perfect for demonstrating automated incident remediation workflows with PagerDuty integration.
+
+    Use case: Demo automated remediation, incident response training, workflow testing
+
+    Estimated duration: 30-45 seconds
+  executionEnabled: true
+  group: Automation Actions
+  id: b2c3d4e5-f6a7-8901-bcde-f12345678901
+  loglevel: INFO
+  name: disk-space-remediation
+  nodeFilterEditable: false
+  nodefilters:
+    dispatch:
+      excludePrecedence: true
+      keepgoing: false
+      rankOrder: ascending
+      successOnEmptyNodeFilter: false
+      threadcount: '1'
+    filter: .*-runner
+  nodesSelectedByDefault: true
+  options:
+  - description: The hostname or system identifier to remediate
+    label: Hostname
+    name: hostname
+    required: true
+    type: text
+    value: server-prod-01
+  - description: The disk partition to clean up
+    label: Disk Partition
+    name: partition
+    required: true
+    type: text
+    value: /dev/sda1
+  - description: Target disk usage percentage after cleanup
+    label: Target Usage (%)
+    name: target_usage
+    required: true
+    type: text
+    value: '70'
+  - description: Optional PagerDuty incident ID to update with remediation status
+    label: PagerDuty Incident ID (optional)
+    name: pd_incident_id
+    type: text
+  plugins:
+    ExecutionLifecycle: {}
+  scheduleEnabled: true
+  schedules: []
+  sequence:
+    commands:
+    - description: Pre-remediation disk usage check
+      script: |-
+        #!/bin/bash
+
+        echo "=========================================="
+        echo "🔍 DISK SPACE REMEDIATION - INITIATED"
+        echo "=========================================="
+        echo ""
+        echo "Hostname: @option.hostname@"
+        echo "Partition: @option.partition@"
+        echo "Target Usage: @option.target_usage@%"
+        echo "Execution ID: @job.execid@"
+        echo "Timestamp: $(date '+%Y-%m-%d %H:%M:%S')"
+        echo ""
+        echo "----------------------------------------"
+        echo "Step 1: Initial Disk Usage Assessment"
+        echo "----------------------------------------"
+        echo ""
+        echo "Filesystem      Size  Used  Avail Use% Mounted on"
+        echo "@option.partition@  100G   95G    5G  95% /"
+        echo ""
+        echo "⚠️  Current Usage: 95% (CRITICAL)"
+        echo "🎯 Target Usage: @option.target_usage@%"
+        echo "📊 Space to free: ~25GB"
+        echo ""
+        sleep 2
+    - description: Clean temporary files
+      script: |-
+        #!/bin/bash
+
+        echo "----------------------------------------"
+        echo "Step 2: Cleaning Temporary Files"
+        echo "----------------------------------------"
+        echo ""
+        echo "Scanning /tmp directory..."
+        sleep 1
+        echo "Found 1,247 temporary files (aging > 7 days)"
+        echo ""
+        echo "Removing files:"
+        echo "  ✓ /tmp/temp_20250115_*.log (342 files)"
+        echo "  ✓ /tmp/session_*.tmp (198 files)"
+        echo "  ✓ /tmp/cache_*.dat (507 files)"
+        echo "  ✓ /tmp/download_*.partial (200 files)"
+        sleep 2
+        echo ""
+        echo "✅ Temporary files cleaned"
+        echo "💾 Space freed: 3.2 GB"
+        echo ""
+    - description: Rotate and compress old log files
+      script: |-
+        #!/bin/bash
+
+        echo "----------------------------------------"
+        echo "Step 3: Log File Rotation & Compression"
+        echo "----------------------------------------"
+        echo ""
+        echo "Analyzing log directories..."
+        sleep 1
+        echo ""
+        echo "Processing /var/log/application/..."
+        echo "  ✓ Compressing app.log.2025-01-15 (2.1 GB → 187 MB)"
+        echo "  ✓ Compressing app.log.2025-01-14 (1.9 GB → 165 MB)"
+        echo "  ✓ Compressing app.log.2025-01-13 (2.3 GB → 201 MB)"
+        sleep 1
+        echo ""
+        echo "Processing /var/log/nginx/..."
+        echo "  ✓ Compressing access.log.2025-01-10 (1.2 GB → 98 MB)"
+        echo "  ✓ Compressing access.log.2025-01-09 (1.1 GB → 91 MB)"
+        sleep 1
+        echo ""
+        echo "Processing /var/log/system/..."
+        echo "  ✓ Compressing syslog.2025-01-08 (856 MB → 71 MB)"
+        echo "  ✓ Archiving rotated logs older than 30 days"
+        echo "  ✓ Removed 18 archived logs older than 90 days"
+        sleep 1
+        echo ""
+        echo "✅ Log rotation completed"
+        echo "💾 Space freed: 8.7 GB"
+        echo ""
+    - description: Clean package manager caches
+      script: |-
+        #!/bin/bash
+
+        echo "----------------------------------------"
+        echo "Step 4: Package Manager Cache Cleanup"
+        echo "----------------------------------------"
+        echo ""
+        echo "Cleaning APT cache..."
+        sleep 1
+        echo "  ✓ Removing obsolete packages from /var/cache/apt/archives/"
+        echo "  ✓ Cleaned 347 cached package files"
+        echo "  💾 Space freed: 2.8 GB"
+        echo ""
+        sleep 1
+        echo "Cleaning YUM/DNF cache..."
+        echo "  ✓ Removing cached metadata and packages"
+        echo "  ✓ Cleaned repository caches"
+        echo "  💾 Space freed: 1.1 GB"
+        echo ""
+        echo "✅ Package caches cleaned"
+        echo ""
+    - description: Clean Docker resources (if applicable)
+      script: |-
+        #!/bin/bash
+
+        echo "----------------------------------------"
+        echo "Step 5: Docker Resource Cleanup"
+        echo "----------------------------------------"
+        echo ""
+        echo "Checking Docker daemon status..."
+        sleep 1
+        echo "✓ Docker daemon is running"
+        echo ""
+        echo "Analyzing Docker disk usage..."
+        echo ""
+        echo "TYPE            TOTAL     ACTIVE    SIZE      RECLAIMABLE"
+        echo "Images          47        12        15.2GB    8.9GB (58%)"
+        echo "Containers      8         3         234MB     156MB (66%)"
+        echo "Local Volumes   23        5         3.4GB     2.1GB (61%)"
+        echo "Build Cache     -         -         4.8GB     4.8GB"
+        echo ""
+        sleep 2
+        echo "Pruning unused Docker resources..."
+        echo "  ✓ Removing dangling images (12 images)"
+        echo "  ✓ Removing stopped containers (5 containers)"
+        echo "  ✓ Removing unused volumes (18 volumes)"
+        echo "  ✓ Removing build cache"
+        sleep 2
+        echo ""
+        echo "✅ Docker cleanup completed"
+        echo "💾 Space freed: 9.3 GB"
+        echo ""
+    - description: Post-remediation verification
+      script: |-
+        #!/bin/bash
+
+        echo "----------------------------------------"
+        echo "Step 6: Post-Remediation Verification"
+        echo "----------------------------------------"
+        echo ""
+        echo "Re-scanning disk usage..."
+        sleep 2
+        echo ""
+        echo "Filesystem      Size  Used  Avail Use% Mounted on"
+        echo "@option.partition@  100G   70G   30G  70% /"
+        echo ""
+        echo "=========================================="
+        echo "✅ REMEDIATION COMPLETED SUCCESSFULLY"
+        echo "=========================================="
+        echo ""
+        echo "📊 Summary:"
+        echo "  • Initial Usage:  95% (95 GB / 100 GB)"
+        echo "  • Final Usage:    70% (70 GB / 100 GB)"
+        echo "  • Total Freed:    25 GB"
+        echo "  • Target Met:     ✅ Yes (@option.target_usage@%)"
+        echo ""
+        echo "🧹 Cleanup Breakdown:"
+        echo "  • Temporary files:      3.2 GB"
+        echo "  • Log rotation:         8.7 GB"
+        echo "  • Package caches:       3.9 GB"
+        echo "  • Docker resources:     9.3 GB"
+        echo "  ─────────────────────────────"
+        echo "  • Total:               25.1 GB"
+        echo ""
+        echo "Hostname: @option.hostname@"
+        echo "Partition: @option.partition@"
+        echo "Execution Time: 28 seconds"
+        echo "Completed: $(date '+%Y-%m-%d %H:%M:%S')"
+        echo ""
+        echo "✅ Disk space issue resolved - system healthy"
+        echo ""
+    keepgoing: false
+    strategy: node-first
+  tags: 'automation,cleanup,demonstration,disk-space,incident-response,remediation'
+  user: admin
+  uuid: b2c3d4e5-f6a7-8901-bcde-f12345678901
