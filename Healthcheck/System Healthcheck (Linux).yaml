@@ -32,6 +32,15 @@
     - autoSecureInput: 'false'
       description: Disk Space
       passSecureInput: 'false'
+      plugins:
+        LogFilter:
+        - config:
+            captureMultipleKeysValues: 'false'
+            hideOutput: 'false'
+            logData: 'false'
+            name: disk-result
+            regex: (.*)
+          type: key-value-data-multilines
       script: |
         #!/bin/bash
 
@@ -49,6 +58,15 @@
     - autoSecureInput: 'false'
       description: Top 5 processes by CPU utilization
       passSecureInput: 'false'
+      plugins:
+        LogFilter:
+        - config:
+            captureMultipleKeysValues: 'false'
+            hideOutput: 'false'
+            logData: 'false'
+            name: cpu-result
+            regex: (.*)
+          type: key-value-data-multilines
       script: |
         #!/bin/bash
 
@@ -66,6 +84,15 @@
     - autoSecureInput: 'false'
       description: Top 5 Processes by Memory Usage
       passSecureInput: 'false'
+      plugins:
+        LogFilter:
+        - config:
+            captureMultipleKeysValues: 'false'
+            hideOutput: 'false'
+            logData: 'false'
+            name: memory-result
+            regex: (.*)
+          type: key-value-data-multilines
       script: |
         #!/bin/bash
 
@@ -83,6 +110,15 @@
     - autoSecureInput: 'false'
       description: Network usage
       passSecureInput: 'false'
+      plugins:
+        LogFilter:
+        - config:
+            captureMultipleKeysValues: 'false'
+            hideOutput: 'false'
+            logData: 'false'
+            name: network-result
+            regex: (.*)
+          type: key-value-data-multilines
       script: |
         #!/bin/bash
 
@@ -93,6 +129,15 @@
     - autoSecureInput: 'false'
       description: System load
       passSecureInput: 'false'
+      plugins:
+        LogFilter:
+        - config:
+            captureMultipleKeysValues: 'false'
+            hideOutput: 'false'
+            logData: 'false'
+            name: load-result
+            regex: (.*)
+          type: key-value-data-multilines
       script: |
         #!/bin/bash
 
@@ -110,6 +155,13 @@
           echo "🟢 No fault detected: System load within normal parameters (${load_avg} on ${cpu_count} CPUs)"
         fi
         echo ""
+    - configuration:
+        incident_id: ${option.pd_incident_id}
+        note: |-
+          Disk space check results:
+          ${data.disk-result*}
+      nodeStep: false
+      type: pd-note-step
     keepgoing: true
     pluginConfig:
       LogFilter:
