@@ -158,19 +158,19 @@
     - configuration:
         incident_id: ${option.pd_incident_id}
         note: |-
-          *Disk space check:*
+          Disk space check:
           ${data.disk-result*}
 
-          *CPU Utilization check:*
+          CPU Utilization check:
           ${data.cpu-result*}
 
-          *Memory Usage check:*
+          Memory Usage check:
           ${data.memory-result*}
 
-          *Network Utilization check:*
+          Network Utilization check:
           ${data.network-result*}
 
-          *System Load check:*
+          System Load check:
           ${data.load-result*}
       nodeStep: false
       type: pd-note-step
