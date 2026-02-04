@@ -1,0 +1,388 @@
+- defaultTab: nodes
+  description: |-
+    Actually simulates a disk space issue on a Linux server by creating a large file.
+
+    This job creates a real disk space consumption scenario by:
+    1. Creating a large sparse or dense file to consume specified disk space
+    2. Monitoring the disk usage to verify the simulation
+    3. Optionally cleaning up the file automatically or leaving it for manual cleanup
+
+    **WARNING**: This will consume real disk space on the target system!
+
+    Use cases:
+    - Testing disk space monitoring and alerting
+    - Validating automated remediation workflows
+    - Training and demonstrations of disk cleanup procedures
+    - Testing backup and disaster recovery procedures
+
+    **Safety Features**:
+    - Configurable size limits
+    - Automatic cleanup option
+    - Validates available space before creation
+    - Uses dedicated test directory
+  executionEnabled: true
+  group: Automation Actions
+  loglevel: INFO
+  name: simulate-real-disk-space-issue
+  nodeFilterEditable: false
+  options:
+  - description: Target directory where the large file will be created (must have write permissions)
+    label: Target Directory
+    name: target_directory
+    required: true
+    type: text
+    value: /tmp/disk-space-test
+  - description: Size of file to create (e.g., 1G, 500M, 2G) - For 8GB t2.micro, 2-3G will trigger 80-90% disk alerts
+    label: File Size
+    name: file_size
+    required: true
+    type: text
+    value: 2G
+  - description: Type of file to create (sparse = fast but may not trigger all monitoring, dense = slower but realistic)
+    label: File Type
+    name: file_type
+    required: true
+    values:
+    - sparse
+    - dense
+    value: dense
+  - description: Automatically cleanup the file after specified duration (in seconds, 0 = no auto-cleanup)
+    label: Auto-cleanup Duration (seconds)
+    name: cleanup_duration
+    required: true
+    type: text
+    value: '180'
+  - description: Percentage of available space to allow as safety buffer (prevents completely filling disk - critical for small instances)
+    label: Safety Buffer (%)
+    name: safety_buffer
+    required: true
+    type: text
+    value: '15'
+  - description: Send PagerDuty alert when disk space issue is created
+    label: Trigger PagerDuty Alert
+    name: trigger_alert
+    required: true
+    values:
+    - 'true'
+    - 'false'
+    value: 'false'
+  - description: PagerDuty Integration Key (only required if Trigger PagerDuty Alert is true)
+    label: PagerDuty Integration Key
+    name: pd_integration_key
+    required: false
+    secure: true
+    storagePath: keys/pagerduty/pdt-bdias-global-orchestration-key
+    valueExposed: true
+  nodefilters:
+    dispatch:
+      threadcount: '1'
+    filter: 'tags: linux'
+  nodesSelectedByDefault: true
+  plugins:
+    ExecutionLifecycle: {}
+  scheduleEnabled: true
+  schedules: []
+  sequence:
+    commands:
+    - description: Validate target system and check available disk space
+      script: |-
+        #!/bin/bash
+        set -e
+
+        echo "=== Pre-flight Checks ==="
+        echo "Target Directory: @option.target_directory@"
+        echo "File Size: @option.file_size@"
+        echo "File Type: @option.file_type@"
+        echo "Hostname: $(hostname)"
+        echo ""
+
+        # Create target directory if it doesn't exist
+        if [ ! -d "@option.target_directory@" ]; then
+          echo "Creating target directory: @option.target_directory@"
+          mkdir -p "@option.target_directory@"
+        fi
+
+        # Check available space
+        AVAILABLE_KB=$(df -k "@option.target_directory@" | tail -1 | awk '{print $4}')
+        AVAILABLE_MB=$((AVAILABLE_KB / 1024))
+        AVAILABLE_GB=$((AVAILABLE_MB / 1024))
+
+        echo "Available disk space: ${AVAILABLE_GB}G (${AVAILABLE_MB}M)"
+
+        # Convert requested size to MB for comparison
+        SIZE_VALUE=$(echo "@option.file_size@" | sed 's/[^0-9.]//g')
+        SIZE_UNIT=$(echo "@option.file_size@" | sed 's/[0-9.]//g' | tr '[:lower:]' '[:upper:]')
+
+        if [ "$SIZE_UNIT" = "G" ] || [ "$SIZE_UNIT" = "GB" ]; then
+          REQUESTED_MB=$(echo "$SIZE_VALUE * 1024" | bc | cut -d'.' -f1)
+        elif [ "$SIZE_UNIT" = "M" ] || [ "$SIZE_UNIT" = "MB" ]; then
+          REQUESTED_MB=$(echo "$SIZE_VALUE" | cut -d'.' -f1)
+        else
+          echo "❌ Invalid size unit. Use G (GB) or M (MB)"
+          exit 1
+        fi
+
+        echo "Requested file size: ${REQUESTED_MB}M"
+
+        # Apply safety buffer
+        SAFETY_BUFFER="@option.safety_buffer@"
+        MAX_ALLOWED_MB=$((AVAILABLE_MB * (100 - SAFETY_BUFFER) / 100))
+
+        echo "Maximum allowed size (with ${SAFETY_BUFFER}% buffer): ${MAX_ALLOWED_MB}M"
+
+        if [ "$REQUESTED_MB" -gt "$MAX_ALLOWED_MB" ]; then
+          echo "❌ Requested size (${REQUESTED_MB}M) exceeds safe limit (${MAX_ALLOWED_MB}M)"
+          echo "Available space: ${AVAILABLE_MB}M, Safety buffer: ${SAFETY_BUFFER}%"
+          exit 1
+        fi
+
+        echo "✅ Pre-flight checks passed"
+    - description: Create large file to simulate disk space issue
+      script: |-
+        #!/bin/bash
+        set -e
+
+        TARGET_FILE="@option.target_directory@/disk-fill-test-@job.execid@.dat"
+        FILE_TYPE="@option.file_type@"
+        FILE_SIZE="@option.file_size@"
+
+        echo "=== Creating Disk Space Issue ==="
+        echo "Target file: $TARGET_FILE"
+        echo "File type: $FILE_TYPE"
+        echo "File size: $FILE_SIZE"
+        echo ""
+
+        # Record start time
+        START_TIME=$(date +%s)
+
+        # Create the file based on type
+        if [ "$FILE_TYPE" = "sparse" ]; then
+          echo "Creating sparse file (fast, but may not trigger all monitoring)..."
+          truncate -s "$FILE_SIZE" "$TARGET_FILE"
+        else
+          echo "Creating dense file (slower, but realistic for monitoring)..."
+          # Use dd with status=progress if available
+          if dd --help 2>&1 | grep -q status=progress; then
+            dd if=/dev/zero of="$TARGET_FILE" bs=1M count=$(echo "$FILE_SIZE" | sed 's/[^0-9]//g') status=progress
+          else
+            dd if=/dev/zero of="$TARGET_FILE" bs=1M count=$(echo "$FILE_SIZE" | sed 's/[^0-9]//g')
+          fi
+        fi
+
+        # Record end time
+        END_TIME=$(date +%s)
+        DURATION=$((END_TIME - START_TIME))
+
+        echo ""
+        echo "✅ File created successfully in ${DURATION} seconds"
+
+        # Verify file creation
+        if [ -f "$TARGET_FILE" ]; then
+          FILE_SIZE_ACTUAL=$(du -h "$TARGET_FILE" | cut -f1)
+          echo "File size (disk usage): $FILE_SIZE_ACTUAL"
+          ls -lh "$TARGET_FILE"
+        else
+          echo "❌ File creation verification failed"
+          exit 1
+        fi
+
+        # Store file path for cleanup
+        echo "$TARGET_FILE" > /tmp/rundeck-disk-test-@job.execid@.path
+    - description: Check current disk usage after file creation
+      script: |-
+        #!/bin/bash
+
+        echo "=== Current Disk Usage ==="
+        df -h "@option.target_directory@"
+        echo ""
+
+        # Get usage percentage
+        USAGE_PERCENT=$(df "@option.target_directory@" | tail -1 | awk '{print $5}' | sed 's/%//')
+        echo "Current disk usage: ${USAGE_PERCENT}%"
+
+        if [ "$USAGE_PERCENT" -gt 80 ]; then
+          echo "⚠️  WARNING: Disk usage is above 80%"
+        fi
+
+        # Show the test file
+        echo ""
+        echo "Test file created:"
+        TARGET_FILE="@option.target_directory@/disk-fill-test-@job.execid@.dat"
+        if [ -f "$TARGET_FILE" ]; then
+          ls -lh "$TARGET_FILE"
+        fi
+    - description: Trigger PagerDuty alert (if enabled)
+      script: |-
+        #!/bin/bash
+
+        TRIGGER_ALERT="@option.trigger_alert@"
+
+        if [ "$TRIGGER_ALERT" != "true" ]; then
+          echo "PagerDuty alerting is disabled, skipping..."
+          exit 0
+        fi
+
+        echo "=== Triggering PagerDuty Alert ==="
+
+        # Get current disk usage
+        USAGE_PERCENT=$(df "@option.target_directory@" | tail -1 | awk '{print $5}' | sed 's/%//')
+        PARTITION=$(df "@option.target_directory@" | tail -1 | awk '{print $1}')
+
+        # PagerDuty Events API v2 endpoint
+        PD_URL="https://events.pagerduty.com/v2/enqueue"
+
+        # Build the JSON payload
+        PAYLOAD=$(cat <<EOF
+        {
+          "routing_key": "@option.pd_integration_key@",
+          "event_action": "trigger",
+          "dedup_key": "disk-space-real-$(hostname)-@job.execid@",
+          "payload": {
+            "summary": "🚨 REAL Disk Space Issue on $(hostname) - ${PARTITION} at ${USAGE_PERCENT}% usage",
+            "severity": "critical",
+            "source": "Runbook Automation - Real Disk Test",
+            "component": "$(hostname)",
+            "class": "disk_space_monitoring",
+            "custom_details": {
+              "hostname": "$(hostname)",
+              "partition": "${PARTITION}",
+              "current_usage": "${USAGE_PERCENT}%",
+              "directory": "@option.target_directory@",
+              "test_file_size": "@option.file_size@",
+              "triggered_by": "Runbook Automation - Real Disk Space Simulation",
+              "execution_id": "@job.execid@",
+              "job_name": "@job.name@",
+              "cleanup_duration": "@option.cleanup_duration@ seconds"
+            }
+          },
+          "links": [
+            {
+              "href": "@job.url@",
+              "text": "View Runbook Execution"
+            }
+          ]
+        }
+        EOF
+        )
+
+        # Send the event to PagerDuty
+        RESPONSE=$(curl -s -X POST "$PD_URL" \
+          -H "Content-Type: application/json" \
+          -d "$PAYLOAD")
+
+        # Check response
+        if echo "$RESPONSE" | grep -q '"status":"success"'; then
+          echo "✅ PagerDuty alert triggered successfully"
+          echo "Response: $RESPONSE"
+        else
+          echo "❌ Failed to trigger PagerDuty alert"
+          echo "Response: $RESPONSE"
+        fi
+    - description: Wait for cleanup duration (if auto-cleanup enabled)
+      script: |-
+        #!/bin/bash
+
+        CLEANUP_DURATION="@option.cleanup_duration@"
+
+        if [ "$CLEANUP_DURATION" = "0" ]; then
+          echo "Auto-cleanup is disabled."
+          echo ""
+          echo "⚠️  MANUAL CLEANUP REQUIRED ⚠️"
+          echo "To cleanup, run:"
+          echo "  rm -f @option.target_directory@/disk-fill-test-@job.execid@.dat"
+          exit 0
+        fi
+
+        echo "=== Waiting for Auto-Cleanup ==="
+        echo "Duration: ${CLEANUP_DURATION} seconds ($(echo "scale=2; $CLEANUP_DURATION / 60" | bc) minutes)"
+        echo "Waiting..."
+
+        sleep "$CLEANUP_DURATION"
+
+        echo "✅ Wait period completed, proceeding to cleanup"
+    - description: Cleanup the test file
+      script: |-
+        #!/bin/bash
+
+        CLEANUP_DURATION="@option.cleanup_duration@"
+
+        if [ "$CLEANUP_DURATION" = "0" ]; then
+          echo "Auto-cleanup is disabled, skipping cleanup step"
+          exit 0
+        fi
+
+        echo "=== Cleaning Up Test File ==="
+
+        TARGET_FILE="@option.target_directory@/disk-fill-test-@job.execid@.dat"
+
+        if [ -f "$TARGET_FILE" ]; then
+          FILE_SIZE=$(du -h "$TARGET_FILE" | cut -f1)
+          echo "Removing test file: $TARGET_FILE ($FILE_SIZE)"
+          rm -f "$TARGET_FILE"
+          echo "✅ Test file removed successfully"
+        else
+          echo "⚠️  Test file not found: $TARGET_FILE"
+        fi
+
+        # Cleanup tracking file
+        rm -f /tmp/rundeck-disk-test-@job.execid@.path
+
+        echo ""
+        echo "=== Final Disk Usage ==="
+        df -h "@option.target_directory@"
+    - description: Resolve PagerDuty alert (if enabled)
+      script: |-
+        #!/bin/bash
+
+        TRIGGER_ALERT="@option.trigger_alert@"
+        CLEANUP_DURATION="@option.cleanup_duration@"
+
+        if [ "$TRIGGER_ALERT" != "true" ] || [ "$CLEANUP_DURATION" = "0" ]; then
+          echo "PagerDuty alerting disabled or no auto-cleanup, skipping resolve..."
+          exit 0
+        fi
+
+        echo "=== Resolving PagerDuty Alert ==="
+
+        # PagerDuty Events API v2 endpoint
+        PD_URL="https://events.pagerduty.com/v2/enqueue"
+
+        # Build the JSON payload for resolve event
+        PAYLOAD=$(cat <<EOF
+        {
+          "routing_key": "@option.pd_integration_key@",
+          "event_action": "resolve",
+          "dedup_key": "disk-space-real-$(hostname)-@job.execid@",
+          "payload": {
+            "summary": "✅ Disk Space Test Completed on $(hostname) - Test file cleaned up successfully",
+            "severity": "info",
+            "source": "Runbook Automation - Real Disk Test",
+            "custom_details": {
+              "hostname": "$(hostname)",
+              "directory": "@option.target_directory@",
+              "resolution": "Test file removed - disk space restored",
+              "resolved_by": "Runbook Automation - Automated Cleanup",
+              "execution_id": "@job.execid@",
+              "job_name": "@job.name@"
+            }
+          }
+        }
+        EOF
+        )
+
+        # Send the resolve event to PagerDuty
+        RESPONSE=$(curl -s -X POST "$PD_URL" \
+          -H "Content-Type: application/json" \
+          -d "$PAYLOAD")
+
+        # Check response
+        if echo "$RESPONSE" | grep -q '"status":"success"'; then
+          echo "✅ PagerDuty alert resolved successfully"
+          echo "Response: $RESPONSE"
+        else
+          echo "❌ Failed to resolve PagerDuty alert"
+          echo "Response: $RESPONSE"
+        fi
+    keepgoing: false
+    strategy: node-first
+  tags: 'automation,disk-space,incident-simulation,linux,testing,real-simulation'
