@@ -13,14 +13,18 @@
       keepgoing: true
       rankOrder: ascending
       successOnEmptyNodeFilter: false
-      threadcount: '1'
-    filter: .*worker.*
+      threadcount: '5'
+    filter: 'osFamily: unix'
+    filterExclude: ' rundeckpro-rundeckpro-.*'
   nodesSelectedByDefault: true
   options:
   - name: pd_incident_id
   plugins:
     ExecutionLifecycle:
       Send Incident Output to Pagerduty: {}
+      roi-metrics:
+        userRoiData: '[{"key":"hours","label":"Hours","value":"2","desc":"Field key
+          hours"}]'
   runnerSelector:
     filter: BDIAS
     runnerFilterMode: TAGS
