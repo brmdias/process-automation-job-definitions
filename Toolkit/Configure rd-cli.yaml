@@ -14,8 +14,9 @@
       keepgoing: false
       rankOrder: ascending
       successOnEmptyNodeFilter: false
-      threadcount: '1'
-    filter: .*runner
+      threadcount: '5'
+    filter: 'osFamily: unix'
+    filterExclude: ' rundeckpro-rundeckpro-.*'
   nodesSelectedByDefault: true
   options:
   - description: 'Rundeck server URL (e.g., https://rundeck.example.com or http://localhost:4440)'
@@ -316,3 +317,4 @@
     strategy: node-first
   user: admin
   uuid: 7ad108d5-d3dd-4d72-96ce-ff26c486ed93
+
