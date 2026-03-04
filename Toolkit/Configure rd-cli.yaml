@@ -13,7 +13,7 @@
       rankOrder: ascending
       successOnEmptyNodeFilter: false
       threadcount: '1'
-    filter: .*
+    filter: .*runner
   nodesSelectedByDefault: true
   options:
   - description: 'Rundeck server URL (e.g., https://rundeck.example.com or http://localhost:4440)'
