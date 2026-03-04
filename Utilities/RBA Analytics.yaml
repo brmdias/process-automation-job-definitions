@@ -1,7 +1,5 @@
 - defaultTab: output
-  description: |2
-
-
+  description: |
     **Description**
 
     The Automation Job is designed to collect and analyze execution data from a specified API, providing detailed metrics regarding job performance and return on investment (ROI). This process involves several key actions:
@@ -38,7 +36,7 @@
     This document and the described automation job are provided "as is" without warranty of any kind, express or implied. The user assumes all risks associated with the use of this job. The creators or contributors are not liable for any direct, indirect, incidental, special, exemplary, or consequential damages (including, but not limited to, procurement of substitute goods or services; loss of use, data, or profits; or business interruption) caused and on any theory of liability, whether in contract, strict liability, or tort (including negligence or otherwise) arising in any way out of the use of this job, even if advised of the possibility of such damage.
   executionEnabled: true
   group: Utilities
-  id: 7fba14c7-ee5b-40f1-8009-cbc505b5819e
+  id: 6d2500b4-29ce-4089-99e0-241c6fd23e87
   loglevel: INFO
   multipleExecutions: true
   name: RBA Analytics
@@ -50,7 +48,7 @@
       rankOrder: ascending
       successOnEmptyNodeFilter: false
       threadcount: '1'
-    filter: .*rundeckers-a.*
+    filter: .*runner
   nodesSelectedByDefault: true
   options:
   - description: |-
@@ -59,7 +57,6 @@
       - text (render text table)
       - html (render html table)
     enforced: true
-    hidden: true
     label: Output Format
     name: format
     type: text
@@ -72,8 +69,7 @@
     label: Instance
     name: instance
     required: true
-    type: text
-    value: <insert your RBA Cluster URL here>
+    value: https://bdias.myrundeck.com
   - description: |
       Project to analyze
 
@@ -85,26 +81,24 @@
       or leave blank for all projects.
     label: Project
     name: projects
-    type: text
-    value: '"<insert your prject name here>"'
+    value: '"dev"'
   - description: Secure API Key for Automation Server
     hidden: true
     label: API Key
     name: apikey
     secure: true
-    storagePath: keys/path/to/api/key
-    type: text
+    storagePath: keys/rba/bdias-rba-token
     valueExposed: true
   - description: How many days to look back from
     label: Last x Days from today
     name: lastxdays
     required: true
-    value: '7'
+    value: '30'
   plugins:
     ExecutionLifecycle:
       roi-metrics:
-        userRoiData: '[{"key":"min","label":"Minutes","value":"30","desc":"Minutes
-          saved in manual work (Field key: min)"}]'
+        userRoiData: '[{"key":"hours","label":"Hours","value":"1","desc":"Field key
+          hours"}]'
   runnerSelector:
     filter: US-WEST
     runnerFilterMode: TAGS
@@ -149,9 +143,9 @@
         \ \"@option.apikey@\"  # API token\nTEST_PROJECTS = [@option.projects@]  #\
         \ Set to None to process all projects\nJOB_NAME_FILTER = None  # Set to a\
         \ regex pattern to filter job names, or None to include all\nOUTPUT_FORMAT\
-        \ = 'html'  # Output format: 'text' or 'html'\nROI_FIELDS = [\"min\"]  # Specify\
-        \ the ROI fields you want to include\nORDER_BY = \"Average Execution Time\
-        \ (s)\"  # Specify the friendly name of the column to sort by\nAVERAGE_SALARY_PER_HOUR_STR\
+        \ = 'html'  # Output format: 'text' or 'html'\nROI_FIELDS = [\"hours\"]  #\
+        \ Specify the ROI fields you want to include\nORDER_BY = \"Average Execution\
+        \ Time (s)\"  # Specify the friendly name of the column to sort by\nAVERAGE_SALARY_PER_HOUR_STR\
         \ = \"50.0\"  # Average salary per hour as a string value\n\nHEADERS = {\n\
         \    'Accept': 'application/json',\n    'X-Rundeck-Auth-Token': API_TOKEN\n\
         }\n\n# Calculate dynamic date range\nEND_DATE = datetime.today()\nSTART_DATE\
@@ -261,8 +255,8 @@
         \ = df[['Project', 'Job Name']].drop_duplicates()\n    summary_df = pd.merge(all_jobs,\
         \ summary_df, on=['Project', 'Job Name'], how='left')\n\n    # Fill NaN values\
         \ for ROI columns\n    roi_related_cols = [f\"{roi_field.capitalize()} per\
-        \ Execution (minutes)\" for roi_field in roi_columns] + \\\n             \
-        \          [f\"Total {roi_field.capitalize()} Value (minutes)\" for roi_field\
+        \ Execution (hours)\" for roi_field in roi_columns] + \\\n               \
+        \        [f\"Total {roi_field.capitalize()} Value (hours)\" for roi_field\
         \ in roi_columns] + \\\n                       [\"Cost Saved per Execution\
         \ ($)\", \"Total Cost Saved ($)\"]\n\n    for col in roi_related_cols:\n \
         \       if col in summary_df.columns:\n            summary_df[col] = summary_df[col].fillna(0)\n\
@@ -310,7 +304,7 @@
         )\n    print(f\"✅ Successful Executions: {int(total_successful)}\")\n    print(f\"\
         ❌ Failed Executions: {int(total_failed)}\")\n\n    # Highlight total Timesaved,\
         \ Costsaved, and Cost Saved with emojis\n    print(f\"\\n⏱️ Total Timesaved\
-        \ (minutes): {total_timesaved}\")\n    print(f\"💵 Total Cost Associated with\
+        \ (hours): {total_timesaved}\")\n    print(f\"💵 Total Cost Associated with\
         \ Time Saved ($): {total_cost_saved}\")\n\n    if OUTPUT_FORMAT == 'text':\n\
         \        # Flatten MultiIndex columns for text display\n        summary_df.columns\
         \ = ['\\n'.join(col).strip() if col[0] else col[1] for col in summary_df.columns.values]\n\
@@ -325,5 +319,6 @@
     keepgoing: false
     strategy: node-first
   tags: analytics
-  uuid: 7fba14c7-ee5b-40f1-8009-cbc505b5819e
+  user: admin
+  uuid: 6d2500b4-29ce-4089-99e0-241c6fd23e87
 
