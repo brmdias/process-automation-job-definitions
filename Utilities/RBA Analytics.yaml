@@ -238,39 +238,44 @@
         \n        total_roi_col = f\"Total {roi_field.capitalize()} Value (minutes)\"\
         \n        summary_df[total_roi_col] = (\n            summary_df[per_execution_col]\
         \ * summary_df['Successful Executions']\n        )\n\n    # Calculate Cost\
-        \ Associated with Time Saved\n    # First, convert timesaved from minutes\
-        \ to hours\n    per_execution_col = \"Timesaved per Execution (minutes)\"\n\
-        \    total_roi_col = \"Total Timesaved Value (minutes)\"\n\n    if per_execution_col\
-        \ in summary_df.columns:\n        # Calculate Cost Saved per Execution\n \
-        \       summary_df[\"Cost Saved per Execution ($)\"] = (\n            (summary_df[per_execution_col]\
-        \ / 60) * AVERAGE_SALARY_PER_HOUR\n        ).round(2)\n    else:\n       \
-        \ summary_df[\"Cost Saved per Execution ($)\"] = 0\n\n    if total_roi_col\
-        \ in summary_df.columns:\n        # Calculate Total Cost Saved\n        summary_df[\"\
-        Total Cost Saved ($)\"] = (\n            (summary_df[total_roi_col] / 60)\
-        \ * AVERAGE_SALARY_PER_HOUR\n        ).round(2)\n    else:\n        summary_df[\"\
-        Total Cost Saved ($)\"] = 0\n\n    # Round numerical columns\n    numeric_cols\
-        \ = summary_df.select_dtypes(include='number').columns\n    summary_df[numeric_cols]\
-        \ = summary_df[numeric_cols].round(2)\n\n    # Include jobs without ROI data\n\
-        \    # Merge with all unique jobs to ensure all jobs are included\n    all_jobs\
-        \ = df[['Project', 'Job Name']].drop_duplicates()\n    summary_df = pd.merge(all_jobs,\
-        \ summary_df, on=['Project', 'Job Name'], how='left')\n\n    # Fill NaN values\
-        \ for ROI columns\n    roi_related_cols = [f\"{roi_field.capitalize()} per\
-        \ Execution (hours)\" for roi_field in roi_columns] + \\\n               \
-        \        [f\"Total {roi_field.capitalize()} Value (hours)\" for roi_field\
-        \ in roi_columns] + \\\n                       [\"Cost Saved per Execution\
-        \ ($)\", \"Total Cost Saved ($)\"]\n\n    for col in roi_related_cols:\n \
-        \       if col in summary_df.columns:\n            summary_df[col] = summary_df[col].fillna(0)\n\
-        \n    # Fill NaN values for other columns\n    summary_df['Successful Executions']\
-        \ = summary_df['Successful Executions'].fillna(0).astype(int)\n    summary_df['Failed\
-        \ Executions'] = summary_df['Failed Executions'].fillna(0).astype(int)\n \
-        \   summary_df['Total Execution Time (s)'] = summary_df['Total Execution Time\
-        \ (s)'].fillna(0)\n    summary_df['Average Execution Time (s)'] = summary_df['Average\
-        \ Execution Time (s)'].fillna(0)\n\n    # Order by the specified column if\
-        \ it exists\n    if ORDER_BY in summary_df.columns:\n        # Handle cases\
-        \ where ORDER_BY column may have empty strings; replace with 0 for sorting\n\
-        \        summary_df[ORDER_BY] = pd.to_numeric(summary_df[ORDER_BY], errors='coerce').fillna(0)\n\
-        \        summary_df = summary_df.sort_values(by=ORDER_BY, ascending=False)\n\
-        \    else:\n        print(f\"Warning: ORDER_BY column '{ORDER_BY}' not found\
+        \ Associated with Time Saved\n    # Use the first ROI field for cost calculation\
+        \ (typically \"hours\")\n    if roi_columns:\n        first_roi_field = roi_columns[0]\n\
+        \        per_execution_col = f\"{first_roi_field.capitalize()} per Execution\
+        \ (minutes)\"\n        total_roi_col = f\"Total {first_roi_field.capitalize()}\
+        \ Value (minutes)\"\n\n        if per_execution_col in summary_df.columns:\n\
+        \            # Calculate Cost Saved per Execution\n            summary_df[\"\
+        Cost Saved per Execution ($)\"] = (\n                (summary_df[per_execution_col]\
+        \ / 60) * AVERAGE_SALARY_PER_HOUR\n            ).round(2)\n        else:\n\
+        \            summary_df[\"Cost Saved per Execution ($)\"] = 0\n\n        if\
+        \ total_roi_col in summary_df.columns:\n            # Calculate Total Cost\
+        \ Saved\n            summary_df[\"Total Cost Saved ($)\"] = (\n          \
+        \      (summary_df[total_roi_col] / 60) * AVERAGE_SALARY_PER_HOUR\n      \
+        \      ).round(2)\n        else:\n            summary_df[\"Total Cost Saved\
+        \ ($)\"] = 0\n    else:\n        summary_df[\"Cost Saved per Execution ($)\"\
+        ] = 0\n        summary_df[\"Total Cost Saved ($)\"] = 0\n\n    # Round numerical\
+        \ columns\n    numeric_cols = summary_df.select_dtypes(include='number').columns\n\
+        \    summary_df[numeric_cols] = summary_df[numeric_cols].round(2)\n\n    #\
+        \ Include jobs without ROI data\n    # Merge with all unique jobs to ensure\
+        \ all jobs are included\n    all_jobs = df[['Project', 'Job Name']].drop_duplicates()\n\
+        \    summary_df = pd.merge(all_jobs, summary_df, on=['Project', 'Job Name'],\
+        \ how='left')\n\n    # Fill NaN values for ROI columns\n    roi_related_cols\
+        \ = [f\"{roi_field.capitalize()} per Execution (minutes)\" for roi_field in\
+        \ roi_columns] + \\\n                       [f\"Total {roi_field.capitalize()}\
+        \ Value (minutes)\" for roi_field in roi_columns] + \\\n                 \
+        \      [\"Cost Saved per Execution ($)\", \"Total Cost Saved ($)\"]\n\n  \
+        \  for col in roi_related_cols:\n        if col in summary_df.columns:\n \
+        \           summary_df[col] = summary_df[col].fillna(0)\n\n    # Fill NaN\
+        \ values for other columns\n    summary_df['Successful Executions'] = summary_df['Successful\
+        \ Executions'].fillna(0).astype(int)\n    summary_df['Failed Executions']\
+        \ = summary_df['Failed Executions'].fillna(0).astype(int)\n    summary_df['Total\
+        \ Execution Time (s)'] = summary_df['Total Execution Time (s)'].fillna(0)\n\
+        \    summary_df['Average Execution Time (s)'] = summary_df['Average Execution\
+        \ Time (s)'].fillna(0)\n\n    # Order by the specified column if it exists\n\
+        \    if ORDER_BY in summary_df.columns:\n        # Handle cases where ORDER_BY\
+        \ column may have empty strings; replace with 0 for sorting\n        summary_df[ORDER_BY]\
+        \ = pd.to_numeric(summary_df[ORDER_BY], errors='coerce').fillna(0)\n     \
+        \   summary_df = summary_df.sort_values(by=ORDER_BY, ascending=False)\n  \
+        \  else:\n        print(f\"Warning: ORDER_BY column '{ORDER_BY}' not found\
         \ in summary. Skipping sorting.\")\n\n    # Compute totals and append totals\
         \ row\n    numeric_cols = summary_df.select_dtypes(include='number').columns\n\
         \    totals = summary_df[numeric_cols].sum()\n    totals_row = pd.DataFrame(totals).T\n\
@@ -285,36 +290,40 @@
         \ list of tuples for MultiIndex columns\n    columns = []\n    for col in\
         \ summary_df.columns:\n        if col in roi_related_cols:\n            columns.append(('ROI',\
         \ col))\n        else:\n            columns.append(('', col))\n    summary_df.columns\
-        \ = pd.MultiIndex.from_tuples(columns)\n\n    # Extract total Timesaved, Moneysaved,\
-        \ and Cost Saved values from totals\n    total_timesaved = totals.get(f\"\
-        Total Timesaved Value (minutes)\", 0)\n    total_costsaved = totals.get(f\"\
-        Total Moneysaved Value (minutes)\", 0)\n    total_cost_saved = totals.get(\"\
-        Total Cost Saved ($)\", 0) if totals.get(\"Total Cost Saved ($)\") is not\
-        \ None else 0\n\n    return summary_df, total_timesaved, total_costsaved,\
-        \ total_cost_saved\n\ndef display_results(df, summary_df, total_timesaved,\
-        \ total_costsaved, total_cost_saved):\n    if df.empty:\n        print(\"\
-        No execution data to display.\")\n        return\n\n    total_jobs = len(df['Job\
-        \ Name'].unique())\n    total_projects = len(df['Project'].unique())\n   \
-        \ total_successful = df['Successful'].sum()\n    total_failed = df['Failed'].sum()\n\
+        \ = pd.MultiIndex.from_tuples(columns)\n\n    # Extract total ROI values from\
+        \ totals using dynamic field names\n    if roi_columns:\n        first_roi_field\
+        \ = roi_columns[0]\n        total_timesaved = totals.get(f\"Total {first_roi_field.capitalize()}\
+        \ Value (minutes)\", 0)\n    else:\n        total_timesaved = 0\n    \n  \
+        \  total_costsaved = totals.get(f\"Total Moneysaved Value (minutes)\", 0)\n\
+        \    total_cost_saved = totals.get(\"Total Cost Saved ($)\", 0) if totals.get(\"\
+        Total Cost Saved ($)\") is not None else 0\n\n    return summary_df, total_timesaved,\
+        \ total_costsaved, total_cost_saved\n\ndef display_results(df, summary_df,\
+        \ total_timesaved, total_costsaved, total_cost_saved):\n    if df.empty:\n\
+        \        print(\"No execution data to display.\")\n        return\n\n    total_jobs\
+        \ = len(df['Job Name'].unique())\n    total_projects = len(df['Project'].unique())\n\
+        \    total_successful = df['Successful'].sum()\n    total_failed = df['Failed'].sum()\n\
         \n    # Added emojis and formatting to highlight the summary\n    print(\"\
         \\n🚀 Automation Job Digest 🚀\")\n    print(\"\\n===============================\"\
         )\n    print(f\"\\n📅 Date Range: Last {DAYS_RANGE} Days\")\n    print(f\"\
         Average Salary per Hour: ${AVERAGE_SALARY_PER_HOUR}\")\n\n    print(f\"\\\
         n📊 Total Projects: {total_projects}\")\n    print(f\"📋 Total Jobs: {total_jobs}\"\
         )\n    print(f\"✅ Successful Executions: {int(total_successful)}\")\n    print(f\"\
-        ❌ Failed Executions: {int(total_failed)}\")\n\n    # Highlight total Timesaved,\
-        \ Costsaved, and Cost Saved with emojis\n    print(f\"\\n⏱️ Total Timesaved\
-        \ (hours): {total_timesaved}\")\n    print(f\"💵 Total Cost Associated with\
-        \ Time Saved ($): {total_cost_saved}\")\n\n    if OUTPUT_FORMAT == 'text':\n\
-        \        # Flatten MultiIndex columns for text display\n        summary_df.columns\
-        \ = ['\\n'.join(col).strip() if col[0] else col[1] for col in summary_df.columns.values]\n\
-        \        print(\"\\n📈 Summary Table:\\n\")\n        print(tabulate(summary_df,\
-        \ headers='keys', tablefmt='grid', showindex=False))\n    elif OUTPUT_FORMAT\
-        \ == 'html':\n        print(summary_df.to_html(index=False))\n\n# Main logic\
-        \ to execute the script\ndf = fetch_all_executions()\nif not df.empty:\n \
-        \   summary_df, total_timesaved, total_costsaved, total_cost_saved = generate_summary(df)\n\
+        ❌ Failed Executions: {int(total_failed)}\")\n\n    # Highlight total ROI and\
+        \ Cost Saved with emojis\n    # Use dynamic label based on first ROI field\n\
+        \    if ROI_FIELDS:\n        roi_label = ROI_FIELDS[0].capitalize()\n    \
+        \    print(f\"\\n⏱️ Total {roi_label} (minutes): {total_timesaved}\")\n  \
+        \  else:\n        print(f\"\\n⏱️ Total Time Saved (minutes): {total_timesaved}\"\
+        )\n    print(f\"💵 Total Cost Associated with Time Saved ($): {total_cost_saved}\"\
+        )\n\n    if OUTPUT_FORMAT == 'text':\n        # Flatten MultiIndex columns\
+        \ for text display\n        summary_df.columns = ['\\n'.join(col).strip()\
+        \ if col[0] else col[1] for col in summary_df.columns.values]\n        print(\"\
+        \\n📈 Summary Table:\\n\")\n        print(tabulate(summary_df, headers='keys',\
+        \ tablefmt='grid', showindex=False))\n    elif OUTPUT_FORMAT == 'html':\n\
+        \        print(summary_df.to_html(index=False))\n\n# Main logic to execute\
+        \ the script\ndf = fetch_all_executions()\nif not df.empty:\n    summary_df,\
+        \ total_timesaved, total_costsaved, total_cost_saved = generate_summary(df)\n\
         \    display_results(df, summary_df, total_timesaved, total_costsaved, total_cost_saved)\n\
-        else:\n    print(\"No executions found in the specified date range.\")"
+        else:\n    print(\"No executions found in the specified date range.\")\n"
       scriptInterpreter: python -u
     keepgoing: false
     strategy: node-first
