@@ -1,5 +1,7 @@
 - defaultTab: output
-  description: 'Configures rd CLI to connect to a Rundeck cluster. Sets up authentication, creates configuration profiles, and validates the connection. Supports both environment variables and config file methods.'
+  description: 'Configures rd CLI to connect to a Rundeck cluster. Sets up authentication,
+    creates configuration profiles, and validates the connection. Supports both environment
+    variables and config file methods.'
   executionEnabled: true
   group: Toolkit
   id: 7ad108d5-d3dd-4d72-96ce-ff26c486ed93
@@ -20,67 +22,76 @@
     label: Rundeck URL
     name: rundeck-url
     required: true
-    type: text
-  - description: 'API Token for authentication (stored in Key Storage for security)'
+    value: https://bdias.myrundeck.com
+  - description: API Token for authentication (stored in Key Storage for security)
+    hidden: true
     label: API Token
     name: api-token
     required: true
     secure: true
-    storagePath: keys/rundeck/api-token
+    storagePath: keys/rba/bdias-rba-token
     valueExposed: true
   - description: 'Configuration profile name (default: "default")'
     label: Profile Name
     name: profile-name
     type: text
     value: default
-  - description: 'Default project name (optional)'
+  - description: Default project name (optional)
     label: Project Name
     name: project-name
-    type: text
-  - description: 'API version to use (leave empty for auto-detection)'
+    value: dev
+  - description: API version to use (leave empty for auto-detection)
     label: API Version
     name: api-version
     type: text
-  - description: 'Configuration method: env-only sets environment variables, config-file creates ~/.rd/rd.conf, both does both'
+  - description: 'Configuration method: env-only sets environment variables, config-file
+      creates ~/.rd/rd.conf, both does both'
+    enforced: true
     label: Configuration Method
     name: config-method
+    value: env-only
     values:
     - env-only
     - config-file
     - both
-    value: env-only
+    valuesListDelimiter: ','
+  - description: Allow insecure SSL connections (skip certificate verification)
     enforced: true
-  - description: 'Allow insecure SSL connections (skip certificate verification)'
     label: Insecure SSL
     name: insecure-ssl
+    value: 'false'
     values:
     - 'false'
     - 'true'
-    value: 'false'
+    valuesListDelimiter: ','
+  - description: Skip SSL hostname verification
     enforced: true
-  - description: 'Skip SSL hostname verification'
     label: Skip SSL Hostname Verification
     name: skip-hostname-verify
+    value: 'false'
     values:
     - 'false'
     - 'true'
-    value: 'false'
+    valuesListDelimiter: ','
+  - description: Disable ANSI color output
     enforced: true
-  - description: 'Disable ANSI color output'
     label: Disable Colors
     name: disable-colors
+    value: 'false'
     values:
     - 'false'
     - 'true'
-    value: 'false'
-    enforced: true
-  - description: 'User to configure rd CLI for (default: current user). Set to "system" for system-wide configuration.'
+    valuesListDelimiter: ','
+  - description: 'User to configure rd CLI for (default: current user). Set to "system"
+      for system-wide configuration.'
     label: Configure For User
     name: config-user
-    type: text
     value: current
   plugins:
-    ExecutionLifecycle: {}
+    ExecutionLifecycle:
+      roi-metrics:
+        userRoiData: '[{"key":"hours","label":"Hours","value":"1","desc":"Field key
+          hours"}]'
   scheduleEnabled: true
   schedules: []
   sequence:

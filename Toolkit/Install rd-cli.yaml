@@ -1,5 +1,7 @@
 - defaultTab: nodes
-  description: 'Installs the latest version of rd CLI (Rundeck CLI tool) using the appropriate package manager for the target system. Supports yum/dnf (RHEL/CentOS), apt (Debian/Ubuntu), and brew (macOS).'
+  description: 'Installs the latest version of rd CLI (Rundeck CLI tool) using the
+    appropriate package manager for the target system. Supports yum/dnf (RHEL/CentOS),
+    apt (Debian/Ubuntu), and brew (macOS).'
   executionEnabled: true
   group: Toolkit
   id: 26d53ac6-58fe-40f0-aa65-f17fb7dc086f
@@ -13,27 +15,31 @@
       rankOrder: ascending
       successOnEmptyNodeFilter: false
       threadcount: '1'
-    filter: .*
+    filter: .*runner
   nodesSelectedByDefault: true
   options:
-  - description: 'Select the installation method for rd CLI'
+  - description: Select the installation method for rd CLI
+    enforced: true
     label: Installation Method
     name: install-method
+    value: auto-detect
     values:
     - auto-detect
     - yum
     - apt
     - brew
     - github-zip
-    value: auto-detect
-    enforced: true
+    valuesListDelimiter: ','
   - description: 'Installation directory for GitHub zip method (default: /opt/rundeck-cli)'
     label: Install Directory
     name: install-dir
     type: text
     value: /opt/rundeck-cli
   plugins:
-    ExecutionLifecycle: {}
+    ExecutionLifecycle:
+      roi-metrics:
+        userRoiData: '[{"key":"hours","label":"Hours","value":"1","desc":"Hours saved
+          in manual work (Field key: hours)"}]'
   scheduleEnabled: true
   schedules: []
   sequence:
