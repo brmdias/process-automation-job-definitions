@@ -11,11 +11,12 @@
   nodefilters:
     dispatch:
       excludePrecedence: true
-      keepgoing: false
+      keepgoing: true
       rankOrder: ascending
       successOnEmptyNodeFilter: false
-      threadcount: '1'
-    filter: .*runner
+      threadcount: '5'
+    filter: 'osFamily: unix'
+    filterExclude: rundeckpro-rundeckpro-.*
   nodesSelectedByDefault: true
   options:
   - description: Select the installation method for rd CLI
@@ -221,3 +222,4 @@
     strategy: node-first
   user: admin
   uuid: 26d53ac6-58fe-40f0-aa65-f17fb7dc086f
+
