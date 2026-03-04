@@ -1,0 +1,298 @@
+- defaultTab: nodes
+  description: 'Uninstalls rd CLI (Rundeck CLI tool) from runner nodes. Supports removal via yum/dnf (RHEL/CentOS), apt (Debian/Ubuntu), brew (macOS), and manual installations. Optionally cleans up configuration files.'
+  executionEnabled: true
+  group: Toolkit
+  id: 374d26c5-597b-4f47-a5d2-b3facdc9b6da
+  loglevel: INFO
+  name: Uninstall rd-cli
+  nodeFilterEditable: true
+  nodefilters:
+    dispatch:
+      excludePrecedence: true
+      keepgoing: false
+      rankOrder: ascending
+      successOnEmptyNodeFilter: false
+      threadcount: '1'
+    filter: .*runner
+  nodesSelectedByDefault: true
+  options:
+  - description: 'Select the uninstallation method (should match original installation method)'
+    label: Uninstallation Method
+    name: uninstall-method
+    values:
+    - auto-detect
+    - yum
+    - apt
+    - brew
+    - github-zip
+    value: auto-detect
+    enforced: true
+  - description: 'Installation directory for GitHub zip method (default: /opt/rundeck-cli)'
+    label: Install Directory
+    name: install-dir
+    type: text
+    value: /opt/rundeck-cli
+  - description: 'Remove rd CLI configuration files (~/.rd/ directory)'
+    label: Remove Config Files
+    name: remove-config
+    values:
+    - 'false'
+    - 'true'
+    value: 'false'
+    enforced: true
+  - description: 'User whose configuration should be removed (default: current user). Use "all" to remove system-wide and current user configs.'
+    label: Remove Config For User
+    name: config-user
+    type: text
+    value: current
+  plugins:
+    ExecutionLifecycle: {}
+  scheduleEnabled: true
+  schedules: []
+  sequence:
+    commands:
+    - description: Uninstall rd CLI
+      script: |-
+        #!/bin/bash
+        set -e
+
+        UNINSTALL_METHOD="@option.uninstall-method@"
+        INSTALL_DIR="@option.install-dir@"
+        REMOVE_CONFIG="@option.remove-config@"
+        CONFIG_USER="@option.config-user@"
+
+        echo "=== Rundeck CLI Uninstallation ==="
+        echo "Uninstallation method: $UNINSTALL_METHOD"
+        echo "Remove config files: $REMOVE_CONFIG"
+        echo ""
+
+        # Function to detect OS
+        detect_os() {
+            if [ -f /etc/os-release ]; then
+                . /etc/os-release
+                echo "$ID"
+            elif [ "$(uname)" == "Darwin" ]; then
+                echo "macos"
+            else
+                echo "unknown"
+            fi
+        }
+
+        # Function to detect installation method
+        detect_install_method() {
+            # Check if installed via package manager
+            if command -v rpm &> /dev/null && rpm -q rundeck-cli &> /dev/null; then
+                echo "yum"
+            elif command -v dpkg &> /dev/null && dpkg -l | grep -q rundeck-cli; then
+                echo "apt"
+            elif command -v brew &> /dev/null && brew list rundeck-cli &> /dev/null 2>&1; then
+                echo "brew"
+            elif [ -d "$INSTALL_DIR" ] || [ -L "/usr/local/bin/rd" ]; then
+                echo "github-zip"
+            else
+                echo "unknown"
+            fi
+        }
+
+        # Function to uninstall via yum/dnf
+        uninstall_yum() {
+            echo "Uninstalling rd CLI via yum/dnf..."
+
+            if rpm -q rundeck-cli &> /dev/null; then
+                # Determine if system uses dnf or yum
+                if command -v dnf &> /dev/null; then
+                    sudo dnf remove -y rundeck-cli
+                else
+                    sudo yum remove -y rundeck-cli
+                fi
+                echo "✓ rd CLI removed via yum/dnf"
+            else
+                echo "⚠ rd CLI not installed via yum/dnf (skipping)"
+            fi
+        }
+
+        # Function to uninstall via apt
+        uninstall_apt() {
+            echo "Uninstalling rd CLI via apt..."
+
+            if dpkg -l | grep -q rundeck-cli; then
+                sudo apt-get remove -y rundeck-cli
+                sudo apt-get autoremove -y
+                echo "✓ rd CLI removed via apt"
+            else
+                echo "⚠ rd CLI not installed via apt (skipping)"
+            fi
+        }
+
+        # Function to uninstall via Homebrew
+        uninstall_brew() {
+            echo "Uninstalling rd CLI via Homebrew..."
+
+            if ! command -v brew &> /dev/null; then
+                echo "⚠ Homebrew is not installed (skipping)"
+                return
+            fi
+
+            if brew list rundeck-cli &> /dev/null 2>&1; then
+                brew uninstall rundeck-cli
+                echo "✓ rd CLI removed via Homebrew"
+            else
+                echo "⚠ rd CLI not installed via Homebrew (skipping)"
+            fi
+        }
+
+        # Function to uninstall GitHub zip installation
+        uninstall_github() {
+            echo "Uninstalling rd CLI from manual installation..."
+
+            REMOVED=false
+
+            # Remove symlink
+            if [ -L "/usr/local/bin/rd" ]; then
+                sudo rm -f /usr/local/bin/rd
+                echo "✓ Removed symlink: /usr/local/bin/rd"
+                REMOVED=true
+            fi
+
+            # Remove installation directory
+            if [ -d "$INSTALL_DIR" ]; then
+                sudo rm -rf "$INSTALL_DIR"
+                echo "✓ Removed installation directory: $INSTALL_DIR"
+                REMOVED=true
+            fi
+
+            if [ "$REMOVED" == "false" ]; then
+                echo "⚠ No manual installation found (skipping)"
+            fi
+        }
+
+        # Function to remove configuration files
+        remove_config_files() {
+            echo ""
+            echo "=== Removing Configuration Files ==="
+
+            if [ "$CONFIG_USER" == "all" ]; then
+                # Remove system-wide config
+                if [ -d "/etc/rd" ]; then
+                    sudo rm -rf /etc/rd
+                    echo "✓ Removed system-wide config: /etc/rd"
+                fi
+
+                # Remove current user config
+                if [ -d "$HOME/.rd" ]; then
+                    rm -rf "$HOME/.rd"
+                    echo "✓ Removed current user config: $HOME/.rd"
+                fi
+            elif [ "$CONFIG_USER" == "current" ]; then
+                # Remove current user config
+                if [ -d "$HOME/.rd" ]; then
+                    rm -rf "$HOME/.rd"
+                    echo "✓ Removed config directory: $HOME/.rd"
+                else
+                    echo "⚠ No config directory found at: $HOME/.rd"
+                fi
+            else
+                # Remove specific user's config
+                USER_HOME=$(eval echo ~$CONFIG_USER)
+                if [ -d "$USER_HOME/.rd" ]; then
+                    sudo rm -rf "$USER_HOME/.rd"
+                    echo "✓ Removed config directory: $USER_HOME/.rd"
+                else
+                    echo "⚠ No config directory found at: $USER_HOME/.rd"
+                fi
+            fi
+        }
+
+        # Check if rd CLI is currently installed
+        if ! command -v rd &> /dev/null; then
+            echo "⚠ rd CLI command not found - may already be uninstalled"
+            echo "Proceeding with cleanup anyway..."
+            echo ""
+        else
+            echo "Current rd CLI installation detected:"
+            rd version 2>&1 || echo "Unable to get version"
+            echo ""
+        fi
+
+        # Main uninstallation logic
+        if [ "$UNINSTALL_METHOD" == "auto-detect" ]; then
+            DETECTED_METHOD=$(detect_install_method)
+            echo "Detected installation method: $DETECTED_METHOD"
+
+            if [ "$DETECTED_METHOD" == "unknown" ]; then
+                echo "⚠ Could not detect installation method"
+                echo "Attempting cleanup of all possible installation locations..."
+                uninstall_yum
+                uninstall_apt
+                uninstall_brew
+                uninstall_github
+            else
+                case "$DETECTED_METHOD" in
+                    yum)
+                        uninstall_yum
+                        ;;
+                    apt)
+                        uninstall_apt
+                        ;;
+                    brew)
+                        uninstall_brew
+                        ;;
+                    github-zip)
+                        uninstall_github
+                        ;;
+                esac
+            fi
+        else
+            case "$UNINSTALL_METHOD" in
+                yum)
+                    uninstall_yum
+                    ;;
+                apt)
+                    uninstall_apt
+                    ;;
+                brew)
+                    uninstall_brew
+                    ;;
+                github-zip)
+                    uninstall_github
+                    ;;
+                *)
+                    echo "ERROR: Unknown uninstallation method: $UNINSTALL_METHOD"
+                    exit 1
+                    ;;
+            esac
+        fi
+
+        # Remove configuration files if requested
+        if [ "$REMOVE_CONFIG" == "true" ]; then
+            remove_config_files
+        fi
+
+        echo ""
+        echo "=== Verifying Uninstallation ==="
+
+        # Verify uninstallation
+        if command -v rd &> /dev/null; then
+            echo "⚠ WARNING: rd command is still available in PATH"
+            echo "Location: $(which rd)"
+            echo "You may need to:"
+            echo "  - Use a different uninstallation method"
+            echo "  - Manually remove: $(which rd)"
+            echo "  - Restart your shell session"
+            exit 1
+        else
+            echo "✓ rd CLI has been successfully uninstalled!"
+            echo ""
+            echo "=== Uninstallation Summary ==="
+            echo "Method: $UNINSTALL_METHOD"
+            echo "Config removed: $REMOVE_CONFIG"
+            if [ "$REMOVE_CONFIG" == "true" ]; then
+                echo "Config user: $CONFIG_USER"
+            fi
+            echo ""
+            echo "✓ Uninstallation complete!"
+        fi
+    keepgoing: false
+    strategy: node-first
+  user: admin
+  uuid: 374d26c5-597b-4f47-a5d2-b3facdc9b6da
