@@ -6,8 +6,20 @@
   loglevel: INFO
   name: Check for GCP Outages (scheduled)
   nodeFilterEditable: false
+  nodefilters:
+    dispatch:
+      excludePrecedence: true
+      keepgoing: false
+      rankOrder: ascending
+      successOnEmptyNodeFilter: false
+      threadcount: '1'
+    filter: .*runner
+  nodesSelectedByDefault: true
   plugins:
-    ExecutionLifecycle: {}
+    ExecutionLifecycle:
+      roi-metrics:
+        userRoiData: '[{"key":"hours","label":"Hours","value":"1","desc":"Field key
+          hours"}]'
   runnerSelector:
     runnerFilterMode: LOCAL
     runnerFilterType: LOCAL_RUNNER
@@ -69,7 +81,6 @@
         if __name__ == "__main__":
             check_gcp_status()
       scriptInterpreter: python
-    - exec: echo Hello World
     keepgoing: false
     strategy: node-first
   user: admin
