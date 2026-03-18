@@ -1,0 +1,65 @@
+- defaultTab: nodes
+  description: |-
+    This job demonstrates parallel execution of 5 job references using Ruleset workflow strategy.
+    All 5 referenced jobs will start simultaneously using the run-at-start directive.
+  executionEnabled: true
+  group: RBA Features/Ruleset
+  id: 64873e08-80fb-44bf-8c91-f8715bd6a29b
+  loglevel: INFO
+  name: Parallel Job Orchestrator - 5 Jobs
+  nodeFilterEditable: false
+  plugins:
+    ExecutionLifecycle: {}
+  runnerSelector:
+    filter: LINUX
+    runnerFilterMode: TAGS
+    runnerFilterType: TAG_FILTER_AND
+  scheduleEnabled: true
+  schedules: []
+  sequence:
+    commands:
+    - description: Job Reference 1
+      jobref:
+        failOnDisable: true
+        group: Your/Job/Group1
+        name: First Referenced Job
+        uuid: bc0c726f-a617-4f15-8232-c7b9bfa04422
+    - description: Job Reference 2
+      jobref:
+        failOnDisable: true
+        group: Your/Job/Group2
+        name: Second Referenced Job
+        uuid: bc0c726f-a617-4f15-8232-c7b9bfa04422
+    - description: Job Reference 3
+      jobref:
+        failOnDisable: true
+        group: Your/Job/Group3
+        name: Third Referenced Job
+        uuid: bc0c726f-a617-4f15-8232-c7b9bfa04422
+    - description: Job Reference 4
+      jobref:
+        failOnDisable: true
+        group: Your/Job/Group4
+        name: Fourth Referenced Job
+        uuid: bc0c726f-a617-4f15-8232-c7b9bfa04422
+    - description: Job Reference 5
+      jobref:
+        failOnDisable: true
+        group: Your/Job/Group5
+        name: Fifth Referenced Job
+        uuid: bc0c726f-a617-4f15-8232-c7b9bfa04422
+    keepgoing: false
+    pluginConfig:
+      WorkflowStrategy:
+        ruleset:
+          rules: |-
+            # Run all 5 jobs simultaneously at start
+            [1] run-at-start
+            [2] run-at-start
+            [3] run-at-start
+            [4] run-at-start
+            [5] run-at-start
+    strategy: ruleset
+  user: admin
+  uuid: 64873e08-80fb-44bf-8c91-f8715bd6a29b
+
