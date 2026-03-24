@@ -1,0 +1,327 @@
+- defaultTab: output
+  description: |-
+    Collects ROI metrics from Rundeck job executions via API and stores them in MySQL database.
+
+    This job queries all jobs tagged with ROI metrics, retrieves execution data, and inserts
+    the metrics into a MySQL database for Grafana visualization and reporting.
+
+    Based on the original gather-roi-metrics.yml with MySQL storage capabilities added.
+  executionEnabled: true
+  group: RBA Features/ROI
+  id: b03b7210-7146-492c-851d-f19cafbd51c0
+  loglevel: INFO
+  name: Collect ROI Metrics to MySQL
+  nodeFilterEditable: false
+  nodefilters:
+    dispatch:
+      excludePrecedence: true
+      keepgoing: false
+      rankOrder: ascending
+      successOnEmptyNodeFilter: false
+      threadcount: '1'
+    filter: macbook-runner
+  nodesSelectedByDefault: true
+  options:
+  - description: |-
+      Provide the URL of the Runbook Automation server. Leave off the trailing slash, but include any port number needed.
+
+      e.g. `http://my.rundeck.local.dom:4440`
+    label: Rundeck URL
+    name: rundeck-server
+    required: true
+    value: bdias.myrundeck.com
+  - description: Must Edit Options in Job Definition to pick your Rundeck API Key
+      entry from Key Storage
+    label: API Key
+    name: api-key
+    required: true
+    secure: true
+    storagePath: keys/rba/bdias-rba-token
+    valueExposed: true
+  - description: |-
+      Provide a string to filter jobs out by tag to improve query performance.
+
+      Leave blank for all jobs. Example String "tag1,tag2". We find it easy to add the `roi` tag to jobs that we have turned on ROI tracking for.
+    label: Job Tags List
+    name: job-tags
+    value: roi
+  - label: Project Name
+    name: project-name
+    required: true
+    value: dev
+  - description: |-
+      Use link below to decide what values to use.
+
+      Note: this script doesn't take into account paging yet. Only returns a max of 1000 entries.
+
+      [https://docs.rundeck.com/docs/api/rundeck-api.html#execution-query](/api/index.md#execution-query)
+    label: Time Range for Executions
+    name: time-range
+    required: true
+    value: 30d
+    values:
+    - 1d
+    - 2d
+    - 1w
+    - 30d
+    - 90d
+    valuesListDelimiter: ','
+  - enforced: true
+    label: Debug Output on Script?
+    name: script-debug
+    required: true
+    value: 'false'
+    values:
+    - 'true'
+    - 'false'
+    valuesListDelimiter: ','
+  - description: 'Unlikely this needs to change, but good practice meant we made it
+      a variable.'
+    hidden: true
+    label: API Version
+    name: api_version
+    required: true
+    value: '41'
+  - description: |-
+      MySQL host for ROI metrics storage.
+
+      Use 'host.docker.internal' for Docker Desktop on Mac/Windows, or actual IP address/hostname for other setups.
+    label: MySQL Host
+    name: mysql-host
+    required: true
+    value: 127.0.0.1
+  - label: MySQL Port
+    name: mysql-port
+    required: true
+    value: '3306'
+  - label: MySQL Database
+    name: mysql-database
+    required: true
+    value: rundeck_roi
+  - description: MySQL username stored in Key Storage
+    label: MySQL User
+    name: mysql-user
+    required: true
+    value: roi_user
+  - description: MySQL password stored in Key Storage
+    label: MySQL Password
+    name: mysql-password
+    required: true
+    secure: true
+    storagePath: keys/project/dev/roi/mysql-db-admin
+  plugins:
+    ExecutionLifecycle: {}
+  scheduleEnabled: true
+  schedules: []
+  sequence:
+    commands:
+    - script: |-
+        #!/bin/bash
+
+        # Rundeck API configuration
+        rundeckhost=@option.rundeck-server@
+        api_key=@option.api-key@
+        api_version=@option.api_version@
+        project=@option.project-name@
+        tags=@option.job-tags@ # leave blank to return all jobs
+        debug=@option.script-debug@
+        execution_history=@option.time-range@
+        jobIDList=""
+
+        # MySQL configuration
+        mysql_host="@option.mysql-host@"
+        mysql_port="@option.mysql-port@"
+        mysql_database="@option.mysql-database@"
+        mysql_user="@option.mysql-user@"
+        mysql_password="@option.mysql-password@"
+
+        # Tracking variables
+        total_metrics=0
+        total_hours_saved=0
+        total_cost_savings=0
+
+        # Function to execute MySQL commands
+        execute_mysql() {
+            local query="$1"
+            MYSQL_PWD="$mysql_password" mysql -h "$mysql_host" -P "$mysql_port" -u "$mysql_user" "$mysql_database" -e "$query" 2>/dev/null
+            if [ $? -ne 0 ]; then
+                echo "ERROR: MySQL query failed" >&2
+                return 1
+            fi
+            return 0
+        }
+
+        # Function to insert job metadata
+        insert_job_metadata() {
+            local job_id="$1"
+            local job_name="$2"
+            local job_group="$3"
+
+            # Escape single quotes in job name and group for SQL
+            job_name_escaped=$(echo "$job_name" | sed "s/'/''/g")
+            job_group_escaped=$(echo "$job_group" | sed "s/'/''/g")
+
+            local query="INSERT INTO job_metadata (job_uuid, job_name, job_group, project_name)
+                         VALUES ('$job_id', '$job_name_escaped', '$job_group_escaped', '$project')
+                         ON DUPLICATE KEY UPDATE
+                             job_name=VALUES(job_name),
+                             job_group=VALUES(job_group),
+                             updated_at=NOW();"
+
+            if "$debug" == "true"; then
+                echo "Inserting job metadata: $job_name ($job_id)"
+            fi
+
+            execute_mysql "$query"
+        }
+
+        # Function to list jobs by tag
+        list_jobs_by_tag () {
+          jobs_output=`curl -sS --request GET $rundeckhost'/api/'$api_version'/project/'$project'/jobs?tags='$tags \
+          --header 'X-Rundeck-Auth-Token: '$api_key \
+          --header 'Content-Type: application/json' \
+          --header 'Accept: application/json'`
+
+          if "$debug" == "true"; then
+           echo "$jobs_output";
+          fi
+
+          while read i; do
+            jobIDList=`echo "$jobIDList&jobIdListFilter=$i"`
+
+            # Extract job details and insert metadata
+            job_name=$(echo "$jobs_output" | jq -r ".[] | select(.id==\"$i\") | .name")
+            job_group=$(echo "$jobs_output" | jq -r ".[] | select(.id==\"$i\") | .group // \"\"")
+            insert_job_metadata "$i" "$job_name" "$job_group"
+
+          done <<< $(echo $jobs_output | jq -r -c '.[] | .id')
+
+          if "$debug" == "true"; then
+           echo "Ending Loop"
+          fi
+        }
+
+        # Function to list executions from jobs
+        list_executions_from_jobs () {
+            executions_list=`curl -sS --request GET $rundeckhost'/api/'$api_version'/project/'$project'/executions?max=1000&statusFilter=succeeded&recentFilter='$execution_history'&'$jobIDList \
+             --header 'X-Rundeck-Auth-Token: '$api_key \
+             --header 'Content-Type: application/json' \
+             --header 'Accept: application/json'`
+
+            if "$debug" == "true"; then
+              echo $rundeckhost'/api/'$api_version'/project/'$project'/executions?recentFilter='$execution_history$jobIDList
+              echo "$executions_list"
+            fi
+
+            while read j; do
+              get_roi_data $j
+            done <<< $(echo $executions_list | jq -r -c '.executions[].id ')
+        }
+
+        # Function to get ROI data and insert into MySQL
+        get_roi_data () {
+            execution_id=$1
+            roi_data=`curl -sS --request GET $rundeckhost'/api/'$api_version'/execution/'$execution_id'/roimetrics/data' \
+             --header 'X-Rundeck-Auth-Token: '$api_key \
+             --header 'Content-Type: application/json' \
+             --header 'Accept: application/json'`
+
+            has_roi_data=`echo "$roi_data" | jq -c 'if .job_execution_id then true else false end'`
+
+            if "$debug" == "true"; then
+              echo "$execution_id ROI Data: $has_roi_data"
+            fi
+
+            if [[ "$has_roi_data" == "true" ]] ; then
+                # Extract metrics from JSON
+                job_uuid=$(echo "$roi_data" | jq -r '.job_id // ""')
+                exec_time=$(echo "$roi_data" | jq -r '.job_execution_time // ""')
+                duration=$(echo "$roi_data" | jq -r '.job_duration_seconds // 0')
+
+                # Try common field names for hours saved
+                hours_saved=0
+                for field in hours hours_saved time_saved_hours time_saved; do
+                    value=$(echo "$roi_data" | jq -r ".$field // 0" 2>/dev/null)
+                    if [[ "$value" != "0" ]] && [[ "$value" != "null" ]] && [[ "$value" != "" ]]; then
+                        hours_saved="$value"
+                        break
+                    fi
+                done
+
+                # Try common field names for cost savings
+                cost_savings=0
+                for field in cost_savings cost_savings_usd dollars_saved savings_usd; do
+                    value=$(echo "$roi_data" | jq -r ".$field // 0" 2>/dev/null)
+                    if [[ "$value" != "0" ]] && [[ "$value" != "null" ]] && [[ "$value" != "" ]]; then
+                        cost_savings="$value"
+                        break
+                    fi
+                done
+
+                # Convert ISO 8601 timestamp to MySQL datetime format
+                # From: 2026-03-24T10:30:00Z  To: 2026-03-24 10:30:00
+                exec_time_mysql=$(echo "$exec_time" | sed 's/T/ /;s/Z$//')
+
+                # Insert into MySQL
+                local query="INSERT INTO roi_metrics
+                             (execution_id, job_uuid, execution_time, job_duration_seconds, time_saved_hours, cost_savings_usd)
+                             VALUES ($execution_id, '$job_uuid', '$exec_time_mysql', $duration, $hours_saved, $cost_savings)
+                             ON DUPLICATE KEY UPDATE
+                                 execution_time=VALUES(execution_time),
+                                 job_duration_seconds=VALUES(job_duration_seconds),
+                                 time_saved_hours=VALUES(time_saved_hours),
+                                 cost_savings_usd=VALUES(cost_savings_usd),
+                                 updated_at=NOW();"
+
+                execute_mysql "$query"
+
+                # Update counters
+                total_metrics=$((total_metrics + 1))
+                total_hours_saved=$(echo "$total_hours_saved + $hours_saved" | bc)
+                total_cost_savings=$(echo "$total_cost_savings + $cost_savings" | bc)
+
+                if "$debug" == "true"; then
+                    echo "Inserted execution $execution_id: ${hours_saved}h saved, \$${cost_savings} saved"
+                fi
+            fi
+        }
+
+        # Main execution flow
+        if "$debug" == "true"; then
+          echo "Starting ROI Metrics Collection"
+          echo "Rundeck: $rundeckhost"
+          echo "Project: $project"
+          echo "MySQL: $mysql_host:$mysql_port/$mysql_database"
+        fi
+
+        # Test MySQL connection
+        if ! execute_mysql "SELECT 1;" > /dev/null 2>&1; then
+            echo "ERROR: Cannot connect to MySQL at $mysql_host:$mysql_port" >&2
+            echo "Please verify MySQL is running and credentials are correct" >&2
+            exit 1
+        fi
+
+        if "$debug" == "true"; then
+          echo "MySQL connection successful"
+        fi
+
+        # Collect metrics
+        list_jobs_by_tag
+        list_executions_from_jobs
+
+        # Print summary
+        echo ""
+        echo "=== Collection Summary ==="
+        echo "Total ROI metrics collected: $total_metrics"
+        echo "Total hours saved: $total_hours_saved"
+        echo "Total cost savings: \$$total_cost_savings"
+        echo "=========================="
+
+        if "$debug" == "true"; then
+          echo "Ending Script"
+        fi
+    keepgoing: false
+    strategy: node-first
+  user: admin
+  uuid: b03b7210-7146-492c-851d-f19cafbd51c0
+
