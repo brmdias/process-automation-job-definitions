@@ -13,7 +13,7 @@
       rankOrder: ascending
       successOnEmptyNodeFilter: false
       threadcount: '1'
-    filter: .*runner
+    filter: 'name: pdt-bdias-rundeckers-runner '
   nodesSelectedByDefault: true
   plugins:
     ExecutionLifecycle:
@@ -24,7 +24,9 @@
     runnerFilterMode: LOCAL
     runnerFilterType: LOCAL_RUNNER
   scheduleEnabled: true
-  schedules: []
+  schedules:
+  - jobParams: null
+    name: Cloud Provider Checks
   sequence:
     commands:
     - plugins:
@@ -85,6 +87,7 @@
             check_azure_status(feed_url)
     keepgoing: false
     strategy: node-first
+  tags: roi
   user: admin
   uuid: d99b4048-c65e-4904-a8eb-ade75ea97f0e
 
