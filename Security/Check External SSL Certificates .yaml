@@ -1,8 +1,8 @@
 - defaultTab: nodes
-  description: "\n\n# Description: \n\nThis Automation Job, named **Check External\
-    \ SSL Certificates**, is designed to validate the SSL certificate validity of\
-    \ a list of specified websites. It is a simple shell script that iterates through\
-    \ each site listed, checking the SSL validity using OpenSSL Client. If a certificate\
+  description: "# Description: \n\nThis Automation Job, named **Check External SSL\
+    \ Certificates**, is designed to validate the SSL certificate validity of a list\
+    \ of specified websites. It is a simple shell script that iterates through each\
+    \ site listed, checking the SSL validity using OpenSSL Client. If a certificate\
     \ is found to expire within a specified number of days (default is 7 days), it\
     \ automatically creates a PagerDuty incident for each expiring certificate. This\
     \ requires configuring a routing key as a password in the keystore.\n\n## Author\n\
@@ -49,15 +49,20 @@
     name: days
     value: '7'
   - description: PagerDuty Integration Key (Routing Key) for creating incidents
+    hidden: true
     label: PagerDuty Routing Key
     name: pd-routing-key
     secure: true
-    storagePath: keys/pagerduty/ssl-cert-monitoring-key
+    storagePath: keys/pagerduty/pdt-bdias-global-orchestration-key
+    type: text
     valueExposed: true
   plugins:
     ExecutionLifecycle:
       result-data-json-template:
         jsonTemplate: '{"export":{"justyn":"1"}}'
+      roi-metrics:
+        userRoiData: '[{"key":"hours","label":"Hours","value":"3","desc":"Field key
+          hours"}]'
   runnerSelector:
     filter: MAIN-LINUX
     runnerFilterMode: TAGS
@@ -67,20 +72,14 @@
   sequence:
     commands:
     - args: website
-      autoSecureInput: 'false'
       description: 'Website List - (Line Separated, Use this UI to edit) - Could equally
         be stored in SCM.'
       interpreterArgsQuoted: false
-      passSecureInput: 'false'
       script: |-
-        virtual-access-gate.telefonica.de
         telefonica.de
-        www.pagerduty.com
         bdias.myrundeck.com
       scriptInterpreter: \cp -fR
-    - autoSecureInput: 'false'
-      description: Execute check for each website.
-      passSecureInput: 'false'
+    - description: Execute check for each website.
       plugins:
         LogFilter:
         - config:
@@ -117,11 +116,9 @@
         keepgoingOnSuccess: true
       nodeStep: false
       type: export-var
-    - autoSecureInput: 'false'
-      description: Create PagerDuty incidents for expiring certificates
+    - description: Create PagerDuty incidents for expiring certificates
       fileExtension: .py
       interpreterArgsQuoted: false
-      passSecureInput: 'false'
       script: |
         import requests
         import json
@@ -133,15 +130,17 @@
         ROUTING_KEY = "@option.pd-routing-key@"
 
         # Get the output from the previous step
-        output = "@export.output@"
+        output = """@export.output@"""
 
-        if not output or output == "@export.output@":
+        if not output:
             print("No expiring certificates found. No incidents to create.")
             exit(0)
 
+        print(f"\output var: {output}")
+
         # Parse the output to find expiring certificates
         # Expected format: 🟥 Certificate for 🌍[domain.com] expired/expires in less than X days, on YYYY-MM-DD
-        pattern = r"🟥 Certificate for 🌍\[(.*?)\] expired/expires in less than \d+ days, on (\d{4}-\d{2}-\d{2})"
+        pattern = r"🌍\[(.*?)\] expired/expires in less than \d+ days, on (\d{4}-\d{2}-\d{2})"
 
         lines = output.split('\n')
         incidents_created = 0
@@ -192,8 +191,14 @@
             print("\n⚠️  No incidents were created")
       scriptInterpreter: python -u
     keepgoing: false
-    strategy: node-first
-  tags: security
+    pluginConfig:
+      WorkflowStrategy:
+        ruleset:
+          rules: |-
+            [*] run-in-sequence
+            [4] unless:!export.output
+    strategy: ruleset
+  tags: 'roi,security'
   user: admin
   uuid: 0d30fafc-1930-4081-af8d-54696e18401a
 
