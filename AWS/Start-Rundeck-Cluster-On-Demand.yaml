@@ -1,0 +1,339 @@
+defaultTab: nodes
+description: |-
+  Starts a stopped Rundeck cluster on-demand by:
+  1. Starting EC2 instances (Rundeck servers + PostgreSQL)
+  2. Fetching new public IPs from Rundeck server instances
+  3. Updating rundeck-config.properties with new grailsServerUrl
+  4. Restarting Rundeck service
+  5. Waiting for Rundeck to be fully started
+  6. Running health check to verify cluster availability
+
+  This enables cost-effective infrastructure management by running the cluster only when needed.
+  Demonstrates Rundeck's self-orchestration capabilities.
+executionEnabled: true
+loglevel: INFO
+name: Start Rundeck Cluster On-Demand
+nodeFilterEditable: false
+scheduleEnabled: false
+schedules: []
+options:
+- description: 'Comma-separated list of EC2 Instance IDs for Rundeck servers (e.g., i-1234567890abcdef0,i-0987654321fedcba0)'
+  label: Rundeck Server Instance IDs
+  name: rundeck_instance_ids
+  required: true
+- description: 'Comma-separated list of EC2 Instance IDs for PostgreSQL database servers (e.g., i-abcdef1234567890)'
+  label: Database Instance IDs
+  name: db_instance_ids
+  required: true
+- description: AWS Region where instances are located
+  label: AWS Region
+  name: region
+  value: us-east-1
+  required: true
+- description: Path to rundeck-config.properties on each Rundeck server
+  label: Rundeck Config Path
+  name: rundeck_config_path
+  value: /etc/rundeck/rundeck-config.properties
+  required: true
+- description: Port number for Rundeck server URLs
+  label: Rundeck Port
+  name: rundeck_port
+  value: '4440'
+  required: true
+- description: Maximum time in seconds to wait for Rundeck startup
+  label: Startup Timeout (seconds)
+  name: startup_timeout
+  value: '300'
+  required: true
+- description: SSH username for connecting to instances
+  label: SSH Username
+  name: ssh_username
+  value: ec2-user
+  required: true
+- description: Path to SSH private key in Rundeck Key Storage
+  label: SSH Key Storage Path
+  name: ssh_key_path
+  value: keys/ec2-key
+  required: true
+sequence:
+  commands:
+  # Step 1: Start Database Instances First
+  - description: Start PostgreSQL database instances
+    exec: echo "=== Step 1: Starting Database Instances ==="
+  - type: aws-vm-start-step
+    nodeStep: false
+    configuration:
+      region: ${option.region}
+      instanceId: ${option.db_instance_ids}
+  - description: Wait for database instances to be in running state
+    script: |-
+      #!/bin/bash
+      set -e
+
+      REGION="${option.region}"
+      DB_INSTANCES="${option.db_instance_ids}"
+
+      echo "Waiting for database instances to reach 'running' state..."
+      IFS=',' read -ra INSTANCE_ARRAY <<< "$DB_INSTANCES"
+
+      for INSTANCE_ID in "${INSTANCE_ARRAY[@]}"; do
+        echo "Checking instance: ${INSTANCE_ID}"
+        aws ec2 wait instance-running --region "${REGION}" --instance-ids "${INSTANCE_ID}"
+        echo "✅ Instance ${INSTANCE_ID} is running"
+      done
+
+      echo "All database instances are running. Waiting 30 seconds for PostgreSQL to initialize..."
+      sleep 30
+      echo "✅ Database startup complete"
+  # Step 2: Start Rundeck Server Instances
+  - description: Start Rundeck server instances
+    exec: echo "=== Step 2: Starting Rundeck Server Instances ==="
+  - type: aws-vm-start-step
+    nodeStep: false
+    configuration:
+      region: ${option.region}
+      instanceId: ${option.rundeck_instance_ids}
+  - description: Wait for Rundeck instances to be in running state
+    script: |-
+      #!/bin/bash
+      set -e
+
+      REGION="${option.region}"
+      RD_INSTANCES="${option.rundeck_instance_ids}"
+
+      echo "Waiting for Rundeck instances to reach 'running' state..."
+      IFS=',' read -ra INSTANCE_ARRAY <<< "$RD_INSTANCES"
+
+      for INSTANCE_ID in "${INSTANCE_ARRAY[@]}"; do
+        echo "Checking instance: ${INSTANCE_ID}"
+        aws ec2 wait instance-running --region "${REGION}" --instance-ids "${INSTANCE_ID}"
+        echo "✅ Instance ${INSTANCE_ID} is running"
+      done
+  # Step 3: Fetch Public IPs
+  - description: Fetch public IPs of Rundeck server instances
+    exec: echo "=== Step 3: Fetching Public IP Addresses ==="
+  - plugins:
+      LogFilter:
+      - type: export-var
+        config:
+          exportVarPrefix: 'IP_MAP_'
+    script: |-
+      #!/bin/bash
+      set -e
+
+      REGION="${option.region}"
+      RD_INSTANCES="${option.rundeck_instance_ids}"
+
+      echo "Retrieving public IP addresses for Rundeck servers..."
+      IFS=',' read -ra INSTANCE_ARRAY <<< "$RD_INSTANCES"
+
+      # Create a mapping of instance IDs to public IPs
+      declare -A IP_MAP
+
+      for INSTANCE_ID in "${INSTANCE_ARRAY[@]}"; do
+        PUBLIC_IP=$(aws ec2 describe-instances \
+          --region "${REGION}" \
+          --instance-ids "${INSTANCE_ID}" \
+          --query "Reservations[0].Instances[0].PublicIpAddress" \
+          --output text)
+
+        if [ -z "${PUBLIC_IP}" ] || [ "${PUBLIC_IP}" = "None" ]; then
+          echo "❌ ERROR: Could not retrieve public IP for instance ${INSTANCE_ID}"
+          exit 1
+        fi
+
+        echo "Instance ${INSTANCE_ID}: ${PUBLIC_IP}"
+        IP_MAP["${INSTANCE_ID}"]="${PUBLIC_IP}"
+
+        # Export each mapping for use in subsequent steps
+        echo "EXPORT:IP_MAP_${INSTANCE_ID}=${PUBLIC_IP}"
+      done
+
+      echo "✅ Retrieved all public IP addresses"
+  # Step 4: Update rundeck-config.properties on each Rundeck server
+  - description: Update grailsServerUrl in rundeck-config.properties
+    exec: echo "=== Step 4: Updating Rundeck Configuration Files ==="
+  - script: |-
+      #!/bin/bash
+      set -e
+
+      REGION="${option.region}"
+      RD_INSTANCES="${option.rundeck_instance_ids}"
+      CONFIG_PATH="${option.rundeck_config_path}"
+      PORT="${option.rundeck_port}"
+      SSH_USER="${option.ssh_username}"
+
+      echo "Updating rundeck-config.properties on each Rundeck server..."
+      IFS=',' read -ra INSTANCE_ARRAY <<< "$RD_INSTANCES"
+
+      for INSTANCE_ID in "${INSTANCE_ARRAY[@]}"; do
+        # Get public IP from exported variable
+        PUBLIC_IP=$(aws ec2 describe-instances \
+          --region "${REGION}" \
+          --instance-ids "${INSTANCE_ID}" \
+          --query "Reservations[0].Instances[0].PublicIpAddress" \
+          --output text)
+
+        echo "Updating ${INSTANCE_ID} (${PUBLIC_IP})..."
+
+        # Backup existing config
+        ssh -o StrictHostKeyChecking=no ${SSH_USER}@${PUBLIC_IP} \
+          "sudo cp ${CONFIG_PATH} ${CONFIG_PATH}.backup-\$(date +%Y%m%d-%H%M%S)"
+
+        # Update grailsServerUrl using sed
+        ssh -o StrictHostKeyChecking=no ${SSH_USER}@${PUBLIC_IP} \
+          "sudo sed -i 's|^grails\.serverURL=.*|grails.serverURL=http://${PUBLIC_IP}:${PORT}|' ${CONFIG_PATH}"
+
+        # Verify the change
+        NEW_URL=$(ssh -o StrictHostKeyChecking=no ${SSH_USER}@${PUBLIC_IP} \
+          "sudo grep '^grails\.serverURL=' ${CONFIG_PATH}")
+
+        echo "  Updated: ${NEW_URL}"
+        echo "✅ Configuration updated for ${INSTANCE_ID}"
+      done
+
+      echo "✅ All configuration files updated"
+  # Step 5: Restart Rundeck service on each server
+  - description: Restart Rundeck service
+    exec: echo "=== Step 5: Restarting Rundeck Services ==="
+  - script: |-
+      #!/bin/bash
+      set -e
+
+      REGION="${option.region}"
+      RD_INSTANCES="${option.rundeck_instance_ids}"
+      SSH_USER="${option.ssh_username}"
+
+      echo "Restarting Rundeck service on each server..."
+      IFS=',' read -ra INSTANCE_ARRAY <<< "$RD_INSTANCES"
+
+      for INSTANCE_ID in "${INSTANCE_ARRAY[@]}"; do
+        PUBLIC_IP=$(aws ec2 describe-instances \
+          --region "${REGION}" \
+          --instance-ids "${INSTANCE_ID}" \
+          --query "Reservations[0].Instances[0].PublicIpAddress" \
+          --output text)
+
+        echo "Restarting Rundeck on ${INSTANCE_ID} (${PUBLIC_IP})..."
+
+        # Restart rundeckd service
+        ssh -o StrictHostKeyChecking=no ${SSH_USER}@${PUBLIC_IP} \
+          "sudo systemctl restart rundeckd"
+
+        echo "✅ Service restart initiated for ${INSTANCE_ID}"
+      done
+
+      echo "✅ All Rundeck services restarted"
+  # Step 6: Wait for Rundeck to start by tailing service.log
+  - description: Monitor Rundeck startup in service.log
+    exec: echo "=== Step 6: Monitoring Rundeck Startup ==="
+  - script: |-
+      #!/bin/bash
+      set -e
+
+      REGION="${option.region}"
+      RD_INSTANCES="${option.rundeck_instance_ids}"
+      SSH_USER="${option.ssh_username}"
+      TIMEOUT="${option.startup_timeout}"
+      LOG_PATH="/var/log/rundeck/service.log"
+      STARTUP_MESSAGE="Grails application running at http://localhost:4440 in environment: production"
+
+      echo "Waiting for Rundeck to start (timeout: ${TIMEOUT}s)..."
+      IFS=',' read -ra INSTANCE_ARRAY <<< "$RD_INSTANCES"
+
+      for INSTANCE_ID in "${INSTANCE_ARRAY[@]}"; do
+        PUBLIC_IP=$(aws ec2 describe-instances \
+          --region "${REGION}" \
+          --instance-ids "${INSTANCE_ID}" \
+          --query "Reservations[0].Instances[0].PublicIpAddress" \
+          --output text)
+
+        echo "Monitoring startup for ${INSTANCE_ID} (${PUBLIC_IP})..."
+
+        START_TIME=$(date +%s)
+        STARTED=false
+
+        while [ $(($(date +%s) - START_TIME)) -lt ${TIMEOUT} ]; do
+          # Check if startup message appears in service.log
+          if ssh -o StrictHostKeyChecking=no ${SSH_USER}@${PUBLIC_IP} \
+            "sudo tail -n 50 ${LOG_PATH} 2>/dev/null | grep -q '${STARTUP_MESSAGE}'" 2>/dev/null; then
+            echo "✅ Rundeck started successfully on ${INSTANCE_ID}"
+            STARTED=true
+            break
+          fi
+
+          echo "  Still waiting... (elapsed: $(($(date +%s) - START_TIME))s)"
+          sleep 5
+        done
+
+        if [ "${STARTED}" = false ]; then
+          echo "❌ ERROR: Rundeck did not start within ${TIMEOUT} seconds on ${INSTANCE_ID}"
+          echo "Last 20 lines of service.log:"
+          ssh -o StrictHostKeyChecking=no ${SSH_USER}@${PUBLIC_IP} \
+            "sudo tail -n 20 ${LOG_PATH}" || echo "Could not retrieve log"
+          exit 1
+        fi
+      done
+
+      echo "✅ All Rundeck instances started successfully"
+  # Step 7: Run health check
+  - description: Verify Rundeck cluster is accessible
+    exec: echo "=== Step 7: Running Health Check ==="
+  - script: |-
+      #!/bin/bash
+      set -e
+
+      REGION="${option.region}"
+      RD_INSTANCES="${option.rundeck_instance_ids}"
+      PORT="${option.rundeck_port}"
+
+      echo "Performing health check on all Rundeck instances..."
+      IFS=',' read -ra INSTANCE_ARRAY <<< "$RD_INSTANCES"
+
+      ALL_HEALTHY=true
+
+      for INSTANCE_ID in "${INSTANCE_ARRAY[@]}"; do
+        PUBLIC_IP=$(aws ec2 describe-instances \
+          --region "${REGION}" \
+          --instance-ids "${INSTANCE_ID}" \
+          --query "Reservations[0].Instances[0].PublicIpAddress" \
+          --output text)
+
+        RUNDECK_URL="http://${PUBLIC_IP}:${PORT}"
+
+        echo "Testing ${INSTANCE_ID}: ${RUNDECK_URL}"
+
+        # Test if Rundeck UI is accessible
+        HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" "${RUNDECK_URL}/api/41/system/info" --max-time 10 || echo "000")
+
+        if [ "${HTTP_CODE}" = "200" ] || [ "${HTTP_CODE}" = "401" ]; then
+          echo "✅ ${INSTANCE_ID} is healthy (HTTP ${HTTP_CODE})"
+        else
+          echo "❌ ${INSTANCE_ID} health check failed (HTTP ${HTTP_CODE})"
+          ALL_HEALTHY=false
+        fi
+      done
+
+      if [ "${ALL_HEALTHY}" = true ]; then
+        echo ""
+        echo "======================================"
+        echo "✅ CLUSTER STARTUP COMPLETE"
+        echo "======================================"
+        echo "All Rundeck instances are running and accessible."
+        echo ""
+        echo "Rundeck URLs:"
+        for INSTANCE_ID in "${INSTANCE_ARRAY[@]}"; do
+          PUBLIC_IP=$(aws ec2 describe-instances \
+            --region "${REGION}" \
+            --instance-ids "${INSTANCE_ID}" \
+            --query "Reservations[0].Instances[0].PublicIpAddress" \
+            --output text)
+          echo "  - http://${PUBLIC_IP}:${PORT}"
+        done
+        echo "======================================"
+      else
+        echo "❌ ERROR: Some instances failed health check"
+        exit 1
+      fi
+  keepgoing: false
+  strategy: node-first

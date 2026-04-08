@@ -1,0 +1,172 @@
+defaultTab: nodes
+description: |-
+  Stops a running Rundeck cluster to save costs when not in use by:
+  1. Gracefully stopping Rundeck services
+  2. Stopping EC2 instances (Rundeck servers)
+  3. Stopping EC2 instances (PostgreSQL database)
+  4. Verifying all instances are stopped
+
+  Pair this with "Start Rundeck Cluster On-Demand" job for cost-effective infrastructure management.
+executionEnabled: true
+loglevel: INFO
+name: Stop Rundeck Cluster On-Demand
+nodeFilterEditable: false
+scheduleEnabled: false
+schedules: []
+options:
+- description: 'Comma-separated list of EC2 Instance IDs for Rundeck servers'
+  label: Rundeck Server Instance IDs
+  name: rundeck_instance_ids
+  required: true
+- description: 'Comma-separated list of EC2 Instance IDs for PostgreSQL database servers'
+  label: Database Instance IDs
+  name: db_instance_ids
+  required: true
+- description: AWS Region where instances are located
+  label: AWS Region
+  name: region
+  value: us-east-1
+  required: true
+- description: SSH username for connecting to instances
+  label: SSH Username
+  name: ssh_username
+  value: ec2-user
+  required: true
+- description: Path to SSH private key in Rundeck Key Storage
+  label: SSH Key Storage Path
+  name: ssh_key_path
+  value: keys/ec2-key
+  required: true
+- description: 'Gracefully stop Rundeck service before stopping instances? (Recommended: true)'
+  label: Graceful Shutdown
+  name: graceful_shutdown
+  values:
+  - 'true'
+  - 'false'
+  value: 'true'
+  required: true
+sequence:
+  commands:
+  # Step 1: Gracefully stop Rundeck services (optional but recommended)
+  - description: Stop Rundeck services gracefully
+    exec: echo "=== Step 1: Stopping Rundeck Services ==="
+  - script: |-
+      #!/bin/bash
+      set -e
+
+      GRACEFUL="${option.graceful_shutdown}"
+      REGION="${option.region}"
+      RD_INSTANCES="${option.rundeck_instance_ids}"
+      SSH_USER="${option.ssh_username}"
+
+      if [ "${GRACEFUL}" = "true" ]; then
+        echo "Performing graceful shutdown of Rundeck services..."
+        IFS=',' read -ra INSTANCE_ARRAY <<< "$RD_INSTANCES"
+
+        for INSTANCE_ID in "${INSTANCE_ARRAY[@]}"; do
+          PUBLIC_IP=$(aws ec2 describe-instances \
+            --region "${REGION}" \
+            --instance-ids "${INSTANCE_ID}" \
+            --query "Reservations[0].Instances[0].PublicIpAddress" \
+            --output text)
+
+          echo "Stopping Rundeck on ${INSTANCE_ID} (${PUBLIC_IP})..."
+
+          # Stop rundeckd service
+          ssh -o StrictHostKeyChecking=no -o ConnectTimeout=10 ${SSH_USER}@${PUBLIC_IP} \
+            "sudo systemctl stop rundeckd" || echo "⚠️  Warning: Could not stop service on ${INSTANCE_ID}"
+
+          echo "✅ Service stop initiated for ${INSTANCE_ID}"
+        done
+
+        echo "Waiting 15 seconds for graceful shutdown..."
+        sleep 15
+        echo "✅ Graceful shutdown complete"
+      else
+        echo "Skipping graceful shutdown (graceful_shutdown=false)"
+      fi
+  # Step 2: Stop Rundeck server instances
+  - description: Stop Rundeck server instances
+    exec: echo "=== Step 2: Stopping Rundeck Server Instances ==="
+  - type: aws-vm-stop-step
+    nodeStep: false
+    configuration:
+      region: ${option.region}
+      instanceId: ${option.rundeck_instance_ids}
+  - description: Wait for Rundeck instances to be stopped
+    script: |-
+      #!/bin/bash
+      set -e
+
+      REGION="${option.region}"
+      RD_INSTANCES="${option.rundeck_instance_ids}"
+
+      echo "Waiting for Rundeck instances to reach 'stopped' state..."
+      IFS=',' read -ra INSTANCE_ARRAY <<< "$RD_INSTANCES"
+
+      for INSTANCE_ID in "${INSTANCE_ARRAY[@]}"; do
+        echo "Checking instance: ${INSTANCE_ID}"
+        aws ec2 wait instance-stopped --region "${REGION}" --instance-ids "${INSTANCE_ID}"
+        echo "✅ Instance ${INSTANCE_ID} is stopped"
+      done
+
+      echo "✅ All Rundeck server instances stopped"
+  # Step 3: Stop database instances
+  - description: Stop database instances
+    exec: echo "=== Step 3: Stopping Database Instances ==="
+  - type: aws-vm-stop-step
+    nodeStep: false
+    configuration:
+      region: ${option.region}
+      instanceId: ${option.db_instance_ids}
+  - description: Wait for database instances to be stopped
+    script: |-
+      #!/bin/bash
+      set -e
+
+      REGION="${option.region}"
+      DB_INSTANCES="${option.db_instance_ids}"
+
+      echo "Waiting for database instances to reach 'stopped' state..."
+      IFS=',' read -ra INSTANCE_ARRAY <<< "$DB_INSTANCES"
+
+      for INSTANCE_ID in "${INSTANCE_ARRAY[@]}"; do
+        echo "Checking instance: ${INSTANCE_ID}"
+        aws ec2 wait instance-stopped --region "${REGION}" --instance-ids "${INSTANCE_ID}"
+        echo "✅ Instance ${INSTANCE_ID} is stopped"
+      done
+
+      echo "✅ All database instances stopped"
+  # Step 4: Summary
+  - description: Display shutdown summary
+    exec: echo "=== Shutdown Summary ==="
+  - script: |-
+      #!/bin/bash
+      set -e
+
+      REGION="${option.region}"
+      RD_INSTANCES="${option.rundeck_instance_ids}"
+      DB_INSTANCES="${option.db_instance_ids}"
+
+      echo ""
+      echo "======================================"
+      echo "✅ CLUSTER SHUTDOWN COMPLETE"
+      echo "======================================"
+      echo "All instances have been stopped."
+      echo ""
+      echo "Stopped Rundeck instances:"
+      IFS=',' read -ra INSTANCE_ARRAY <<< "$RD_INSTANCES"
+      for INSTANCE_ID in "${INSTANCE_ARRAY[@]}"; do
+        echo "  - ${INSTANCE_ID}"
+      done
+      echo ""
+      echo "Stopped Database instances:"
+      IFS=',' read -ra INSTANCE_ARRAY <<< "$DB_INSTANCES"
+      for INSTANCE_ID in "${INSTANCE_ARRAY[@]}"; do
+        echo "  - ${INSTANCE_ID}"
+      done
+      echo ""
+      echo "To restart the cluster, run the 'Start Rundeck Cluster On-Demand' job."
+      echo "======================================"
+  keepgoing: false
+  strategy: node-first
