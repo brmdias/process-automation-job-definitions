@@ -1,7 +1,7 @@
 - defaultTab: nodes
   description: ''
   executionEnabled: true
-  group: ServiceNow
+  group: Integrations/ServiceNow
   id: 917766b6-8871-4333-88ba-fd8cc60e8fd9
   loglevel: INFO
   name: System Healthcheck (Linux - Simulated)
