@@ -7,7 +7,10 @@
   name: Clean log archives
   nodeFilterEditable: false
   plugins:
-    ExecutionLifecycle: {}
+    ExecutionLifecycle:
+      roi-metrics:
+        userRoiData: '[{"key":"hours","label":"Hours Saved","value":"1","desc":"Amount
+          of hours saved in manual work (Field key: hours)"}]'
   scheduleEnabled: true
   schedules: []
   sequence:
