@@ -24,5 +24,6 @@
     - exec: echo STOPPING VM UPDATE
     keepgoing: false
     strategy: node-first
+  user: admin
   uuid: ba637c4f-60ab-4a56-9da0-7b9e297e96f8
 

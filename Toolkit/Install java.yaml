@@ -12,11 +12,15 @@
       keepgoing: false
       rankOrder: ascending
       successOnEmptyNodeFilter: false
-      threadcount: '1'
-    filter: .*
+      threadcount: '5'
+    filter: 'osFamily: unix'
+    filterExclude: rundeckpro-rundeckpro-.*
   nodesSelectedByDefault: true
   plugins:
-    ExecutionLifecycle: {}
+    ExecutionLifecycle:
+      roi-metrics:
+        userRoiData: '[{"key":"hours","label":"Hours","value":"1","desc":"Field key
+          hours"}]'
   scheduleEnabled: true
   schedules: []
   sequence:
@@ -24,7 +28,7 @@
     - autoSecureInput: 'false'
       passSecureInput: 'false'
       script: |-
-        dnf install java -y
+        sudo dnf install java -y
 
         java --version
     keepgoing: false

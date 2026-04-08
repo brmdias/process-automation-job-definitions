@@ -1,7 +1,7 @@
 - defaultTab: nodes
   description: ''
   executionEnabled: true
-  group: ServiceNow
+  group: Integrations/ServiceNow
   id: 3bb76247-d34b-412c-b8d2-204cef6edcec
   loglevel: INFO
   name: Create Incident

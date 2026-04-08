@@ -39,7 +39,7 @@
   id: b6b87ed6-d6e4-4576-8fc4-bdff175d5ec8
   loglevel: INFO
   multipleExecutions: true
-  name: RBA Analytics
+  name: RBA Analytics (light version)
   nodeFilterEditable: false
   nodefilters:
     dispatch:
@@ -48,7 +48,7 @@
       rankOrder: ascending
       successOnEmptyNodeFilter: false
       threadcount: '1'
-    filter: .*rundeckers-a.*
+    filter: .*runner
   nodesSelectedByDefault: true
   options:
   - description: |-
@@ -70,8 +70,7 @@
     label: Instance
     name: instance
     required: true
-    type: text
-    value: <insert your RBA Cluster URL here>
+    value: https://bdias.myrundeck.com
   - description: |
       Project to analyze
 
@@ -83,26 +82,24 @@
       or leave blank for all projects.
     label: Project
     name: projects
-    type: text
-    value: '"<insert your prject name here>"'
+    value: '"dev"'
   - description: Secure API Key for Automation Server
     hidden: true
     label: API Key
     name: apikey
     secure: true
-    storagePath: keys/path/to/api/key
-    type: text
+    storagePath: keys/rba/bdias-rba-token
     valueExposed: true
   - description: How many days to look back from
     label: Last x Days from today
     name: lastxdays
     required: true
-    value: '7'
+    value: '30'
   plugins:
     ExecutionLifecycle:
       roi-metrics:
-        userRoiData: '[{"key":"min","label":"Minutes","value":"30","desc":"Minutes
-          saved in manual work (Field key: min)"}]'
+        userRoiData: '[{"key":"hours","label":"Hours","value":"2","desc":"Field key
+          hours"}]'
   runnerSelector:
     filter: US-WEST
     runnerFilterMode: TAGS

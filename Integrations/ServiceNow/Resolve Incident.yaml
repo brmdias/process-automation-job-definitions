@@ -1,7 +1,7 @@
 - defaultTab: nodes
   description: ''
   executionEnabled: true
-  group: ServiceNow
+  group: Integrations/ServiceNow
   id: ead07f2f-8a82-4948-85dd-5a51a19cb5eb
   loglevel: INFO
   name: Resolve Incident

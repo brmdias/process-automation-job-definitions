@@ -1,0 +1,320 @@
+- defaultTab: output
+  description: 'Configures rd CLI to connect to a Rundeck cluster. Sets up authentication,
+    creates configuration profiles, and validates the connection. Supports both environment
+    variables and config file methods.'
+  executionEnabled: true
+  group: Toolkit
+  id: 7ad108d5-d3dd-4d72-96ce-ff26c486ed93
+  loglevel: INFO
+  name: Configure rd-cli
+  nodeFilterEditable: true
+  nodefilters:
+    dispatch:
+      excludePrecedence: true
+      keepgoing: false
+      rankOrder: ascending
+      successOnEmptyNodeFilter: false
+      threadcount: '5'
+    filter: 'osFamily: unix'
+    filterExclude: ' rundeckpro-rundeckpro-.*'
+  nodesSelectedByDefault: true
+  options:
+  - description: 'Rundeck server URL (e.g., https://rundeck.example.com or http://localhost:4440)'
+    label: Rundeck URL
+    name: rundeck-url
+    required: true
+    value: https://bdias.myrundeck.com
+  - description: API Token for authentication (stored in Key Storage for security)
+    hidden: true
+    label: API Token
+    name: api-token
+    required: true
+    secure: true
+    storagePath: keys/rba/bdias-rba-token
+    valueExposed: true
+  - description: 'Configuration profile name (default: "default")'
+    label: Profile Name
+    name: profile-name
+    type: text
+    value: default
+  - description: Default project name (optional)
+    label: Project Name
+    name: project-name
+    value: dev
+  - description: API version to use (leave empty for auto-detection)
+    label: API Version
+    name: api-version
+    type: text
+  - description: 'Configuration method: env-only sets environment variables, config-file
+      creates ~/.rd/rd.conf, both does both'
+    enforced: true
+    label: Configuration Method
+    name: config-method
+    value: env-only
+    values:
+    - env-only
+    - config-file
+    - both
+    valuesListDelimiter: ','
+  - description: Allow insecure SSL connections (skip certificate verification)
+    enforced: true
+    label: Insecure SSL
+    name: insecure-ssl
+    value: 'false'
+    values:
+    - 'false'
+    - 'true'
+    valuesListDelimiter: ','
+  - description: Skip SSL hostname verification
+    enforced: true
+    label: Skip SSL Hostname Verification
+    name: skip-hostname-verify
+    value: 'false'
+    values:
+    - 'false'
+    - 'true'
+    valuesListDelimiter: ','
+  - description: Disable ANSI color output
+    enforced: true
+    label: Disable Colors
+    name: disable-colors
+    value: 'false'
+    values:
+    - 'false'
+    - 'true'
+    valuesListDelimiter: ','
+  - description: 'User to configure rd CLI for (default: current user). Set to "system"
+      for system-wide configuration.'
+    label: Configure For User
+    name: config-user
+    value: current
+  plugins:
+    ExecutionLifecycle:
+      roi-metrics:
+        userRoiData: '[{"key":"hours","label":"Hours","value":"1","desc":"Field key
+          hours"}]'
+  scheduleEnabled: true
+  schedules: []
+  sequence:
+    commands:
+    - description: Configure rd CLI connection
+      script: |-
+        #!/bin/bash
+        set -e
+
+        # Job options
+        RUNDECK_URL="@option.rundeck-url@"
+        API_TOKEN="@option.api-token@"
+        PROFILE_NAME="@option.profile-name@"
+        PROJECT_NAME="@option.project-name@"
+        API_VERSION="@option.api-version@"
+        CONFIG_METHOD="@option.config-method@"
+        INSECURE_SSL="@option.insecure-ssl@"
+        SKIP_HOSTNAME="@option.skip-hostname-verify@"
+        DISABLE_COLORS="@option.disable-colors@"
+        CONFIG_USER="@option.config-user@"
+
+        echo "=== Rundeck CLI Configuration ==="
+        echo "Profile: $PROFILE_NAME"
+        echo "Rundeck URL: $RUNDECK_URL"
+        echo "Configuration Method: $CONFIG_METHOD"
+        echo ""
+
+        # Determine configuration directory
+        if [ "$CONFIG_USER" == "system" ]; then
+            CONFIG_DIR="/etc/rd"
+            echo "Configuring system-wide settings at: $CONFIG_DIR"
+        elif [ "$CONFIG_USER" == "current" ]; then
+            CONFIG_DIR="$HOME/.rd"
+            echo "Configuring for current user: $(whoami)"
+        else
+            CONFIG_DIR="$(eval echo ~$CONFIG_USER)/.rd"
+            echo "Configuring for user: $CONFIG_USER"
+        fi
+
+        CONFIG_FILE="$CONFIG_DIR/rd.conf"
+
+        # Build complete URL with API version if specified
+        if [ -n "$API_VERSION" ]; then
+            FULL_URL="${RUNDECK_URL}/api/${API_VERSION}"
+        else
+            FULL_URL="$RUNDECK_URL"
+        fi
+
+        # Function to create environment variables export script
+        create_env_script() {
+            local env_file="$CONFIG_DIR/rd-env.sh"
+
+            echo "Creating environment variables script at: $env_file"
+
+            cat > "$env_file" << EOF
+        #!/bin/bash
+        # Rundeck CLI Environment Configuration
+        # Profile: $PROFILE_NAME
+        # Generated: $(date)
+
+        export RD_URL="$FULL_URL"
+        export RD_TOKEN="$API_TOKEN"
+        EOF
+
+            if [ -n "$PROJECT_NAME" ]; then
+                echo "export RD_PROJECT=\"$PROJECT_NAME\"" >> "$env_file"
+            fi
+
+            if [ "$INSECURE_SSL" == "true" ]; then
+                echo "export RD_INSECURE_SSL=true" >> "$env_file"
+            fi
+
+            if [ "$SKIP_HOSTNAME" == "true" ]; then
+                echo "export RD_INSECURE_SSL_HOSTNAME=true" >> "$env_file"
+            fi
+
+            if [ "$DISABLE_COLORS" == "true" ]; then
+                echo "export RD_COLOR=0" >> "$env_file"
+            fi
+
+            cat >> "$env_file" << 'EOF'
+
+        # Optional: Enable debug mode
+        # export RD_DEBUG=1
+
+        echo "Rundeck CLI environment configured for: $RD_URL"
+        EOF
+
+            chmod +x "$env_file"
+            echo "✓ Environment script created: $env_file"
+            echo "  To use: source $env_file"
+        }
+
+        # Function to create config file
+        create_config_file() {
+            echo "Creating configuration file at: $CONFIG_FILE"
+
+            cat > "$CONFIG_FILE" << EOF
+        # Rundeck CLI Configuration
+        # Profile: $PROFILE_NAME
+        # Generated: $(date)
+
+        RD_URL=$FULL_URL
+        RD_TOKEN=$API_TOKEN
+        EOF
+
+            if [ -n "$PROJECT_NAME" ]; then
+                echo "RD_PROJECT=$PROJECT_NAME" >> "$CONFIG_FILE"
+            fi
+
+            if [ "$INSECURE_SSL" == "true" ]; then
+                echo "RD_INSECURE_SSL=true" >> "$CONFIG_FILE"
+            fi
+
+            if [ "$SKIP_HOSTNAME" == "true" ]; then
+                echo "RD_INSECURE_SSL_HOSTNAME=true" >> "$CONFIG_FILE"
+            fi
+
+            if [ "$DISABLE_COLORS" == "true" ]; then
+                echo "RD_COLOR=0" >> "$CONFIG_FILE"
+            fi
+
+            chmod 600 "$CONFIG_FILE"
+            echo "✓ Configuration file created: $CONFIG_FILE"
+        }
+
+        # Create configuration directory if it doesn't exist
+        if [ ! -d "$CONFIG_DIR" ]; then
+            echo "Creating configuration directory: $CONFIG_DIR"
+            mkdir -p "$CONFIG_DIR"
+        fi
+
+        # Apply configuration based on method
+        case "$CONFIG_METHOD" in
+            env-only)
+                create_env_script
+                source "$CONFIG_DIR/rd-env.sh"
+                ;;
+            config-file)
+                create_config_file
+                export RD_CONF="$CONFIG_FILE"
+                ;;
+            both)
+                create_env_script
+                create_config_file
+                source "$CONFIG_DIR/rd-env.sh"
+                export RD_CONF="$CONFIG_FILE"
+                ;;
+        esac
+
+        echo ""
+        echo "=== Testing Connection ==="
+
+        # Set current environment for testing
+        export RD_URL="$FULL_URL"
+        export RD_TOKEN="$API_TOKEN"
+
+        if [ "$INSECURE_SSL" == "true" ]; then
+            export RD_INSECURE_SSL=true
+        fi
+
+        if [ "$SKIP_HOSTNAME" == "true" ]; then
+            export RD_INSECURE_SSL_HOSTNAME=true
+        fi
+
+        # Test connection
+        echo "Testing connection to Rundeck server..."
+
+        if rd system info 2>&1; then
+            echo ""
+            echo "✓ Connection successful!"
+            echo ""
+            echo "=== System Information ==="
+            rd system info
+            echo ""
+
+            # List projects if no specific project configured
+            if [ -z "$PROJECT_NAME" ]; then
+                echo "=== Available Projects ==="
+                rd projects list
+            else
+                echo "=== Configured Project ==="
+                echo "Default project: $PROJECT_NAME"
+            fi
+
+            echo ""
+            echo "=== Configuration Summary ==="
+            echo "Profile: $PROFILE_NAME"
+            echo "URL: $FULL_URL"
+            echo "Project: ${PROJECT_NAME:-<not set>}"
+            echo "Insecure SSL: $INSECURE_SSL"
+            echo "Skip Hostname Verify: $SKIP_HOSTNAME"
+            echo ""
+
+            if [ "$CONFIG_METHOD" == "env-only" ] || [ "$CONFIG_METHOD" == "both" ]; then
+                echo "Environment script: $CONFIG_DIR/rd-env.sh"
+                echo "To use in new sessions: source $CONFIG_DIR/rd-env.sh"
+                echo ""
+                echo "Optional: Add to your shell profile (~/.bashrc or ~/.bash_profile):"
+                echo "  source $CONFIG_DIR/rd-env.sh"
+            fi
+
+            if [ "$CONFIG_METHOD" == "config-file" ] || [ "$CONFIG_METHOD" == "both" ]; then
+                echo "Config file: $CONFIG_FILE"
+                echo "To use: export RD_CONF=$CONFIG_FILE"
+            fi
+
+            echo ""
+            echo "✓ rd CLI configuration complete!"
+
+        else
+            echo ""
+            echo "ERROR: Connection test failed!"
+            echo "Please verify:"
+            echo "  - Rundeck URL is correct and accessible: $RUNDECK_URL"
+            echo "  - API token is valid"
+            echo "  - Network connectivity to Rundeck server"
+            echo "  - SSL settings if using self-signed certificates"
+            exit 1
+        fi
+    keepgoing: false
+    strategy: node-first
+  user: admin
+  uuid: 7ad108d5-d3dd-4d72-96ce-ff26c486ed93
+

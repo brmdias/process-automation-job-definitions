@@ -6,13 +6,27 @@
   loglevel: INFO
   name: Check for Microsoft Outages (scheduled)
   nodeFilterEditable: false
+  nodefilters:
+    dispatch:
+      excludePrecedence: true
+      keepgoing: false
+      rankOrder: ascending
+      successOnEmptyNodeFilter: false
+      threadcount: '1'
+    filter: 'name: pdt-bdias-rundeckers-runner '
+  nodesSelectedByDefault: true
   plugins:
-    ExecutionLifecycle: {}
+    ExecutionLifecycle:
+      roi-metrics:
+        userRoiData: '[{"key":"hours","label":"Hours","value":"1","desc":"Field key
+          hours"}]'
   runnerSelector:
     runnerFilterMode: LOCAL
     runnerFilterType: LOCAL_RUNNER
   scheduleEnabled: true
-  schedules: []
+  schedules:
+  - jobParams: null
+    name: Cloud Provider Checks
   sequence:
     commands:
     - plugins:
@@ -71,9 +85,9 @@
 
         if __name__ == "__main__":
             check_azure_status(feed_url)
-    - exec: echo hello world
     keepgoing: false
     strategy: node-first
+  tags: roi
   user: admin
   uuid: d99b4048-c65e-4904-a8eb-ade75ea97f0e
 

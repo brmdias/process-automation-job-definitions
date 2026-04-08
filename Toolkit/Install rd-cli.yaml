@@ -1,0 +1,225 @@
+- defaultTab: nodes
+  description: 'Installs the latest version of rd CLI (Rundeck CLI tool) using the
+    appropriate package manager for the target system. Supports yum/dnf (RHEL/CentOS),
+    apt (Debian/Ubuntu), and brew (macOS).'
+  executionEnabled: true
+  group: Toolkit
+  id: 26d53ac6-58fe-40f0-aa65-f17fb7dc086f
+  loglevel: INFO
+  name: Install rd-cli
+  nodeFilterEditable: true
+  nodefilters:
+    dispatch:
+      excludePrecedence: true
+      keepgoing: true
+      rankOrder: ascending
+      successOnEmptyNodeFilter: false
+      threadcount: '5'
+    filter: 'osFamily: unix'
+    filterExclude: rundeckpro-rundeckpro-.*
+  nodesSelectedByDefault: true
+  options:
+  - description: Select the installation method for rd CLI
+    enforced: true
+    label: Installation Method
+    name: install-method
+    value: auto-detect
+    values:
+    - auto-detect
+    - yum
+    - apt
+    - brew
+    - github-zip
+    valuesListDelimiter: ','
+  - description: 'Installation directory for GitHub zip method (default: /opt/rundeck-cli)'
+    label: Install Directory
+    name: install-dir
+    type: text
+    value: /opt/rundeck-cli
+  plugins:
+    ExecutionLifecycle:
+      roi-metrics:
+        userRoiData: '[{"key":"hours","label":"Hours","value":"1","desc":"Hours saved
+          in manual work (Field key: hours)"}]'
+  scheduleEnabled: true
+  schedules: []
+  sequence:
+    commands:
+    - description: Install rd CLI
+      script: |-
+        #!/bin/bash
+        set -e
+
+        INSTALL_METHOD="@option.install-method@"
+        INSTALL_DIR="@option.install-dir@"
+
+        echo "=== Rundeck CLI Installation ==="
+        echo "Installation method: $INSTALL_METHOD"
+        echo ""
+
+        # Function to detect OS
+        detect_os() {
+            if [ -f /etc/os-release ]; then
+                . /etc/os-release
+                echo "$ID"
+            elif [ "$(uname)" == "Darwin" ]; then
+                echo "macos"
+            else
+                echo "unknown"
+            fi
+        }
+
+        # Function to install via yum/dnf
+        install_yum() {
+            echo "Installing rd CLI via yum/dnf..."
+
+            # Add PackageCloud repository
+            if ! command -v rd &> /dev/null; then
+                echo "Adding PagerDuty PackageCloud repository..."
+                curl -s https://packagecloud.io/install/repositories/pagerduty/rundeck/script.rpm.sh?any=true | sudo bash
+            fi
+
+            # Determine if system uses dnf or yum
+            if command -v dnf &> /dev/null; then
+                sudo dnf install -y rundeck-cli
+            else
+                sudo yum install -y rundeck-cli
+            fi
+        }
+
+        # Function to install via apt
+        install_apt() {
+            echo "Installing rd CLI via apt..."
+
+            # Add PackageCloud repository
+            if ! command -v rd &> /dev/null; then
+                echo "Adding PagerDuty PackageCloud repository..."
+                curl -s https://packagecloud.io/install/repositories/pagerduty/rundeck/script.deb.sh | sudo os=any dist=any bash
+            fi
+
+            sudo apt-get update
+            sudo apt-get install -y rundeck-cli
+        }
+
+        # Function to install via Homebrew
+        install_brew() {
+            echo "Installing rd CLI via Homebrew..."
+
+            if ! command -v brew &> /dev/null; then
+                echo "ERROR: Homebrew is not installed. Please install Homebrew first."
+                exit 1
+            fi
+
+            # Add tap if not already added
+            brew tap rundeck/rundeck-cli || true
+
+            # Install or upgrade
+            if brew list rundeck-cli &> /dev/null; then
+                echo "Upgrading existing rd CLI installation..."
+                brew upgrade rundeck-cli
+            else
+                brew install rundeck-cli
+            fi
+        }
+
+        # Function to install from GitHub releases (zip)
+        install_github() {
+            echo "Installing rd CLI from GitHub releases..."
+
+            # Get latest release version
+            LATEST_VERSION=$(curl -s https://api.github.com/repos/rundeck/rundeck-cli/releases/latest | grep '"tag_name":' | sed -E 's/.*"v([^"]+)".*/\1/')
+
+            if [ -z "$LATEST_VERSION" ]; then
+                echo "ERROR: Could not determine latest version"
+                exit 1
+            fi
+
+            echo "Latest version: $LATEST_VERSION"
+
+            # Download URL
+            DOWNLOAD_URL="https://github.com/rundeck/rundeck-cli/releases/download/v${LATEST_VERSION}/rd-${LATEST_VERSION}.zip"
+
+            echo "Downloading from: $DOWNLOAD_URL"
+
+            # Create temporary directory
+            TMP_DIR=$(mktemp -d)
+            cd "$TMP_DIR"
+
+            # Download and extract
+            curl -L -o rd.zip "$DOWNLOAD_URL"
+            unzip -q rd.zip
+
+            # Install to specified directory
+            sudo mkdir -p "$INSTALL_DIR"
+            sudo cp -r rd-${LATEST_VERSION}/* "$INSTALL_DIR/"
+
+            # Create symlink in /usr/local/bin
+            sudo ln -sf "$INSTALL_DIR/bin/rd" /usr/local/bin/rd
+
+            # Cleanup
+            cd -
+            rm -rf "$TMP_DIR"
+
+            echo "Installed to: $INSTALL_DIR"
+        }
+
+        # Main installation logic
+        if [ "$INSTALL_METHOD" == "auto-detect" ]; then
+            OS=$(detect_os)
+            echo "Detected OS: $OS"
+
+            case "$OS" in
+                rhel|centos|fedora|rocky|almalinux)
+                    install_yum
+                    ;;
+                ubuntu|debian)
+                    install_apt
+                    ;;
+                macos)
+                    install_brew
+                    ;;
+                *)
+                    echo "WARNING: OS not recognized, falling back to GitHub zip installation"
+                    install_github
+                    ;;
+            esac
+        else
+            case "$INSTALL_METHOD" in
+                yum)
+                    install_yum
+                    ;;
+                apt)
+                    install_apt
+                    ;;
+                brew)
+                    install_brew
+                    ;;
+                github-zip)
+                    install_github
+                    ;;
+                *)
+                    echo "ERROR: Unknown installation method: $INSTALL_METHOD"
+                    exit 1
+                    ;;
+            esac
+        fi
+
+        echo ""
+        echo "=== Verifying Installation ==="
+
+        # Verify installation
+        if command -v rd &> /dev/null; then
+            echo "✓ rd CLI is installed successfully!"
+            echo ""
+            rd version
+            echo ""
+            echo "Installation complete! You can now use 'rd' command."
+        else
+            echo "ERROR: rd CLI installation failed or 'rd' command not found in PATH"
+            exit 1
+        fi
+    keepgoing: false
+    strategy: node-first
+  user: admin
+  uuid: 26d53ac6-58fe-40f0-aa65-f17fb7dc086f
+
