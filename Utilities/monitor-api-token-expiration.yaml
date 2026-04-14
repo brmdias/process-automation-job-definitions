@@ -1,0 +1,176 @@
+- defaultTab: nodes
+  description: Monitors Rundeck API token expiration dates and creates PagerDuty incident
+    if any token expires within configurable threshold
+  executionEnabled: true
+  group: Utilities
+  id: dfadc5eb-dbd2-43df-ab7a-7446dc10e999
+  loglevel: INFO
+  name: monitor-api-token-expiration
+  nodeFilterEditable: false
+  nodefilters:
+    dispatch:
+      excludePrecedence: true
+      keepgoing: false
+      rankOrder: ascending
+      successOnEmptyNodeFilter: false
+      threadcount: '1'
+    filter: .*rundeckers-runner
+  nodesSelectedByDefault: true
+  options:
+  - description: Alert threshold in days for token expiration
+    name: threshold-days
+    required: true
+    value: '7'
+  - description: Rundeck instance URL (without https://)
+    name: rba-url
+    required: true
+    type: text
+    value: bdias.myrundeck.com
+  - description: Rundeck API authentication token
+    name: api-token
+    secure: true
+    storagePath: keys/rba/bdias-rba-token
+    type: text
+    valueExposed: true
+  - description: PagerDuty Events API routing key
+    name: pd-routing-key
+    secure: true
+    storagePath: keys/pagerduty/pdt-bdias-global-orchestration-key
+    type: text
+    valueExposed: true
+  plugins:
+    ExecutionLifecycle:
+      roi-metrics:
+        userRoiData: '[{"key":"time_saved","label":"Manual Work Saved","value":"0.75","desc":"Estimated
+          hours saved by automating token expiration monitoring"}]'
+  scheduleEnabled: true
+  schedules: []
+  sequence:
+    commands:
+    - description: 'Pre-check: Verify Rundeck API connectivity'
+      errorhandler:
+        exec: echo "error=api-connectivity-failed" && echo "Failed to connect to Rundeck
+          API at ${option.rba-url}"
+        keepgoingOnSuccess: true
+      exec: curl -s -f -H "X-Rundeck-Auth-Token:${option.api-token}" "https://${option.rba-url}/api/52/system/info"
+        > /dev/null && echo "connectivity=success" || echo "connectivity=failed"
+    - description: Query token expiration dates and evaluate against threshold
+      errorhandler:
+        exec: echo "error=token-check-failed" && echo "Failed to query or process
+          token expiration data"
+        keepgoingOnSuccess: true
+      interpreterArgsQuoted: false
+      plugins:
+        LogFilter:
+        - config:
+            allowMultipleMatches: 'false'
+            invalidKeyPattern: \s|\$|\{|\}|\\
+            logData: 'true'
+            matchSubstrings: 'false'
+            name: token-data
+            regex: ^RUNDECK:DATA:\s*([^\s]+?)\s*=\s*(.+)$
+            replaceFilteredResult: 'false'
+          type: key-value-data
+      script: "#!/bin/bash\nAPI_TOKEN=\"@option.api-token@\"\nRUNDECK_URL=\"https://@option.rba-url@/api/52/tokens\"\
+        \nTHRESHOLD_DAYS=@option.threshold-days@\n\necho \"Querying Rundeck API: $RUNDECK_URL\"\
+        \necho \"Threshold: $THRESHOLD_DAYS days\"\n\nif ! command -v jq &> /dev/null;\
+        \ then\n    echo \"Error: jq is not installed\"\n    exit 1\nfi\n\nresponse=$(curl\
+        \ -s -L --fail -H \"X-Rundeck-Auth-Token: $API_TOKEN\" \"$RUNDECK_URL\")\n\
+        if [ $? -ne 0 ]; then\n    echo \"Error: Unable to connect to tokens endpoint\"\
+        \n    exit 1\nfi\n\nif [ -z \"$response\" ]; then\n    echo \"Error: No response\
+        \ received from API\"\n    exit 1\nfi\n\nif ! echo \"$response\" | jq empty\
+        \ 2>/dev/null; then\n    echo \"Error: Invalid JSON response\"\n    exit 1\n\
+        fi\n\nif ! echo \"$response\" | jq -e 'type == \"array\"' >/dev/null 2>&1;\
+        \ then\n    echo \"Error: Response is not a JSON array\"\n    exit 1\nfi\n\
+        \nif [[ \"$(uname)\" == \"Darwin\" ]]; then\n    parse_date() { date -j -f\
+        \ \"%Y-%m-%dT%H:%M:%SZ\" \"$1\" +%s 2>/dev/null; }\nelse\n    parse_date()\
+        \ { date -d \"$1\" +%s 2>/dev/null; }\nfi\n\nnow_ts=$(date +%s)\nexpiringCount=0\n\
+        \necho \"$response\" | jq -c '.[]' | while IFS= read -r token; do\n    creator=$(echo\
+        \ \"$token\" | jq -r '.creator // \"N/A\"')\n    token_id=$(echo \"$token\"\
+        \ | jq -r '.id // \"N/A\"')\n    name=$(echo \"$token\" | jq -r '.name //\
+        \ \"N/A\"')\n    expiration=$(echo \"$token\" | jq -r '.expiration // \"null\"\
+        ')\n    \n    if [ -z \"$expiration\" ] || [ \"$expiration\" == \"null\" ];\
+        \ then\n        continue\n    fi\n    \n    exp_ts=$(parse_date \"$expiration\"\
+        )\n    if [ -z \"$exp_ts\" ]; then\n        echo \"Warning: Unable to parse\
+        \ date for token '$name'\"\n        continue\n    fi\n    \n    diff_seconds=$((\
+        \ exp_ts - now_ts ))\n    diff_days=$(( diff_seconds / 86400 ))\n    \n  \
+        \  if [ $diff_seconds -le $(( THRESHOLD_DAYS * 86400 )) ]; then\n        if\
+        \ [ $diff_seconds -lt 0 ]; then\n            status=\"EXPIRED\"\n        else\n\
+        \            status=\"Expires in ${diff_days} day(s)\"\n        fi\n     \
+        \   echo \"Token: $name | Creator: $creator | Status: $status\"\n        echo\
+        \ \"increment\" >> /tmp/token_expiration_count.txt\n    fi\ndone\n\nif [ -f\
+        \ /tmp/token_expiration_count.txt ]; then\n    expiringCount=$(grep -c \"\
+        increment\" /tmp/token_expiration_count.txt)\n    rm /tmp/token_expiration_count.txt\n\
+        fi\n\nif [ $expiringCount -gt 0 ]; then\n    TOKEN_ALERT=\"ALERT\"\n    echo\
+        \ \"Found $expiringCount token(s) expiring within $THRESHOLD_DAYS days\"\n\
+        else\n    TOKEN_ALERT=\"OK\"\n    echo \"No tokens expiring within $THRESHOLD_DAYS\
+        \ days\"\nfi\n\necho \"RUNDECK:DATA: TOKEN_ALERT=$TOKEN_ALERT\"\necho \"RUNDECK:DATA:\
+        \ expiring_count=$expiringCount\"\necho \"RUNDECK:DATA: threshold_days=$THRESHOLD_DAYS\""
+      scriptInterpreter: bash
+    - configuration:
+        export: TOKEN_ALERT
+        group: export
+        value: ${data.TOKEN_ALERT*}
+      description: Export TOKEN_ALERT variable for conditional execution
+      nodeStep: false
+      type: export-var
+    - description: Create PagerDuty incident for expiring tokens
+      errorhandler:
+        exec: echo "error=pagerduty-creation-failed" && echo "Failed to create PagerDuty
+          incident"
+        keepgoingOnSuccess: true
+      interpreterArgsQuoted: false
+      script: |-
+        #!/bin/bash
+        PD_ROUTING_KEY="@option.pd-routing-key@"
+        THRESHOLD_DAYS="@option.threshold-days@"
+        RBA_URL="@option.rba-url@"
+
+        alert_summary="Rundeck API Tokens Expiring Soon"
+        alert_message="One or more Rundeck API tokens will expire within ${THRESHOLD_DAYS} days. Please review tokens at https://${RBA_URL} → Profile → User API Tokens."
+
+        echo "TOKEN_ALERT condition met. Creating PagerDuty incident..."
+        echo "Alert message: ${alert_message}"
+
+        response=$(curl -s -X POST -H "Content-Type: application/json" \
+            -d '{
+                  "routing_key": "'"${PD_ROUTING_KEY}"'",
+                  "event_action": "trigger",
+                  "dedup_key": "@job.id@",
+                  "payload": {
+                      "summary": "'"${alert_summary}"'",
+                      "source": "Runbook Automation - Token Monitor",
+                      "severity": "warning",
+                      "custom_details": {
+                          "message": "'"${alert_message}"'",
+                          "threshold_days": "'"${THRESHOLD_DAYS}"'",
+                          "rundeck_url": "https://'"${RBA_URL}"'",
+                          "job_id": "@job.id@",
+                          "execution_id": "@job.execid@"
+                      }
+                  }
+                }' \
+            "https://events.pagerduty.com/v2/enqueue")
+
+        echo "PagerDuty API response: $response"
+
+        if echo "$response" | grep -q "dedup_key"; then
+            echo "incident_created=success"
+        else
+            echo "incident_created=failed"
+        fi
+      scriptInterpreter: bash
+    - description: Log job completion status
+      exec: 'echo "Token expiration check completed. Alert status: ${export.TOKEN_ALERT}"'
+    keepgoing: false
+    pluginConfig:
+      WorkflowStrategy:
+        ruleset:
+          rules: |-
+            [*] run-in-sequence
+            [4] if:export.TOKEN_ALERT==ALERT
+    strategy: ruleset
+  tags: 'api,genai,monitoring,pagerduty,runbook-automation,security,token'
+  user: admin
+  uuid: dfadc5eb-dbd2-43df-ab7a-7446dc10e999
+
