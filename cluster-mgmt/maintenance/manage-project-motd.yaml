@@ -1,0 +1,187 @@
+- defaultTab: nodes
+  description: 'Updates or clears project-level Message of the Day (MOTD) for maintenance
+    announcements via Rundeck API. MOTD displays on project list, home page, and navbar
+    based on project.gui.motd.display configuration.'
+  executionEnabled: true
+  group: cluster-mgmt/maintenance
+  id: c0e62875-ef78-436c-a952-fe2d2c1dcc81
+  loglevel: INFO
+  name: manage-project-motd
+  nodeFilterEditable: false
+  nodefilters:
+    dispatch:
+      excludePrecedence: true
+      keepgoing: false
+      rankOrder: ascending
+      successOnEmptyNodeFilter: false
+      threadcount: '1'
+    filter: .*runner
+  nodesSelectedByDefault: true
+  options:
+  - description: |-
+      The Rundeck project where the MOTD will be created or removed. This is the project name as it appears in the UI and API.
+      Example: 'production-ops', 'incident-response', 'dev-team'
+      The job will validate that this project exists before making changes.
+    label: Project Name
+    name: project
+    required: true
+  - description: |-
+      Action to perform on the project MOTD.
+      - set: Create or update the MOTD with maintenance announcement details
+      - clear: Remove the MOTD entirely from the project
+    enforced: true
+    label: Action
+    name: action
+    required: true
+    value: set
+    values:
+    - set
+    - clear
+    valuesListDelimiter: ','
+  - description: |-
+      Scheduled start time for the maintenance window. Use a clear, timezone-aware format.
+      Example: '2026-04-25 02:00 UTC', 'April 25, 2026 at 2:00 AM UTC'
+      Only required when action is 'set'.
+    label: Maintenance Start Time
+    name: maintenance-start
+  - description: |-
+      Scheduled end time for the maintenance window. Use a clear, timezone-aware format.
+      Example: '2026-04-25 06:00 UTC', 'April 25, 2026 at 6:00 AM UTC'
+      Only required when action is 'set'.
+    label: Maintenance End Time
+    name: maintenance-end
+  - description: |-
+      Brief explanation of why maintenance is required.
+      Example: 'Database upgrade', 'Security patching', 'Infrastructure migration'
+      This will be displayed prominently in the MOTD banner.
+    label: Maintenance Reason
+    name: maintenance-reason
+  - description: |-
+      Description of what services or capabilities will be affected during maintenance.
+      Example: 'Job execution will be unavailable', 'Read-only mode - no job modifications', 'Intermittent API timeouts expected'
+      Be specific so users know what to expect.
+    label: Expected Impact
+    name: maintenance-impact
+  - description: Authentication token for Rundeck API calls. Loaded automatically
+      from Rundeck Key Storage. Must have admin or project-level permissions to modify
+      MOTD.
+    label: Rundeck API Token
+    name: api-token
+    secure: true
+    storagePath: keys/rba/bdias-rba-token
+    valueExposed: true
+  - description: Base URL of the Rundeck instance. Do not include trailing slash.
+    label: Rundeck Base URL
+    name: rundeck-url
+    required: true
+    value: https://bdias.myrundeck.com
+  plugins:
+    ExecutionLifecycle: null
+  scheduleEnabled: true
+  schedules: []
+  sequence:
+    commands:
+    - description: Validate project exists and manage MOTD
+      interpreterArgsQuoted: false
+      script: |-
+        #!/bin/bash
+        set -euo pipefail
+
+        PROJECT="@option.project@"
+        API_TOKEN="@option.api-token@"
+        RUNDECK_URL="@option.rundeck-url@"
+        ACTION="@option.action@"
+
+        echo "=== Project MOTD Management ==="
+        echo "Project: ${PROJECT}"
+        echo "Action: ${ACTION}"
+        echo ""
+
+        # Validate project exists
+        echo "Validating project..."
+        HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" \
+          -H "Accept: application/json" \
+          -H "X-Rundeck-Auth-Token: ${API_TOKEN}" \
+          "${RUNDECK_URL}/api/58/project/${PROJECT}")
+
+        if [ "${HTTP_CODE}" != "200" ]; then
+          echo "✗ Project '${PROJECT}' not found (HTTP ${HTTP_CODE})"
+          exit 1
+        fi
+
+        echo "✓ Project exists"
+        echo ""
+
+        if [ "${ACTION}" = "set" ]; then
+          START="@option.maintenance-start@"
+          END="@option.maintenance-end@"
+          REASON="@option.maintenance-reason@"
+          IMPACT="@option.maintenance-impact@"
+
+          # Generate MOTD content
+          echo "## Scheduled Maintenance" > /tmp/motd_content.md
+          echo "" >> /tmp/motd_content.md
+          echo "When: ${START} to ${END}" >> /tmp/motd_content.md
+          echo "" >> /tmp/motd_content.md
+          echo "Reason: ${REASON}" >> /tmp/motd_content.md
+          echo "" >> /tmp/motd_content.md
+          echo "Expected Impact: ${IMPACT}" >> /tmp/motd_content.md
+          echo "" >> /tmp/motd_content.md
+          echo "---" >> /tmp/motd_content.md
+          echo "" >> /tmp/motd_content.md
+          echo "Please plan accordingly. Contact your Rundeck administrator if you have questions." >> /tmp/motd_content.md
+
+          echo "Publishing MOTD..."
+          echo ""
+          echo "--- MOTD Content ---"
+          cat /tmp/motd_content.md
+          echo "--- End MOTD ---"
+          echo ""
+
+          RESPONSE=$(curl -s -w "\nHTTP_CODE:%{http_code}" \
+            -X PUT \
+            -H "Content-Type: text/plain" \
+            -H "X-Rundeck-Auth-Token: ${API_TOKEN}" \
+            --data-binary @/tmp/motd_content.md \
+            "${RUNDECK_URL}/api/58/project/${PROJECT}/motd.md")
+
+          HTTP_CODE=$(echo "${RESPONSE}" | grep "HTTP_CODE:" | cut -d: -f2)
+          BODY=$(echo "${RESPONSE}" | sed '/HTTP_CODE:/d')
+
+          if [ "${HTTP_CODE}" != "200" ]; then
+            echo "✗ Failed to publish MOTD (HTTP ${HTTP_CODE})"
+            echo "Response: ${BODY}"
+            rm -f /tmp/motd_content.md
+            exit 1
+          fi
+
+          rm -f /tmp/motd_content.md
+
+          echo "✓ MOTD published successfully"
+
+        else
+          echo "Removing MOTD..."
+          HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" \
+            -X DELETE \
+            -H "X-Rundeck-Auth-Token: ${API_TOKEN}" \
+            "${RUNDECK_URL}/api/58/project/${PROJECT}/motd.md")
+
+          if [ "${HTTP_CODE}" = "204" ] || [ "${HTTP_CODE}" = "200" ]; then
+            echo "✓ MOTD removed successfully"
+          elif [ "${HTTP_CODE}" = "404" ]; then
+            echo "⚠ No MOTD found (already cleared)"
+          else
+            echo "✗ Failed to remove MOTD (HTTP ${HTTP_CODE})"
+            exit 1
+          fi
+        fi
+
+        echo ""
+        echo "Operation completed successfully"
+      scriptInterpreter: bash
+    keepgoing: false
+    strategy: sequential
+  tags: 'genai,maintenance,motd,operations,pagerduty,project-config,runbook-automation'
+  user: admin
+  uuid: c0e62875-ef78-436c-a952-fe2d2c1dcc81
+
