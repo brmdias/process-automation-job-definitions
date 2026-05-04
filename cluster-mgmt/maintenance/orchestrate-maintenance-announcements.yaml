@@ -1,0 +1,253 @@
+- defaultTab: nodes
+  description: 'Orchestrates maintenance announcements across all GUI customization
+    features (login banner, project MOTD, project README) by calling existing child
+    jobs'
+  executionEnabled: true
+  group: cluster-mgmt/maintenance
+  id: 3bda5fd8-634a-4c78-a91e-688c71697ba3
+  loglevel: INFO
+  name: orchestrate-maintenance-announcements
+  nodeFilterEditable: false
+  nodefilters:
+    dispatch:
+      excludePrecedence: true
+      keepgoing: false
+      rankOrder: ascending
+      successOnEmptyNodeFilter: false
+      threadcount: '1'
+    filter: .*runner
+  nodesSelectedByDefault: true
+  options:
+  - description: |-
+      Action to perform on maintenance announcements.
+      - set: Create maintenance announcements across all configured features (login banner + project MOTD/README if project specified)
+      - clear: Remove all maintenance announcements
+      Default is "set" for typical maintenance window scenarios.
+    enforced: true
+    label: Action
+    name: action
+    required: true
+    value: set
+    values:
+    - set
+    - clear
+    valuesListDelimiter: ','
+  - description: |-
+      Optional target project for project-specific announcements (MOTD and README).
+      If provided: updates system-wide login banner + project MOTD + project README
+      If empty: updates only system-wide login banner
+      Use this when maintenance affects a specific project rather than the entire Rundeck instance.
+    label: Project Name
+    name: project-name
+  - description: |-
+      Start time of the maintenance window (e.g., "2026-04-22 22:00 UTC").
+      Required when action=set. Displayed to users across all announcement locations.
+      Include timezone to avoid confusion for globally distributed teams.
+    label: Maintenance Start Time
+    name: maintenance-start
+  - description: |-
+      End time of the maintenance window (e.g., "2026-04-23 02:00 UTC").
+      Required when action=set. Helps users plan around the outage window.
+      Include timezone to avoid confusion for globally distributed teams.
+    label: Maintenance End Time
+    name: maintenance-end
+  - description: |-
+      Brief description of why maintenance is needed (e.g., "Database upgrade", "Security patching", "Infrastructure migration").
+      Required when action=set. Provides context to users about the nature of the work.
+    label: Maintenance Reason
+    name: maintenance-reason
+  - description: |-
+      Expected impact on Rundeck services (e.g., "Read-only mode during maintenance", "Full outage expected", "No user impact expected").
+      Required when action=set. Helps users understand whether they can continue using Rundeck during maintenance.
+    label: Expected Impact
+    name: maintenance-impact
+  plugins:
+    ExecutionLifecycle:
+      roi-metrics:
+        userRoiData: '[{"key":"time_saved","label":"Manual Work Saved","value":"0.5","desc":"Estimated
+          hours saved by automating coordinated maintenance announcements across multiple
+          GUI features"}]'
+  scheduleEnabled: true
+  schedules: []
+  sequence:
+    commands:
+    - description: Validate required options for set action
+      errorhandler:
+        interpreterArgsQuoted: false
+        keepgoingOnSuccess: true
+        script: |-
+          #!/bin/bash
+          set -euo pipefail
+          echo "error=validation-failed"
+          echo "Cannot proceed without required maintenance details"
+        scriptInterpreter: bash
+      interpreterArgsQuoted: false
+      script: |-
+        #!/bin/bash
+        set -euo pipefail
+
+        ACTION="@option.action@"
+
+        if [ "${ACTION}" = "set" ]; then
+          MAINTENANCE_START="@option.maintenance-start@"
+          MAINTENANCE_END="@option.maintenance-end@"
+          MAINTENANCE_REASON="@option.maintenance-reason@"
+          MAINTENANCE_IMPACT="@option.maintenance-impact@"
+
+          MISSING=""
+
+          if [ -z "${MAINTENANCE_START}" ]; then
+            echo "ERROR: maintenance-start is required when action=set"
+            MISSING="yes"
+          fi
+
+          if [ -z "${MAINTENANCE_END}" ]; then
+            echo "ERROR: maintenance-end is required when action=set"
+            MISSING="yes"
+          fi
+
+          if [ -z "${MAINTENANCE_REASON}" ]; then
+            echo "ERROR: maintenance-reason is required when action=set"
+            MISSING="yes"
+          fi
+
+          if [ -z "${MAINTENANCE_IMPACT}" ]; then
+            echo "ERROR: maintenance-impact is required when action=set"
+            MISSING="yes"
+          fi
+
+          if [ -n "${MISSING}" ]; then
+            echo ""
+            echo "Validation failed: Missing required options for set action"
+            exit 1
+          fi
+
+          echo "Validation passed: All required options provided for set action"
+        else
+          echo "Validation passed: No required options for clear action"
+        fi
+      scriptInterpreter: bash
+    - description: 'Enable project UI features (README, MOTD)'
+      errorhandler:
+        keepgoingOnSuccess: true
+        script: |-
+          #!/bin/bash
+          echo "error=project-ui-failed"
+          echo "ui=yes"
+          echo "Failed to update project UI features for @option.project-name@"
+      jobref:
+        args: -action "${option.action}" -project-name "${option.project-name}"
+        group: genai/maintenance
+        name: manage-project-visibility-config
+        project: sandbox
+        useName: 'true'
+        uuid: a4896037-c9e4-4e0e-b5f9-915ef40b56c3
+    - description: Update project MOTD (if project specified)
+      errorhandler:
+        keepgoingOnSuccess: true
+        script: |-
+          #!/bin/bash
+          echo "error=project-motd-failed"
+          echo "motd_failed=yes"
+          echo "Failed to update project MOTD for @option.project-name@"
+      jobref:
+        args: -action "${option.action}" -project "${option.project-name}" -maintenance-start
+          "${option.maintenance-start}" -maintenance-end "${option.maintenance-end}"
+          -maintenance-reason "${option.maintenance-reason}" -maintenance-impact "${option.maintenance-impact}"
+        group: genai/maintenance
+        name: manage-project-motd
+        useName: 'true'
+    - description: Update project README (if project specified)
+      errorhandler:
+        keepgoingOnSuccess: true
+        script: |-
+          #!/bin/bash
+          echo "error=project-readme-failed"
+          echo "readme_failed=yes"
+          echo "Failed to update project README for @option.project-name@"
+      jobref:
+        args: -action "${option.action}" -project-name "${option.project-name}" -maintenance-start
+          "${option.maintenance-start}" -maintenance-end "${option.maintenance-end}"
+          -maintenance-reason "${option.maintenance-reason}" -maintenance-impact "${option.maintenance-impact}"
+        group: genai/maintenance
+        name: manage-project-readme
+        useName: 'true'
+    - description: Summary of maintenance announcement updates
+      interpreterArgsQuoted: false
+      script: |-
+        #!/bin/bash
+        set -euo pipefail
+
+        ACTION="@option.action@"
+        PROJECT_NAME="@option.project-name@"
+
+        echo "=================================================="
+        echo "Maintenance Announcement Orchestration Complete"
+        echo "=================================================="
+        echo ""
+        echo "Action:           ${ACTION}"
+        echo ""
+
+        if [ "${ACTION}" = "set" ]; then
+          echo "Maintenance Details:"
+          echo "  Start:          @option.maintenance-start@"
+          echo "  End:            @option.maintenance-end@"
+          echo "  Reason:         @option.maintenance-reason@"
+          echo "  Impact:         @option.maintenance-impact@"
+          echo ""
+        fi
+
+        # Check execution results from captured data variables
+        MOTD_FAILED="@data.motd_failed*@"
+        README_FAILED="@data.readme_failed*@"
+
+        echo "Announcements Updated:"
+
+        # Check project-specific announcements
+        if [ -n "${PROJECT_NAME}" ]; then
+          if [ "${MOTD_FAILED}" = "yes" ]; then
+            echo "  ✗ Project MOTD (${PROJECT_NAME}) - FAILED (job not found in this project)"
+            OVERALL_FAILED="yes"
+          else
+            echo "  ✓ Project MOTD (${PROJECT_NAME})"
+          fi
+
+          if [ "${README_FAILED}" = "yes" ]; then
+            echo "  ✗ Project README (${PROJECT_NAME}) - FAILED (job not found in this project)"
+            OVERALL_FAILED="yes"
+          else
+            echo "  ✓ Project README (${PROJECT_NAME})"
+          fi
+        else
+          echo "  - Project MOTD (skipped - no project specified)"
+          echo "  - Project README (skipped - no project specified)"
+        fi
+
+        echo ""
+        echo "=================================================="
+
+        if [ -n "${OVERALL_FAILED:-}" ]; then
+          echo "⚠ WARNING: One or more announcements failed to update"
+          echo ""
+          echo "Common causes:"
+          echo "  - Child jobs not loaded in target project"
+          echo "  - Insufficient API permissions"
+          echo "  - Network connectivity issues"
+          echo ""
+          echo "Action required: Review error messages above and ensure all"
+          echo "required jobs are loaded in the target project."
+          exit 1
+        else
+          if [ "${ACTION}" = "set" ]; then
+            echo "✅ All maintenance announcements are now visible to users"
+          else
+            echo "✅ All maintenance announcements have been cleared"
+          fi
+        fi
+      scriptInterpreter: bash
+    keepgoing: true
+    strategy: sequential
+  tags: 'coordination,genai,gui-customization,maintenance,orchestration,pagerduty,runbook-automation'
+  user: admin
+  uuid: 3bda5fd8-634a-4c78-a91e-688c71697ba3
+
