@@ -1,0 +1,231 @@
+- defaultTab: nodes
+  description: |-
+    Updates the system-wide login welcome message for maintenance announcements.
+    Uses Config Management API to set/clear the rundeck.gui.login.welcome property.
+    Changes take effect immediately without requiring restart.
+  executionEnabled: true
+  group: cluster-mgmt/maintenance
+  id: 327ceadc-a946-4ff4-a262-3e2fcb0535a8
+  loglevel: INFO
+  name: manage-login-maintenance-banner
+  nodeFilterEditable: false
+  nodefilters:
+    dispatch:
+      excludePrecedence: true
+      keepgoing: false
+      rankOrder: ascending
+      successOnEmptyNodeFilter: false
+      threadcount: '1'
+    filter: .*runner
+  nodesSelectedByDefault: true
+  options:
+  - description: |-
+      Action to perform on the maintenance banner.
+      - set: Creates or updates the maintenance announcement banner on the login page
+      - clear: Removes the maintenance announcement and restores the default welcome message
+    enforced: true
+    label: Action
+    name: action
+    required: true
+    value: set
+    values:
+    - set
+    - clear
+    valuesListDelimiter: ','
+  - description: |-
+      Scheduled start time for the maintenance window (e.g., "2026-04-22 22:00 UTC").
+      Used when action=set to inform users when maintenance begins.
+      Not required when action=clear.
+    label: Maintenance Start Time
+    name: maintenance-start
+  - description: |-
+      Expected end time for the maintenance window (e.g., "2026-04-23 02:00 UTC").
+      Used when action=set to inform users when systems will be back online.
+      Not required when action=clear.
+    label: Maintenance End Time
+    name: maintenance-end
+  - description: |-
+      Brief description of why maintenance is being performed (e.g., "Database upgrade", "Security patching", "Infrastructure migration").
+      Used when action=set to provide context to users attempting to log in.
+      Not required when action=clear.
+    label: Maintenance Reason
+    name: maintenance-reason
+  - description: |-
+      Description of what users can expect during maintenance (e.g., "Rundeck will be unavailable", "Read-only mode", "No job execution").
+      Used when action=set to set expectations for users.
+      Default: "Rundeck will be unavailable during this time"
+    label: Expected Impact
+    name: maintenance-impact
+    value: Rundeck will be unavailable during this time
+  - description: |-
+      Authentication token for Config Management API calls.
+      Loaded automatically from Rundeck Key Storage -- operators do not need to enter this manually.
+      Requires permissions: admin, config_read, config_write.
+    label: Rundeck API Token
+    name: rundeck-api-token
+    secure: true
+    storagePath: keys/rba/bdias-rba-token
+    valueExposed: true
+  - description: |-
+      Rundeck instance hostname without https:// prefix (e.g., bdias.myrundeck.com or localhost:4440).
+      Used to construct Config Management API endpoints.
+    label: Rundeck Base URL
+    name: rundeck-base-url
+    required: true
+    value: bdias.myrundeck.com
+  plugins:
+    ExecutionLifecycle: null
+  scheduleEnabled: true
+  schedules: []
+  sequence:
+    commands:
+    - description: Pre-check - Validate API connectivity and permissions
+      interpreterArgsQuoted: false
+      script: |-
+        #!/bin/bash
+        set -euo pipefail
+
+        RUNDECK_URL="https://@option.rundeck-base-url@"
+        API_TOKEN="@option.rundeck-api-token@"
+
+        echo "=== Pre-check: Config Management API ==="
+        echo "Target: ${RUNDECK_URL}"
+        echo ""
+
+        # Test API connectivity
+        echo "Testing API connectivity..."
+        HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" \
+          -H "Accept: application/json" \
+          -H "X-Rundeck-Auth-Token: ${API_TOKEN}" \
+          "${RUNDECK_URL}/api/58/system/info")
+
+        if [ "${HTTP_CODE}" != "200" ]; then
+          echo "error=api-unreachable"
+          echo "HTTP ${HTTP_CODE} - Cannot reach Rundeck API at ${RUNDECK_URL}"
+          exit 1
+        fi
+
+        echo "✓ API connectivity verified (HTTP ${HTTP_CODE})"
+        echo ""
+
+        # Verify current config property state
+        echo "Checking current login.welcome configuration..."
+        CURRENT_VALUE=$(curl -s \
+          -H "Accept: application/json" \
+          -H "X-Rundeck-Auth-Token: ${API_TOKEN}" \
+          "${RUNDECK_URL}/api/58/config/list" \
+          | grep -o '"rundeck.gui.login.welcome"' || echo "")
+
+        if [ -n "${CURRENT_VALUE}" ]; then
+          echo "✓ Config property exists in system"
+        else
+          echo "✓ Config property not set (will be created)"
+        fi
+
+        echo ""
+        echo "Pre-check complete - ready to proceed"
+      scriptInterpreter: bash
+    - description: Set or clear maintenance banner
+      interpreterArgsQuoted: false
+      script: |-
+        #!/bin/bash
+        set -euo pipefail
+
+        RUNDECK_URL="https://@option.rundeck-base-url@"
+        API_TOKEN="@option.rundeck-api-token@"
+        ACTION="@option.action@"
+
+        echo "=== Managing Maintenance Banner ==="
+
+        if [ "${ACTION}" = "set" ]; then
+          START="@option.maintenance-start@"
+          END="@option.maintenance-end@"
+          REASON="@option.maintenance-reason@"
+          IMPACT="@option.maintenance-impact@"
+
+          # Build message
+          MESSAGE="⚠️  SCHEDULED MAINTENANCE NOTICE"
+
+          if [ -n "${REASON}" ]; then
+            MESSAGE="${MESSAGE}\n\nReason: ${REASON}"
+          fi
+
+          if [ -n "${START}" ] && [ -n "${END}" ]; then
+            MESSAGE="${MESSAGE}\n\nScheduled Window: ${START} to ${END}"
+          fi
+
+          if [ -n "${IMPACT}" ]; then
+            MESSAGE="${MESSAGE}\n\nExpected Impact: ${IMPACT}"
+          fi
+
+          MESSAGE="${MESSAGE}\n\nPlease plan accordingly."
+
+          # Escape for JSON
+          JSON_VALUE=$(printf "%b" "${MESSAGE}" | python3 -c "import sys, json; print(json.dumps(sys.stdin.read()))")
+
+          PAYLOAD="[{\"key\": \"rundeck.gui.login.welcome\", \"value\": ${JSON_VALUE}, \"strata\": \"default\"}]"
+
+          echo "Setting maintenance banner..."
+
+          # Call Config Management API - Save
+          HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" \
+            -X POST \
+            -H "Accept: application/json" \
+            -H "Content-Type: application/json" \
+            -H "X-Rundeck-Auth-Token: ${API_TOKEN}" \
+            -d "${PAYLOAD}" \
+            "${RUNDECK_URL}/api/58/config/save")
+        else
+          echo "Clearing maintenance banner..."
+
+          # Use DELETE endpoint to remove configuration
+          PAYLOAD='{"key": "rundeck.gui.login.welcome", "strata": "default"}'
+
+          HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" \
+            -X DELETE \
+            -H "Accept: application/json" \
+            -H "Content-Type: application/json" \
+            -H "X-Rundeck-Auth-Token: ${API_TOKEN}" \
+            -d "${PAYLOAD}" \
+            "${RUNDECK_URL}/api/58/config/delete")
+        fi
+
+        if [ "${ACTION}" = "set" ]; then
+          if [ "${HTTP_CODE}" != "200" ]; then
+            echo "✗ Failed to update configuration (HTTP ${HTTP_CODE})"
+            exit 1
+          fi
+          echo "✓ Configuration updated (HTTP ${HTTP_CODE})"
+        else
+          # DELETE returns 204 No Content on success
+          if [ "${HTTP_CODE}" = "204" ] || [ "${HTTP_CODE}" = "200" ]; then
+            echo "✓ Configuration deleted (HTTP ${HTTP_CODE})"
+          elif [ "${HTTP_CODE}" = "404" ]; then
+            echo "⚠ Configuration not found (already cleared)"
+          else
+            echo "✗ Failed to delete configuration (HTTP ${HTTP_CODE})"
+            exit 1
+          fi
+        fi
+
+        # Refresh configuration
+        echo "Refreshing configuration..."
+        REFRESH_CODE=$(curl -s -o /dev/null -w "%{http_code}" \
+          -X POST \
+          -H "Accept: application/json" \
+          -H "X-Rundeck-Auth-Token: ${API_TOKEN}" \
+          "${RUNDECK_URL}/api/58/config/refresh")
+
+        if [ "${REFRESH_CODE}" != "200" ]; then
+          echo "⚠ Configuration saved but refresh failed (HTTP ${REFRESH_CODE})"
+          echo "Changes may require restart to take effect"
+        else
+          echo "✓ Configuration refreshed - changes are active"
+        fi
+      scriptInterpreter: bash
+    keepgoing: false
+    strategy: sequential
+  tags: 'config-api,genai,login-banner,maintenance,pagerduty,runbook-automation,system-configuration'
+  user: admin
+  uuid: 327ceadc-a946-4ff4-a262-3e2fcb0535a8
+
