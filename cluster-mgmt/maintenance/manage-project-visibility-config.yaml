@@ -1,0 +1,379 @@
+- defaultTab: nodes
+  description: |-
+    Enables or disables project-level display properties for MOTD and README banners via Project Configuration API.
+    Uses GET → modify → PUT workflow to preserve other project settings.
+    Requirements: jq must be installed on the runner node for JSON processing.
+  executionEnabled: true
+  group: cluster-mgmt/maintenance
+  id: 731c74be-29d2-488a-8bc2-60315de4274b
+  loglevel: INFO
+  name: manage-project-visibility-config
+  nodeFilterEditable: false
+  nodefilters:
+    dispatch:
+      excludePrecedence: true
+      keepgoing: false
+      rankOrder: ascending
+      successOnEmptyNodeFilter: false
+      threadcount: '1'
+    filter: .*runner
+  nodesSelectedByDefault: true
+  options:
+  - description: |-
+      Target project name where MOTD and README visibility properties will be toggled.
+      Must be an existing project accessible via the API.
+      Example: MyProject, dev-environment, production-ops
+    label: Project Name
+    name: project-name
+    required: true
+  - description: |-
+      Action to perform on project visibility properties:
+      - set: Sets project.gui.motd.display=projectList,projectHome,navbar and project.gui.readme.display=projectList,projectHome (makes banners visible)
+      - clear: Removes both properties (hides banners)
+      Default is 'set' to ensure visibility is restored by default.
+    enforced: true
+    label: Action
+    name: action
+    required: true
+    value: set
+    values:
+    - set
+    - clear
+    valuesListDelimiter: ','
+  - description: Rundeck API token for authentication. Loaded automatically from Rundeck
+      Key Storage. Never written to the execution log.
+    label: API Token
+    name: api-token
+    secure: true
+    storagePath: keys/rba/bdias-rba-token
+    valueExposed: true
+  - description: |-
+      Base URL of the Rundeck instance (without trailing slash).
+      Default: https://bdias.myrundeck.com
+      Change only if targeting a different Rundeck environment.
+    label: Rundeck URL
+    name: rundeck-url
+    required: true
+    value: https://bdias.myrundeck.com
+  plugins:
+    ExecutionLifecycle:
+      roi-metrics:
+        userRoiData: '[{"key":"time_saved","label":"Manual Work Saved","value":"0.25","desc":"Estimated
+          hours saved by automating project visibility configuration changes via API
+          instead of manual editing"}]'
+  scheduleEnabled: true
+  schedules: []
+  sequence:
+    commands:
+    - description: Fetch current project configuration
+      errorhandler:
+        interpreterArgsQuoted: false
+        keepgoingOnSuccess: true
+        script: |-
+          #!/bin/bash
+          echo "error=fetch-failed"
+          echo "ERROR: Failed to fetch project configuration"
+          echo "Troubleshooting steps:"
+          echo "1. Verify project exists: rd projects info -p @option.project-name@"
+          echo "2. Verify API token has project read permissions"
+          echo "3. Ensure jq is installed on the runner node"
+          echo "4. Check Rundeck API logs for detailed error messages"
+        scriptInterpreter: bash
+      interpreterArgsQuoted: false
+      plugins:
+        LogFilter:
+        - config:
+            captureMultipleKeysValues: 'true'
+            hideOutput: 'false'
+            logData: 'true'
+            name: fetch
+            regex: ^(.+?)\s*=\s*(.+)
+          type: key-value-data-multilines
+      script: |-
+        #!/bin/bash
+        set -euo pipefail
+
+        RUNDECK_URL="@option.rundeck-url@"
+        API_TOKEN="@option.api-token@"
+        PROJECT_NAME="@option.project-name@"
+
+        echo "=== Fetching current project configuration ==="
+        echo ""
+
+        # Fetch complete project configuration
+        echo "Retrieving project config..."
+        CONFIG_JSON=$(curl -s \
+          -H "Accept: application/json" \
+          -H "X-Rundeck-Auth-Token: ${API_TOKEN}" \
+          "${RUNDECK_URL}/api/58/project/${PROJECT_NAME}/config")
+
+        HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" \
+          -H "Accept: application/json" \
+          -H "X-Rundeck-Auth-Token: ${API_TOKEN}" \
+          "${RUNDECK_URL}/api/58/project/${PROJECT_NAME}/config")
+
+        if [ "${HTTP_CODE}" != "200" ]; then
+          echo "error=config-fetch-failed"
+          echo "ERROR: Failed to fetch project config (HTTP ${HTTP_CODE})"
+          exit 1
+        fi
+
+        # Save to temporary file for next step
+        echo "${CONFIG_JSON}" > /tmp/project_config.json
+
+        # Extract current visibility settings
+        MOTD_CURRENT=$(echo "${CONFIG_JSON}" | jq -r '."project.gui.motd.display" // "not-set"')
+        README_CURRENT=$(echo "${CONFIG_JSON}" | jq -r '."project.gui.readme.display" // "not-set"')
+
+        echo "✓ Configuration retrieved"
+        echo ""
+        echo "Current visibility settings:"
+        echo "  - project.gui.motd.display: ${MOTD_CURRENT}"
+        echo "  - project.gui.readme.display: ${README_CURRENT}"
+        echo ""
+
+        # Export state
+        echo "motd_current=${MOTD_CURRENT}"
+        echo "readme_current=${README_CURRENT}"
+        echo "fetch_status=success"
+      scriptInterpreter: bash
+    - description: Modify config and apply changes
+      errorhandler:
+        interpreterArgsQuoted: false
+        keepgoingOnSuccess: true
+        script: |-
+          #!/bin/bash
+          echo "error=update-operation-failed"
+          echo "ERROR: Failed to update project configuration"
+          echo "Troubleshooting steps:"
+          echo "1. Verify API token has project configure/admin permissions"
+          echo "2. Check if project is locked or has restricted configuration"
+          echo "3. Verify JSON payload is valid (check jq syntax)"
+          echo "4. Review Rundeck API logs for detailed error messages"
+        scriptInterpreter: bash
+      interpreterArgsQuoted: false
+      plugins:
+        LogFilter:
+        - config:
+            captureMultipleKeysValues: 'true'
+            hideOutput: 'false'
+            logData: 'true'
+            name: update
+            regex: ^(.+?)\s*=\s*(.+)
+          type: key-value-data-multilines
+      script: |-
+        #!/bin/bash
+        set -euo pipefail
+
+        RUNDECK_URL="@option.rundeck-url@"
+        API_TOKEN="@option.api-token@"
+        PROJECT_NAME="@option.project-name@"
+        ACTION="@option.action@"
+
+        echo "=== Modifying project configuration ==="
+        echo "Action: ${ACTION}"
+        echo ""
+
+        # Load current config
+        CONFIG_JSON=$(cat /tmp/project_config.json)
+
+        # Modify based on action
+        if [ "${ACTION}" = "set" ]; then
+          echo "Setting visibility properties..."
+          UPDATED_CONFIG=$(echo "${CONFIG_JSON}" | jq \
+            '. + {"project.gui.motd.display": "projectList,projectHome,navbar", "project.gui.readme.display": "projectList,projectHome"}')
+
+          echo "  + project.gui.motd.display = projectList,projectHome,navbar"
+          echo "  + project.gui.readme.display = projectList,projectHome"
+
+        else
+          echo "Removing visibility properties..."
+          UPDATED_CONFIG=$(echo "${CONFIG_JSON}" | jq \
+            'del(."project.gui.motd.display", ."project.gui.readme.display")')
+
+          echo "  - project.gui.motd.display"
+          echo "  - project.gui.readme.display"
+        fi
+
+        echo ""
+        echo "Applying configuration changes..."
+
+        # Apply configuration via PUT
+        HTTP_CODE=$(curl -s -o /tmp/update_response.json -w "%{http_code}" \
+          -X PUT \
+          -H "Content-Type: application/json" \
+          -H "Accept: application/json" \
+          -H "X-Rundeck-Auth-Token: ${API_TOKEN}" \
+          -d "${UPDATED_CONFIG}" \
+          "${RUNDECK_URL}/api/58/project/${PROJECT_NAME}/config")
+
+        if [ "${HTTP_CODE}" != "200" ]; then
+          echo "error=config-update-failed"
+          echo "ERROR: Failed to update project configuration (HTTP ${HTTP_CODE})"
+          cat /tmp/update_response.json
+          exit 1
+        fi
+
+        echo "✓ Configuration updated successfully"
+        echo ""
+
+        if [ "${ACTION}" = "set" ]; then
+          echo "operation_result=set"
+        else
+          echo "operation_result=cleared"
+        fi
+
+        echo "update_status=success"
+
+        # Cleanup
+        rm -f /tmp/project_config.json /tmp/update_response.json
+      scriptInterpreter: bash
+    - configuration:
+        cycles: '1'
+        interval: 30s
+        progress: 'true'
+      description: Wait for configuration to propagate
+      nodeStep: true
+      type: nixy-waitfor-sleep-workflow-node-step
+    - description: Verify configuration changes
+      errorhandler:
+        interpreterArgsQuoted: false
+        keepgoingOnSuccess: true
+        script: |-
+          #!/bin/bash
+          echo "error=verification-failed"
+          echo "ERROR: Configuration verification failed"
+          echo "The properties are not in the expected state after update"
+          echo "Troubleshooting steps:"
+          echo "1. Check if previous update step succeeded"
+          echo "2. Manually verify configuration: rd projects info -p @option.project-name@"
+          echo "3. Check for project-level configuration restrictions"
+          echo "4. Try running the job again"
+        scriptInterpreter: bash
+      interpreterArgsQuoted: false
+      plugins:
+        LogFilter:
+        - config:
+            captureMultipleKeysValues: 'true'
+            hideOutput: 'false'
+            logData: 'true'
+            name: verification
+            regex: ^(.+?)\s*=\s*(.+)
+          type: key-value-data-multilines
+      script: |-
+        #!/bin/bash
+        set -euo pipefail
+
+        RUNDECK_URL="@option.rundeck-url@"
+        API_TOKEN="@option.api-token@"
+        PROJECT_NAME="@option.project-name@"
+        ACTION="@option.action@"
+
+        echo "=== Verifying configuration changes ==="
+        echo ""
+
+        # Fetch updated config
+        CONFIG_JSON=$(curl -s \
+          -H "Accept: application/json" \
+          -H "X-Rundeck-Auth-Token: ${API_TOKEN}" \
+          "${RUNDECK_URL}/api/58/project/${PROJECT_NAME}/config")
+
+        MOTD_FINAL=$(echo "${CONFIG_JSON}" | jq -r '."project.gui.motd.display" // "not-set"')
+        README_FINAL=$(echo "${CONFIG_JSON}" | jq -r '."project.gui.readme.display" // "not-set"')
+
+        echo "Current configuration:"
+        echo "  - project.gui.motd.display: ${MOTD_FINAL}"
+        echo "  - project.gui.readme.display: ${README_FINAL}"
+        echo ""
+
+        # Verify expected state
+        if [ "${ACTION}" = "set" ]; then
+          if [ "${MOTD_FINAL}" = "projectList,projectHome,navbar" ] && [ "${README_FINAL}" = "projectList,projectHome" ]; then
+            echo "✓ Verification PASSED - Properties set as expected"
+            echo "verification_status=success"
+            echo "verification_result=properties-set"
+          else
+            echo "⚠ Verification FAILED - Properties not in expected state"
+            echo "  Expected MOTD: projectList,projectHome,navbar"
+            echo "  Expected README: projectList,projectHome"
+            echo "verification_status=failed"
+            echo "verification_result=unexpected-state"
+            exit 1
+          fi
+        else
+          if [ "${MOTD_FINAL}" = "not-set" ] && [ "${README_FINAL}" = "not-set" ]; then
+            echo "✓ Verification PASSED - Properties cleared as expected"
+            echo "verification_status=success"
+            echo "verification_result=properties-cleared"
+          else
+            echo "⚠ Verification FAILED - Properties not in expected state"
+            echo "  Expected: both properties removed"
+            echo "verification_status=failed"
+            echo "verification_result=unexpected-state"
+            exit 1
+          fi
+        fi
+
+        echo ""
+        echo "motd_final=${MOTD_FINAL}"
+        echo "readme_final=${README_FINAL}"
+      scriptInterpreter: bash
+    - description: Summary report
+      interpreterArgsQuoted: false
+      plugins:
+        LogFilter:
+        - config:
+            captureMultipleKeysValues: 'true'
+            hideOutput: 'false'
+            logData: 'true'
+            name: summary
+            regex: ^(.+?)\s*=\s*(.+)
+          type: key-value-data-multilines
+      script: |-
+        #!/bin/bash
+        set -euo pipefail
+
+        PROJECT_NAME="@option.project-name@"
+        ACTION="@option.action@"
+        MOTD_CURRENT="@data.motd_current@"
+        README_CURRENT="@data.readme_current@"
+        MOTD_FINAL="@data.motd_final@"
+        README_FINAL="@data.readme_final@"
+
+        echo "════════════════════════════════════════════════════════════════"
+        echo "  PROJECT VISIBILITY CONFIGURATION SUMMARY"
+        echo "════════════════════════════════════════════════════════════════"
+        echo ""
+        echo "Project:        ${PROJECT_NAME}"
+        echo "Action:         ${ACTION}"
+        echo ""
+        echo "BEFORE:"
+        echo "  MOTD:         ${MOTD_CURRENT}"
+        echo "  README:       ${README_CURRENT}"
+        echo ""
+        echo "AFTER:"
+        echo "  MOTD:         ${MOTD_FINAL}"
+        echo "  README:       ${README_FINAL}"
+        echo ""
+        echo "════════════════════════════════════════════════════════════════"
+        echo ""
+        echo "Next steps:"
+        if [ "${ACTION}" = "set" ]; then
+          echo "  1. Navigate to the project in Rundeck UI"
+          echo "  2. Verify MOTD and README banners are now visible"
+          echo "  3. Banners should appear on: Project List, Project Home"
+          echo "  4. MOTD should also appear in the navbar"
+        else
+          echo "  1. Navigate to the project in Rundeck UI"
+          echo "  2. Verify MOTD and README banners are now hidden"
+          echo "  3. To re-enable, run this job with action=set"
+        fi
+        echo ""
+        echo "summary_status=complete"
+      scriptInterpreter: bash
+    keepgoing: false
+    strategy: sequential
+  tags: 'config-api,genai,maintenance,pagerduty,project-config,runbook-automation,system-configuration'
+  user: admin
+  uuid: 731c74be-29d2-488a-8bc2-60315de4274b
+
