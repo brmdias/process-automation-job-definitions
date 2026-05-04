@@ -1,0 +1,266 @@
+- defaultTab: nodes
+  description: Update or clear the Project README to announce maintenance windows
+    for a specific project
+  executionEnabled: true
+  group: cluster-mgmt/maintenance
+  id: 1611eaf4-c564-4e37-8161-2c8c8b9f6d17
+  loglevel: INFO
+  name: manage-project-readme
+  nodeFilterEditable: false
+  nodefilters:
+    dispatch:
+      excludePrecedence: true
+      keepgoing: false
+      rankOrder: ascending
+      successOnEmptyNodeFilter: false
+      threadcount: '1'
+    filter: .*runner
+  nodesSelectedByDefault: true
+  options:
+  - description: |-
+      Action to perform on Project README.
+      - set: Create or update maintenance announcement for the project
+      - clear: Remove maintenance announcement and restore to default state
+    enforced: true
+    label: Action
+    name: action
+    required: true
+    value: set
+    values:
+    - set
+    - clear
+    valuesListDelimiter: ','
+  - description: Target project name for Project README updates. This should be the
+      exact project key as it appears in Rundeck. The Project README announcement
+      will only be visible to users accessing this specific project.
+    label: Project Name
+    name: project-name
+    required: true
+  - description: |-
+      Scheduled start time for the maintenance window (e.g., "2026-04-23 02:00 UTC", "April 23rd 2:00 AM UTC").
+      Required when action=set, ignored when action=clear.
+    label: Maintenance Start Time
+    name: maintenance-start
+  - description: |-
+      Expected completion time for the maintenance window (e.g., "2026-04-23 06:00 UTC", "April 23rd 6:00 AM UTC").
+      Required when action=set, ignored when action=clear.
+    label: Maintenance End Time
+    name: maintenance-end
+  - description: |-
+      Brief explanation of why maintenance is required (e.g., "Database upgrade", "Security patching", "Infrastructure migration").
+      Required when action=set, ignored when action=clear.
+    label: Maintenance Reason
+    name: maintenance-reason
+  - description: |-
+      Description of service impact during maintenance (e.g., "Read-only mode", "Service unavailable", "Job execution disabled").
+      Required when action=set, ignored when action=clear.
+    label: Expected Impact
+    name: maintenance-impact
+  - description: Authentication token for Rundeck API calls. Loaded automatically
+      from Rundeck Key Storage. This token requires project configuration permissions.
+    label: Rundeck API Token
+    name: api-token
+    secure: true
+    storagePath: keys/rba/bdias-rba-token
+    valueExposed: true
+  - description: 'Base URL of the Rundeck instance (e.g., https://rundeck.example.com).
+      Do not include trailing slash.'
+    label: Rundeck Base URL
+    name: rundeck-url
+    required: true
+    value: https://bdias.myrundeck.com
+  plugins:
+    ExecutionLifecycle: null
+  scheduleEnabled: true
+  schedules: []
+  sequence:
+    commands:
+    - description: Validate input parameters
+      interpreterArgsQuoted: false
+      script: |-
+        #!/bin/bash
+        set -euo pipefail
+
+        ACTION="@option.action@"
+        PROJECT="@option.project-name@"
+        RUNDECK_URL="@option.rundeck-url@"
+
+        echo "=== Project README Update - Pre-Check ==="
+        echo ""
+        echo "Action:        ${ACTION}"
+        echo "Project:       ${PROJECT}"
+        echo "Rundeck URL:   ${RUNDECK_URL}"
+        echo ""
+
+        # Validate action-specific requirements
+        if [ "${ACTION}" = "set" ]; then
+          START="@option.maintenance-start@"
+          END="@option.maintenance-end@"
+          REASON="@option.maintenance-reason@"
+          IMPACT="@option.maintenance-impact@"
+
+          if [ -z "${START}" ] || [ -z "${END}" ] || [ -z "${REASON}" ] || [ -z "${IMPACT}" ]; then
+            echo "ERROR: When action=set, all maintenance details are required:"
+            echo "  - maintenance-start:  ${START:-<MISSING>}"
+            echo "  - maintenance-end:    ${END:-<MISSING>}"
+            echo "  - maintenance-reason: ${REASON:-<MISSING>}"
+            echo "  - maintenance-impact: ${IMPACT:-<MISSING>}"
+            exit 1
+          fi
+
+          echo "Maintenance Window Details:"
+          echo "  Start:  ${START}"
+          echo "  End:    ${END}"
+          echo "  Reason: ${REASON}"
+          echo "  Impact: ${IMPACT}"
+          echo ""
+        fi
+
+        # Validate project existence
+        echo "Validating project '${PROJECT}' exists..."
+        PROJECT_CHECK=$(curl -s -k "${RUNDECK_URL}/api/58/project/${PROJECT}" \
+          -H "Accept: application/json" \
+          -H "X-Rundeck-Auth-Token: @option.api-token@" || echo '{"error":"not found"}')
+
+        if echo "${PROJECT_CHECK}" | grep -q '"error"'; then
+          echo "ERROR: Project '${PROJECT}' not found or API token lacks access"
+          exit 1
+        fi
+
+        echo "✓ Project '${PROJECT}' exists and is accessible"
+        echo ""
+        echo "=== Pre-check Complete ==="
+      scriptInterpreter: bash
+    - description: Update Project README
+      interpreterArgsQuoted: false
+      script: |-
+        #!/bin/bash
+        set -euo pipefail
+
+        ACTION="@option.action@"
+        PROJECT="@option.project-name@"
+        RUNDECK_URL="@option.rundeck-url@"
+
+        echo "=== Updating Project README ==="
+        echo ""
+        echo "Target project: ${PROJECT}"
+        echo ""
+
+        # Check if existing README exists
+        echo "Checking for existing Project README..."
+        EXISTING_README=$(curl -s -k -X GET "${RUNDECK_URL}/api/58/project/${PROJECT}/readme.md" \
+          -H "Accept: text/plain" \
+          -H "X-Rundeck-Auth-Token: @option.api-token@" 2>/dev/null || echo "")
+
+        # Check if README exists (not empty and not the "does not exist" error)
+        if [ -n "${EXISTING_README}" ] && ! echo "${EXISTING_README}" | grep -q "resource does not exist"; then
+          # Extract first two lines to check if it's a maintenance notification
+          FIRST_LINE=$(echo "${EXISTING_README}" | head -n1 | tr -d '\r')
+          SECOND_LINE=$(echo "${EXISTING_README}" | head -n2 | tail -n1 | tr -d '\r')
+
+          # Check if it matches our maintenance notification format
+          if [ "${FIRST_LINE}" = "# Scheduled Maintenance Window" ] && [ "${SECOND_LINE}" = "" ]; then
+            THIRD_LINE=$(echo "${EXISTING_README}" | head -n3 | tail -n1 | tr -d '\r')
+            if [ "${THIRD_LINE}" = "## Maintenance Details" ]; then
+              echo "✓ Existing README is a maintenance notification (created by this job)"
+
+              if [ "${ACTION}" = "clear" ]; then
+                echo "✓ Clear action allowed - will remove maintenance notification"
+              else
+                echo "✓ Set action allowed - will update maintenance notification"
+              fi
+              echo ""
+            else
+              if [ "${ACTION}" = "set" ]; then
+                echo "⚠️  SKIPPING: Project '${PROJECT}' has user-configured README content"
+                echo ""
+                echo "Existing README detected. To avoid overwriting user documentation,"
+                echo "this job will not modify the Project README."
+                echo ""
+                echo "Manual action required if you want to update this project's README."
+                exit 0
+              fi
+            fi
+          else
+            if [ "${ACTION}" = "set" ]; then
+              echo "⚠️  SKIPPING: Project '${PROJECT}' has user-configured README content"
+              echo ""
+              echo "Existing README detected. To avoid overwriting user documentation,"
+              echo "this job will not modify the Project README."
+              echo ""
+              echo "Manual action required if you want to update this project's README."
+              exit 0
+            else
+              echo "⚠️  SKIPPING: Existing README is not a maintenance notification"
+              echo ""
+              echo "Clear action can only remove maintenance notifications created by this job."
+              echo "The existing README appears to be user documentation."
+              echo ""
+              echo "Manual action required if you want to clear this project's README."
+              exit 0
+            fi
+          fi
+        else
+          echo "✓ No existing README found - safe to proceed"
+          echo ""
+        fi
+
+        if [ "${ACTION}" = "set" ]; then
+          START="@option.maintenance-start@"
+          END="@option.maintenance-end@"
+          REASON="@option.maintenance-reason@"
+          IMPACT="@option.maintenance-impact@"
+
+          # Create Markdown-formatted Project README content
+          printf -v README_CONTENT "# Scheduled Maintenance Window\n\n## Maintenance Details\n\n- Start Time: %s\n- End Time: %s\n- Reason: %s\n- Expected Impact: %s\n\n---\n\nDuring this maintenance window, this project may experience service disruptions. Please plan your job executions accordingly.\n\nThank you for your patience." "${START}" "${END}" "${REASON}" "${IMPACT}"
+
+          echo "Setting project maintenance announcement..."
+          echo "Content preview: Maintenance from ${START} to ${END}"
+
+        else
+          echo "Clearing project maintenance announcement..."
+
+          # Delete the README instead of replacing with generic content
+          HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" -k -X DELETE "${RUNDECK_URL}/api/58/project/${PROJECT}/readme.md" \
+            -H "Accept: application/json" \
+            -H "X-Rundeck-Auth-Token: @option.api-token@")
+
+          if [ "${HTTP_CODE}" = "204" ] || [ "${HTTP_CODE}" = "200" ]; then
+            echo "✓ Project README deleted successfully"
+          elif [ "${HTTP_CODE}" = "404" ]; then
+            echo "⚠ No README found (already cleared)"
+          else
+            echo "ERROR: Failed to delete Project README"
+            echo "HTTP Status: ${HTTP_CODE}"
+            exit 1
+          fi
+
+          echo ""
+          echo "✅ Maintenance announcement has been removed from project '${PROJECT}' README"
+          exit 0
+        fi
+
+        # Update Project README via API (for set action)
+        HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" -k -X PUT "${RUNDECK_URL}/api/58/project/${PROJECT}/readme.md" \
+          -H "Accept: application/json" \
+          -H "Content-Type: text/plain" \
+          -H "X-Rundeck-Auth-Token: @option.api-token@" \
+          --data-raw "${README_CONTENT}")
+
+        if [ "${HTTP_CODE}" = "200" ] || [ "${HTTP_CODE}" = "204" ]; then
+          echo "✓ Project README updated successfully"
+        else
+          echo "ERROR: Failed to update Project README"
+          echo "HTTP Status: ${HTTP_CODE}"
+          exit 1
+        fi
+
+        echo ""
+        echo "✅ Maintenance announcement is now visible on project '${PROJECT}' README"
+      scriptInterpreter: bash
+    keepgoing: false
+    strategy: sequential
+  tags: 'announcements,genai,maintenance,operations,pagerduty,project-readme,runbook-automation'
+  user: admin
+  uuid: 1611eaf4-c564-4e37-8161-2c8c8b9f6d17
+
