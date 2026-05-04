@@ -1,0 +1,460 @@
+- defaultTab: nodes
+  description: |-
+    Crawls all jobs across projects in the cluster and identifies jobs containing a specific regex pattern.
+    Useful for identifying problematic syntax patterns after upgrades or auditing job definitions.
+    Outputs results in a formatted table grouped by project with match counts and context.
+  executionEnabled: true
+  group: cluster-mgmt/analysis-cluster
+  id: dce9187d-6969-4e70-a18d-4d44cd0082c9
+  loglevel: INFO
+  name: crawl-jobs-find-pattern
+  nodeFilterEditable: false
+  nodefilters:
+    dispatch:
+      excludePrecedence: true
+      keepgoing: false
+      rankOrder: ascending
+      successOnEmptyNodeFilter: false
+      threadcount: '1'
+    filter: .*-runner
+  nodesSelectedByDefault: true
+  options:
+  - description: |-
+      The base URL of the Rundeck instance to scan.
+      Examples:
+      - http://localhost:4440
+      - https://rundeck.example.com
+      - https://rundeck.example.com:4443
+
+      Do not include trailing slash or /api path.
+    label: Rundeck URL
+    name: rundeck_url
+    required: true
+    value: https://bdias.myrundeck.com
+  - description: |-
+      Rundeck API token with permissions to read projects and jobs.
+      The token should have at least:
+      - read permission on projects
+      - read permission on jobs
+
+      Generate tokens at: User Profile > User API Tokens
+    label: API Token
+    name: api_token
+    required: true
+    secure: true
+    storagePath: keys/rba/bdias-rba-token
+    valueExposed: true
+  - description: |-
+      Regex pattern to search for in job definitions. Common use cases:
+      - Default: \$\{[^}]+\}; (variable followed by semicolon without space - incompatible since RBA-SH 5.20.0)
+      - Script interpreter issues: scriptInterpreter.*powershell -Command
+      - Missing fields: fileExtension.*\.ps1 (to find PowerShell steps)
+      - API tokens: (token|password|secret).*=.*[A-Za-z0-9]{20,}
+
+      The pattern is case-sensitive and uses extended regex syntax.
+    label: Pattern to Search
+    name: pattern
+    required: true
+    value: \$\{[^}]+\};
+  - description: |-
+      Filter to specific projects (comma-separated list), or leave empty to scan all projects.
+      Examples:
+      - Empty: scans all projects in cluster
+      - production,staging: scans only these two projects
+      - dev-*: NOT supported (exact match only)
+
+      When scanning large clusters (100+ projects), filtering to specific projects significantly reduces execution time.
+    label: Project Filter
+    name: project_filter
+  - description: |-
+      Number of lines to show before and after each match for context.
+      - 0: show only matching line (fastest, minimal output)
+      - 2: show 2 lines before and after (default, good balance)
+      - 5: show 5 lines before and after (detailed context)
+
+      Higher values produce more detailed output but slower execution on large clusters.
+    enforced: true
+    label: Show Context Lines
+    name: show_context_lines
+    required: true
+    value: '2'
+    values:
+    - '0'
+    - '2'
+    - '5'
+    valuesListDelimiter: ','
+  - description: |-
+      Format for results output:
+      - list: CLI-style list format (default, best for manual review)
+      - csv: comma-separated values (best for importing to spreadsheet)
+      - json: structured JSON output (best for programmatic processing)
+    enforced: true
+    label: Output Format
+    name: output_format
+    required: true
+    value: list
+    values:
+    - list
+    - csv
+    - json
+    valuesListDelimiter: ','
+  plugins:
+    ExecutionLifecycle:
+      roi-metrics:
+        userRoiData: '[{"key":"time_saved","label":"Manual Work Saved","value":"2","desc":"Estimated
+          hours saved by automated job pattern scanning vs manual review"}]'
+  scheduleEnabled: false
+  schedules: []
+  sequence:
+    commands:
+    - description: Check Rundeck API connectivity
+      errorhandler:
+        interpreterArgsQuoted: false
+        keepgoingOnSuccess: true
+        script: |-
+          #!/bin/bash
+          echo "error=preflight-failed"
+          echo "Failed to validate Rundeck API connectivity"
+          echo "Ensure Rundeck URL and API token are correct"
+          exit 1
+        scriptInterpreter: bash
+      interpreterArgsQuoted: false
+      plugins:
+        LogFilter:
+        - config:
+            captureMultipleKeysValues: 'true'
+            hideOutput: 'false'
+            logData: 'true'
+            name: preflight
+            regex: ^(.+?)\s*=\s*(.+)
+          type: key-value-data-multilines
+      script: |-
+        #!/bin/bash
+        set -euo pipefail
+
+        RD_URL="@option.rundeck_url@"
+        RD_TOKEN="@option.api_token@"
+
+        # Remove trailing slash if present
+        RD_URL="${RD_URL%/}"
+
+        API_VERSION=$(curl -s -H "X-Rundeck-Auth-Token: ${RD_TOKEN}" \
+          "${RD_URL}/api/43/system/info" | jq -r '.system.rundeck.apiversion' 2>/dev/null || echo "")
+
+        if [ -z "${API_VERSION}" ]; then
+          echo "error=api-connection-failed"
+          echo "Cannot connect to Rundeck API at ${RD_URL}"
+          echo "Check the Rundeck URL and API token"
+          exit 1
+        fi
+
+        echo "api_version=${API_VERSION}"
+        echo "rundeck_url=${RD_URL}"
+        echo "connectivity=ok"
+        echo "Pre-flight checks passed - API version ${API_VERSION}"
+      scriptInterpreter: bash
+    - description: Get list of projects to scan
+      errorhandler:
+        interpreterArgsQuoted: false
+        keepgoingOnSuccess: true
+        script: |-
+          #!/bin/bash
+          echo "error=project-list-failed"
+          echo "Failed to retrieve project list from Rundeck API"
+          exit 1
+        scriptInterpreter: bash
+      interpreterArgsQuoted: false
+      plugins:
+        LogFilter:
+        - config:
+            captureMultipleKeysValues: 'true'
+            hideOutput: 'false'
+            logData: 'true'
+            name: projects
+            regex: ^(.+?)\s*=\s*(.+)
+          type: key-value-data-multilines
+      script: |-
+        #!/bin/bash
+        set -euo pipefail
+
+        RD_URL="@option.rundeck_url@"
+        RD_TOKEN="@option.api_token@"
+        PROJECT_FILTER="@option.project_filter@"
+
+        # Remove trailing slash if present
+        RD_URL="${RD_URL%/}"
+
+        if [ -z "${PROJECT_FILTER}" ]; then
+          echo "Fetching all projects from cluster..."
+          PROJECTS=$(curl -s -H "X-Rundeck-Auth-Token: ${RD_TOKEN}" \
+            "${RD_URL}/api/43/projects" | jq -r '.[].name' | sort)
+        else
+          echo "Applying project filter: ${PROJECT_FILTER}"
+          IFS=',' read -ra FILTER_ARRAY <<< "${PROJECT_FILTER}"
+          PROJECTS=""
+          for PROJ in "${FILTER_ARRAY[@]}"; do
+            PROJ_TRIMMED=$(echo "${PROJ}" | xargs)
+            RESPONSE=$(curl -s -w "\n%{http_code}" -H "X-Rundeck-Auth-Token: ${RD_TOKEN}" \
+              "${RD_URL}/api/43/project/${PROJ_TRIMMED}")
+            HTTP_CODE=$(echo "${RESPONSE}" | tail -n1)
+            if [ "${HTTP_CODE}" = "200" ]; then
+              PROJECTS="${PROJECTS}${PROJ_TRIMMED}"$'\n'
+            else
+              echo "Warning: Project '${PROJ_TRIMMED}' not found or not accessible (HTTP ${HTTP_CODE})"
+            fi
+          done
+        fi
+
+        PROJECT_COUNT=$(echo "${PROJECTS}" | grep -c '^' || echo "0")
+
+        if [ "${PROJECT_COUNT}" -eq 0 ]; then
+          echo "error=no-projects-found"
+          echo "No projects found matching filter criteria"
+          exit 1
+        fi
+
+        # Convert to comma-separated for data passing
+        PROJECTS_CSV=$(echo "${PROJECTS}" | tr '\n' ',' | sed 's/,$//')
+
+        echo "projects_list=${PROJECTS_CSV}"
+        echo "project_count=${PROJECT_COUNT}"
+        echo "Found ${PROJECT_COUNT} projects to scan"
+      scriptInterpreter: bash
+    - description: Scan all jobs for pattern matches
+      errorhandler:
+        interpreterArgsQuoted: false
+        keepgoingOnSuccess: true
+        script: |-
+          #!/bin/bash
+          echo "error=scan-failed"
+          echo "Pattern scan failed during execution"
+          echo "Check that the regex pattern is valid and API token has proper permissions"
+          rm -f /tmp/pattern-scan-results-$$.txt
+          exit 1
+        scriptInterpreter: bash
+      interpreterArgsQuoted: false
+      plugins:
+        LogFilter:
+        - config:
+            captureMultipleKeysValues: 'true'
+            hideOutput: 'false'
+            logData: 'true'
+            name: scan-results
+            regex: ^(.+?)\s*=\s*(.+)
+          type: key-value-data-multilines
+      script: |-
+        #!/bin/bash
+        set -euo pipefail
+
+        RD_URL="@option.rundeck_url@"
+        RD_TOKEN="@option.api_token@"
+        PATTERN='@option.pattern@'
+        CONTEXT_LINES="@option.show_context_lines@"
+        OUTPUT_FORMAT="@option.output_format@"
+        PROJECTS_CSV="@data.projects_list@"
+
+        # Remove trailing slash if present
+        RD_URL="${RD_URL%/}"
+
+        # Convert comma-separated back to newline-separated
+        PROJECTS_LIST=$(echo "${PROJECTS_CSV}" | tr ',' '\n')
+
+        TOTAL_JOBS=0
+        TOTAL_MATCHES=0
+        RESULTS_FILE="/tmp/pattern-scan-results-$$.txt"
+
+        echo "=========================================="
+        echo "Pattern Scan Summary"
+        echo "=========================================="
+        echo "Pattern: ${PATTERN}"
+        echo "Context lines: ${CONTEXT_LINES}"
+        echo "Output format: ${OUTPUT_FORMAT}"
+        echo ""
+
+        > "${RESULTS_FILE}"
+
+        while IFS= read -r PROJECT; do
+          [ -z "${PROJECT}" ] && continue
+
+          echo "Scanning project: ${PROJECT}"
+
+          # Get list of jobs in project
+          JOBS_JSON=$(curl -s -H "X-Rundeck-Auth-Token: ${RD_TOKEN}" \
+            -H "Accept: application/json" \
+            "${RD_URL}/api/43/project/${PROJECT}/jobs" 2>/dev/null || echo "[]")
+
+          JOB_COUNT=$(echo "${JOBS_JSON}" | jq '. | length' 2>/dev/null || echo "0")
+          TOTAL_JOBS=$((TOTAL_JOBS + JOB_COUNT))
+
+          if [ "${JOB_COUNT}" -eq 0 ]; then
+            echo "  No jobs found in project"
+            continue
+          fi
+
+          echo "  Found ${JOB_COUNT} jobs in project"
+
+          # Process each job
+          for JOB_ID in $(echo "${JOBS_JSON}" | jq -r '.[].id'); do
+            JOB_NAME=$(echo "${JOBS_JSON}" | jq -r ".[] | select(.id==\"${JOB_ID}\") | .name")
+            JOB_UUID=$(echo "${JOBS_JSON}" | jq -r ".[] | select(.id==\"${JOB_ID}\") | .uuid // .id")
+
+            # Export job definition as YAML using the export endpoint
+            JOB_YAML=$(curl -s -H "X-Rundeck-Auth-Token: ${RD_TOKEN}" \
+              "${RD_URL}/api/14/job/${JOB_ID}?format=yaml" 2>/dev/null || echo "")
+
+            if [ -z "${JOB_YAML}" ]; then
+              echo "    Warning: Could not fetch job ${JOB_NAME} (${JOB_ID})"
+              continue
+            fi
+
+            # Search for pattern in YAML
+            MATCHES=$(echo "${JOB_YAML}" | grep -nE "${PATTERN}" || true)
+
+            if [ -n "${MATCHES}" ]; then
+              MATCH_COUNT=$(echo "${MATCHES}" | wc -l | xargs)
+              TOTAL_MATCHES=$((TOTAL_MATCHES + MATCH_COUNT))
+
+              JOB_URL="${RD_URL}/project/${PROJECT}/job/show/${JOB_UUID}"
+
+              echo "PROJECT|${PROJECT}|JOB_NAME|${JOB_NAME}|JOB_ID|${JOB_ID}|JOB_UUID|${JOB_UUID}|MATCH_COUNT|${MATCH_COUNT}|JOB_URL|${JOB_URL}" >> "${RESULTS_FILE}"
+
+              if [ "${CONTEXT_LINES}" != "0" ]; then
+                echo "${JOB_YAML}" | grep -nE -B"${CONTEXT_LINES}" -A"${CONTEXT_LINES}" "${PATTERN}" | while IFS= read -r CONTEXT_LINE; do
+                  echo "CONTEXT|${PROJECT}|${JOB_NAME}|${CONTEXT_LINE}" >> "${RESULTS_FILE}"
+                done
+              fi
+            fi
+          done
+
+        done <<< "${PROJECTS_LIST}"
+
+        echo ""
+        echo "=========================================="
+        echo "Scan Complete"
+        echo "=========================================="
+        echo "Total jobs scanned: ${TOTAL_JOBS}"
+        echo "Total matches found: ${TOTAL_MATCHES}"
+        echo ""
+
+        if [ "${TOTAL_MATCHES}" -eq 0 ]; then
+          echo "No matches found for pattern: ${PATTERN}"
+          echo "total_jobs_scanned=${TOTAL_JOBS}"
+          echo "total_matches_found=0"
+          rm -f "${RESULTS_FILE}"
+          exit 0
+        fi
+
+        echo "total_jobs_scanned=${TOTAL_JOBS}"
+        echo "total_matches_found=${TOTAL_MATCHES}"
+        echo "results_file=${RESULTS_FILE}"
+        echo ""
+        echo "=========================================="
+        echo "Results"
+        echo "=========================================="
+
+        if [ "${OUTPUT_FORMAT}" = "json" ]; then
+          echo "["
+          FIRST=true
+          grep '^PROJECT|' "${RESULTS_FILE}" | while IFS='|' read -r _ PROJECT _ JOB_NAME _ JOB_ID _ JOB_UUID _ MATCH_COUNT _ JOB_URL; do
+            if [ "${FIRST}" = "true" ]; then
+              FIRST=false
+            else
+              echo ","
+            fi
+            echo "  {"
+            echo "    \"project\": \"${PROJECT}\","
+            echo "    \"job_name\": \"${JOB_NAME}\","
+            echo "    \"job_id\": \"${JOB_ID}\","
+            echo "    \"job_uuid\": \"${JOB_UUID}\","
+            echo "    \"match_count\": ${MATCH_COUNT},"
+            echo "    \"job_url\": \"${JOB_URL}\""
+            echo -n "  }"
+          done
+          echo ""
+          echo "]"
+        elif [ "${OUTPUT_FORMAT}" = "csv" ]; then
+          echo "Project,Job Name,Job ID,Job UUID,Match Count,Job URL"
+          grep '^PROJECT|' "${RESULTS_FILE}" | while IFS='|' read -r _ PROJECT _ JOB_NAME _ JOB_ID _ JOB_UUID _ MATCH_COUNT _ JOB_URL; do
+            echo "\"${PROJECT}\",\"${JOB_NAME}\",\"${JOB_ID}\",\"${JOB_UUID}\",${MATCH_COUNT},\"${JOB_URL}\""
+          done
+        else
+          # CLI-style list format
+          CURRENT_PROJECT=""
+          grep '^PROJECT|' "${RESULTS_FILE}" | while IFS='|' read -r _ PROJECT _ JOB_NAME _ JOB_ID _ JOB_UUID _ MATCH_COUNT _ JOB_URL; do
+            if [ "${CURRENT_PROJECT}" != "${PROJECT}" ]; then
+              [ -n "${CURRENT_PROJECT}" ] && echo ""
+              CURRENT_PROJECT="${PROJECT}"
+              echo "Project: ${PROJECT}"
+              echo "----------------------------------------"
+            fi
+
+            echo ""
+            echo "• Job: ${JOB_NAME}"
+            echo "  UUID: ${JOB_UUID}"
+            echo "  Matches: ${MATCH_COUNT}"
+            echo "  URL: ${JOB_URL}"
+
+            if [ "${CONTEXT_LINES}" != "0" ]; then
+              echo "  Context:"
+              grep "^CONTEXT|${PROJECT}|${JOB_NAME}|" "${RESULTS_FILE}" | cut -d'|' -f4- | while IFS= read -r CONTEXT_LINE; do
+                echo "    ${CONTEXT_LINE}"
+              done
+            fi
+          done
+        fi
+
+        rm -f "${RESULTS_FILE}"
+      scriptInterpreter: bash
+    - description: Generate summary report
+      interpreterArgsQuoted: false
+      plugins:
+        LogFilter:
+        - config:
+            captureMultipleKeysValues: 'true'
+            hideOutput: 'false'
+            logData: 'true'
+            name: summary
+            regex: ^(.+?)\s*=\s*(.+)
+          type: key-value-data-multilines
+      script: |-
+        #!/bin/bash
+        set -euo pipefail
+
+        TOTAL_JOBS="@data.total_jobs_scanned@"
+        TOTAL_MATCHES="@data.total_matches_found@"
+        PATTERN="@option.pattern@"
+        PROJECT_FILTER="@option.project_filter@"
+
+        echo ""
+        echo "=========================================="
+        echo "Final Summary Report"
+        echo "=========================================="
+        echo "Pattern searched: ${PATTERN}"
+        echo "Project filter: ${PROJECT_FILTER:-All projects}"
+        echo "Total jobs scanned: ${TOTAL_JOBS}"
+        echo "Total jobs with matches: ${TOTAL_MATCHES}"
+        echo ""
+
+        if [ "${TOTAL_MATCHES}" -gt 0 ]; then
+          echo "Action required: Review the jobs listed above"
+          echo "Each job may require manual remediation depending on the pattern"
+          echo ""
+          echo "For the default pattern (\$\{variable\};), the fix is:"
+          echo "  Change: \${variable};"
+          echo "  To:     \${variable} ;"
+          echo "  (add space before semicolon)"
+        else
+          echo "Result: No jobs found with matching pattern"
+          echo "Cluster is clean for this pattern"
+        fi
+
+        echo ""
+        echo "Execution completed successfully"
+        echo "execution_status=success"
+      scriptInterpreter: bash
+    keepgoing: false
+    strategy: sequential
+  tags: 'analysis,cluster-audit,genai,job-crawler,pattern-matching,upgrade-validation'
+  user: admin
+  uuid: dce9187d-6969-4e70-a18d-4d44cd0082c9
+
