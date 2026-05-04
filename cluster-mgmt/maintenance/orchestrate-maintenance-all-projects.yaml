@@ -1,0 +1,548 @@
+- defaultTab: nodes
+  description: |-
+    Orchestrates maintenance announcements across all Rundeck projects by discovering projects and executing the orchestrate-maintenance-announcements job in each project where it exists.
+
+    Requirements: jq must be installed on the runner node for JSON parsing
+  executionEnabled: true
+  group: cluster-mgmt/maintenance
+  id: e296ab0d-0528-4599-bd4f-6a3920657f52
+  loglevel: INFO
+  name: orchestrate-maintenance-all-projects
+  nodeFilterEditable: false
+  nodefilters:
+    dispatch:
+      excludePrecedence: true
+      keepgoing: false
+      rankOrder: ascending
+      successOnEmptyNodeFilter: false
+      threadcount: '1'
+    filter: .*runner
+  nodesSelectedByDefault: true
+  options:
+  - description: |-
+      UUID of the orchestrate-maintenance-announcements job to execute for each project.
+      This job must exist in a dedicated cluster management project.
+      Default: dee27ad0-2743-41e6-887e-b1f6dd7a046e (orchestrate-maintenance-announcements)
+    label: Target Job UUID
+    name: target-job-uuid
+    required: true
+    value: dee27ad0-2743-41e6-887e-b1f6dd7a046e
+  - description: |-
+      Action to perform on maintenance announcements (set or clear).
+      This will be passed to the target job for each project.
+    enforced: true
+    label: Action
+    name: action
+    required: true
+    value: set
+    values:
+    - set
+    - clear
+    valuesListDelimiter: ','
+  - description: |-
+      Start time of the maintenance window (e.g., "2026-04-22 22:00 UTC").
+      Required when action=set.
+    label: Maintenance Start Time
+    name: maintenance-start
+  - description: |-
+      End time of the maintenance window (e.g., "2026-04-23 02:00 UTC").
+      Required when action=set.
+    label: Maintenance End Time
+    name: maintenance-end
+  - description: |-
+      Brief description of why maintenance is needed (e.g., "Database upgrade").
+      Required when action=set.
+    label: Maintenance Reason
+    name: maintenance-reason
+  - description: |-
+      Expected impact on Rundeck services (e.g., "Read-only mode during maintenance", "Full outage expected", "No user impact expected").
+      Required when action=set. Helps users understand whether they can continue using Rundeck during maintenance.
+    label: Expected Impact
+    name: maintenance-impact
+    type: text
+  - description: |-
+      Controls whether execution continues if the target job fails in a project.
+      - true: continue executing in remaining projects even if one fails -- use for fire-and-forget announcements
+      - false: stop entire workflow on first failure -- use when order and consistency matter
+    enforced: true
+    label: Continue On Failure
+    name: continue-on-failure
+    required: true
+    value: 'true'
+    values:
+    - 'true'
+    - 'false'
+    valuesListDelimiter: ','
+  - description: |-
+      When enabled, lists all projects and the target job existence status without executing anything.
+      Use this to validate which projects contain the target job before running the full orchestration.
+      - true: discovery only, no execution
+      - false: full execution
+    enforced: true
+    label: Dry Run Mode
+    name: dry-run
+    required: true
+    value: 'false'
+    values:
+    - 'true'
+    - 'false'
+    valuesListDelimiter: ','
+  - description: Authentication token for Rundeck API calls. Loaded automatically
+      from Rundeck Key Storage.
+    label: Rundeck API Token
+    name: api-token
+    secure: true
+    storagePath: keys/rba/bdias-rba-token
+    valueExposed: true
+  - description: Base URL of the Rundeck instance. Do not include trailing slash.
+    label: Rundeck Base URL
+    name: rundeck-url
+    required: true
+    value: https://bdias.myrundeck.com
+  plugins:
+    ExecutionLifecycle:
+      roi-metrics:
+        userRoiData: '[{"key":"time_saved","label":"Manual Work Saved","value":"1.5","desc":"Estimated
+          hours saved by automating cross-project orchestration"}]'
+  scheduleEnabled: true
+  schedules: []
+  sequence:
+    commands:
+    - description: Validate target job exists
+      errorhandler:
+        interpreterArgsQuoted: false
+        keepgoingOnSuccess: true
+        script: |-
+          #!/bin/bash
+          set -euo pipefail
+          echo "error=validation-failed"
+          echo "Failed to validate target job. Check job UUID and API connectivity."
+        scriptInterpreter: bash
+      interpreterArgsQuoted: false
+      plugins:
+        LogFilter:
+        - config:
+            captureMultipleKeysValues: 'true'
+            hideOutput: 'false'
+            logData: 'true'
+            name: validation
+            regex: ^(.+?)\s*=\s*(.+)
+          type: key-value-data-multilines
+      script: |-
+        #!/bin/bash
+        set -euo pipefail
+
+        API_TOKEN="@option.api-token@"
+        RUNDECK_URL="@option.rundeck-url@"
+        JOB_UUID="@option.target-job-uuid@"
+
+        echo "=== Validating Target Job ==="
+        echo ""
+
+        HTTP_CODE=$(curl -s -o /tmp/rd_job_info.json -w "%{http_code}" -k "${RUNDECK_URL}/api/58/job/${JOB_UUID}" \
+          -H "Accept: application/json" \
+          -H "X-Rundeck-Auth-Token: ${API_TOKEN}" 2>/dev/null || echo "000")
+
+        if [ "${HTTP_CODE}" != "200" ]; then
+          echo "error=job-not-found"
+          echo "Target job UUID '${JOB_UUID}' not found (HTTP ${HTTP_CODE})"
+          rm -f /tmp/rd_job_info.json
+          exit 1
+        fi
+
+        # Parse JSON with jq
+        JOB_NAME=$(jq -r '.[0].name' /tmp/rd_job_info.json)
+        JOB_GROUP=$(jq -r '.[0].group // "(no group)"' /tmp/rd_job_info.json)
+
+        rm -f /tmp/rd_job_info.json
+
+        echo "✓ Target job found:"
+        echo "  Name: ${JOB_NAME}"
+        echo "  Group: ${JOB_GROUP}"
+        echo "  UUID: ${JOB_UUID}"
+        echo ""
+
+        echo "job_name=${JOB_NAME}"
+        echo "job_group=${JOB_GROUP}"
+      scriptInterpreter: bash
+    - description: Discover all projects and build JSON array
+      errorhandler:
+        interpreterArgsQuoted: false
+        keepgoingOnSuccess: true
+        script: |-
+          #!/bin/bash
+          set -euo pipefail
+          echo "error=project-discovery-failed"
+          echo "Failed to discover projects. Verify API token and Rundeck URL are correct."
+          exit 1
+        scriptInterpreter: bash
+      interpreterArgsQuoted: false
+      plugins:
+        LogFilter:
+        - config:
+            captureMultipleKeysValues: 'true'
+            hideOutput: 'false'
+            logData: 'true'
+            name: discovery
+            regex: ^(.+?)\s*=\s*(.+)
+          type: key-value-data-multilines
+      script: |-
+        #!/bin/bash
+        set -euo pipefail
+
+        API_TOKEN="@option.api-token@"
+        RUNDECK_URL="@option.rundeck-url@"
+
+        echo "=== Discovering Projects ==="
+        echo ""
+
+        HTTP_CODE=$(curl -s -o /tmp/rd_projects.json -w "%{http_code}" -k "${RUNDECK_URL}/api/58/projects" \
+          -H "Accept: application/json" \
+          -H "X-Rundeck-Auth-Token: ${API_TOKEN}")
+
+        if [ "${HTTP_CODE}" != "200" ]; then
+          echo "error=failed-to-list-projects"
+          echo "Failed to retrieve project list from Rundeck API (HTTP ${HTTP_CODE})"
+          rm -f /tmp/rd_projects.json
+          exit 1
+        fi
+
+        # Use jq to build comma-separated list of project names
+        PROJECT_LIST=$(jq -r '[.[].name] | join(",")' /tmp/rd_projects.json)
+        PROJECT_COUNT=$(jq '. | length' /tmp/rd_projects.json)
+
+        rm -f /tmp/rd_projects.json
+
+        if [ "${PROJECT_COUNT}" = "0" ]; then
+          echo "error=no-projects-found"
+          echo "No projects found in Rundeck instance"
+          exit 1
+        fi
+
+        echo "Found ${PROJECT_COUNT} projects"
+        echo ""
+
+        echo "project_list=${PROJECT_LIST}"
+        echo "total_projects=${PROJECT_COUNT}"
+      scriptInterpreter: bash
+    - conditionGroups:
+      - - key: ${option.dry-run}
+          operator: ==
+          value: 'true'
+      description: Execute dry run report if enabled
+      nodeStep: true
+      subSteps:
+      - autoSecureInput: 'false'
+        description: Generate dry run summary
+        interpreterArgsQuoted: false
+        passSecureInput: 'false'
+        plugins:
+          LogFilter:
+          - config:
+              logData: 'true'
+              regex: ^(execution_mode)=(.+)$
+            type: key-value-data
+        script: |-
+          #!/bin/bash
+          set -euo pipefail
+
+          API_TOKEN="@option.api-token@"
+          RUNDECK_URL="@option.rundeck-url@"
+          ACTION="@option.action@"
+
+          echo "=== DRY RUN SUMMARY ==="
+          echo ""
+          echo "Total Projects: @data.total_projects@"
+          echo "Target Job: @data.job_name@ (group: @data.job_group@)"
+          echo "Target Job UUID: @option.target-job-uuid@"
+          echo "Action: ${ACTION}"
+          echo ""
+          echo "Execution Plan (DRY RUN - no jobs executed):"
+          echo ""
+
+          PROJECT_LIST="@data.project_list@"
+
+          IFS=',' read -ra PROJECTS <<< "${PROJECT_LIST}"
+          for PROJECT in "${PROJECTS[@]}"; do
+            echo "  → Would execute job for project: ${PROJECT} (action=${ACTION})"
+          done
+
+          echo ""
+          echo "=== DRY RUN COMPLETE ==="
+          echo "Set dry-run=false to execute jobs"
+
+          echo "execution_mode=dry-run"
+        scriptInterpreter: bash
+      type: conditional
+    - conditionGroups:
+      - - key: ${option.dry-run}
+          operator: ==
+          value: 'false'
+      description: Loop over projects and execute target job
+      nodeStep: true
+      subSteps:
+      - autoSecureInput: 'false'
+        description: Execute target job for each project
+        interpreterArgsQuoted: false
+        passSecureInput: 'false'
+        plugins:
+          LogFilter:
+          - config:
+              captureMultipleKeysValues: 'true'
+              hideOutput: 'false'
+              logData: 'true'
+              name: execution
+              regex: ^(.+?)\s*=\s*(.+)
+            type: key-value-data-multilines
+        script: |-
+          #!/bin/bash
+          set -euo pipefail
+
+          API_TOKEN="@option.api-token@"
+          RUNDECK_URL="@option.rundeck-url@"
+          JOB_UUID="@option.target-job-uuid@"
+          ACTION="@option.action@"
+          CONTINUE_ON_FAILURE="@option.continue-on-failure@"
+
+          # Get comma-separated project list from captured data
+          PROJECT_LIST="@data.project_list@"
+
+          echo "=== Executing Target Job Across All Projects ==="
+          echo ""
+
+          # Initialize counters
+          JOBS_EXECUTED=0
+          JOBS_SUCCEEDED=0
+          JOBS_FAILED=0
+          FAILED_PROJECTS=""
+
+          # Convert comma-separated list to array
+          IFS=',' read -ra PROJECTS <<< "${PROJECT_LIST}"
+
+          for PROJECT in "${PROJECTS[@]}"; do
+            JOBS_EXECUTED=$((JOBS_EXECUTED + 1))
+
+            echo "──────────────────────────────────────"
+            echo "[${JOBS_EXECUTED}] Target Project: ${PROJECT}"
+            echo "Action: ${ACTION}"
+            echo ""
+
+            # Build job options JSON
+            OPTIONS_JSON="\"action\":\"${ACTION}\""
+
+            if [ "${ACTION}" = "set" ]; then
+              MAINT_START="@option.maintenance-start@"
+              MAINT_END="@option.maintenance-end@"
+              MAINT_REASON="@option.maintenance-reason@"
+              MAINT_IMPACT="@option.maintenance-impact@"
+
+              if [ -n "${MAINT_START}" ]; then
+                OPTIONS_JSON="${OPTIONS_JSON},\"maintenance-start\":\"${MAINT_START}\""
+              fi
+              if [ -n "${MAINT_END}" ]; then
+                OPTIONS_JSON="${OPTIONS_JSON},\"maintenance-end\":\"${MAINT_END}\""
+              fi
+              if [ -n "${MAINT_REASON}" ]; then
+                OPTIONS_JSON="${OPTIONS_JSON},\"maintenance-reason\":\"${MAINT_REASON}\""
+              fi
+              if [ -n "${MAINT_IMPACT}" ]; then
+                OPTIONS_JSON="${OPTIONS_JSON},\"maintenance-impact\":\"${MAINT_IMPACT}\""
+              fi
+            fi
+
+            PAYLOAD="{\"options\":{${OPTIONS_JSON},\"project-name\":\"${PROJECT}\"}}"
+
+            # Execute job via API
+            EXEC_RESPONSE=$(curl -s -k -X POST "${RUNDECK_URL}/api/58/job/${JOB_UUID}/run" \
+              -H "Accept: application/json" \
+              -H "Content-Type: application/json" \
+              -H "X-Rundeck-Auth-Token: ${API_TOKEN}" \
+              -d "${PAYLOAD}")
+
+            EXECUTION_ID=$(echo "${EXEC_RESPONSE}" | grep -o '"id":[0-9]*' | head -n1 | sed 's/"id"://g')
+
+            if [ -z "${EXECUTION_ID}" ]; then
+              echo "✗ FAILED to start job for project ${PROJECT}"
+              echo "Response: ${EXEC_RESPONSE}"
+              echo ""
+
+              JOBS_FAILED=$((JOBS_FAILED + 1))
+              if [ -z "${FAILED_PROJECTS}" ]; then
+                FAILED_PROJECTS="${PROJECT}"
+              else
+                FAILED_PROJECTS="${FAILED_PROJECTS},${PROJECT}"
+              fi
+
+              if [ "${CONTINUE_ON_FAILURE}" = "false" ]; then
+                echo "Continue-on-failure is disabled. Stopping execution."
+                echo ""
+                echo "jobs_executed=${JOBS_EXECUTED}"
+                echo "jobs_succeeded=${JOBS_SUCCEEDED}"
+                echo "jobs_failed=${JOBS_FAILED}"
+                echo "failed_projects=${FAILED_PROJECTS}"
+                exit 1
+              fi
+              continue
+            fi
+
+            echo "Job execution started (ID: ${EXECUTION_ID})"
+            echo "Monitoring execution status..."
+
+            # Poll execution status
+            MAX_WAIT=600
+            WAIT_TIME=0
+            STATUS="running"
+
+            while [ ${WAIT_TIME} -lt ${MAX_WAIT} ]; do
+              sleep 10
+              WAIT_TIME=$((WAIT_TIME + 10))
+
+              STATUS_RESPONSE=$(curl -s -k "${RUNDECK_URL}/api/58/execution/${EXECUTION_ID}" \
+                -H "Accept: application/json" \
+                -H "X-Rundeck-Auth-Token: ${API_TOKEN}")
+
+              STATUS=$(echo "${STATUS_RESPONSE}" | grep -o '"status":"[^"]*"' | head -n1 | sed 's/"status":"//g' | sed 's/"//g')
+
+              if [ "${STATUS}" = "succeeded" ]; then
+                echo "✓ SUCCESS for project ${PROJECT}"
+                echo ""
+                JOBS_SUCCEEDED=$((JOBS_SUCCEEDED + 1))
+                break
+              elif [ "${STATUS}" = "failed" ] || [ "${STATUS}" = "aborted" ]; then
+                echo "✗ FAILED for project ${PROJECT} (status: ${STATUS})"
+                echo ""
+
+                JOBS_FAILED=$((JOBS_FAILED + 1))
+                if [ -z "${FAILED_PROJECTS}" ]; then
+                  FAILED_PROJECTS="${PROJECT}"
+                else
+                  FAILED_PROJECTS="${FAILED_PROJECTS},${PROJECT}"
+                fi
+
+                if [ "${CONTINUE_ON_FAILURE}" = "false" ]; then
+                  echo "Continue-on-failure is disabled. Stopping execution."
+                  echo ""
+                  echo "jobs_executed=${JOBS_EXECUTED}"
+                  echo "jobs_succeeded=${JOBS_SUCCEEDED}"
+                  echo "jobs_failed=${JOBS_FAILED}"
+                  echo "failed_projects=${FAILED_PROJECTS}"
+                  exit 1
+                fi
+                break
+              elif [ "${STATUS}" = "running" ]; then
+                echo "  [${WAIT_TIME}s] Still running..."
+              fi
+            done
+
+            if [ ${WAIT_TIME} -ge ${MAX_WAIT} ]; then
+              echo "⚠ TIMEOUT waiting for execution for project ${PROJECT}"
+              echo ""
+
+              JOBS_FAILED=$((JOBS_FAILED + 1))
+              if [ -z "${FAILED_PROJECTS}" ]; then
+                FAILED_PROJECTS="${PROJECT}"
+              else
+                FAILED_PROJECTS="${FAILED_PROJECTS},${PROJECT}"
+              fi
+
+              if [ "${CONTINUE_ON_FAILURE}" = "false" ]; then
+                echo "Continue-on-failure is disabled. Stopping execution."
+                echo ""
+                echo "jobs_executed=${JOBS_EXECUTED}"
+                echo "jobs_succeeded=${JOBS_SUCCEEDED}"
+                echo "jobs_failed=${JOBS_FAILED}"
+                echo "failed_projects=${FAILED_PROJECTS}"
+                exit 1
+              fi
+            fi
+          done
+
+          echo "══════════════════════════════════════"
+          echo "Execution complete"
+          echo ""
+          echo "jobs_executed=${JOBS_EXECUTED}"
+          echo "jobs_succeeded=${JOBS_SUCCEEDED}"
+          echo "jobs_failed=${JOBS_FAILED}"
+          echo "failed_projects=${FAILED_PROJECTS}"
+          echo "execution_mode=live"
+        scriptInterpreter: bash
+      - description: Update login welcome message
+        jobref:
+          args: -action "${option.action}" -maintenance-start "${option.maintenance-start}"
+            -maintenance-end "${option.maintenance-end}" -maintenance-reason "${option.maintenance-reason}"
+            -maintenance-impact "${option.maintenance-impact}"
+          group: genai/maintenance
+          name: manage-login-maintenance-banner
+          nodeStep: 'true'
+          project: sandbox
+          uuid: 7f3c8a1d-5b9e-4c2a-9d6f-2e8b4a7c3f1d
+      type: conditional
+    - description: Generate final summary report
+      interpreterArgsQuoted: false
+      script: |-
+        #!/bin/bash
+        set -euo pipefail
+
+        TOTAL_PROJECTS="@data.total_projects@"
+        EXECUTION_MODE="@data.execution_mode@"
+
+        echo "════════════════════════════════════════"
+        echo "     ORCHESTRATION SUMMARY REPORT"
+        echo "════════════════════════════════════════"
+        echo ""
+        echo "Execution Mode: ${EXECUTION_MODE}"
+        echo "Target Job: @data.job_name@ (@option.target-job-uuid@)"
+        echo "Action: @option.action@"
+        echo ""
+        echo "Discovery:"
+        echo "  Total Projects: ${TOTAL_PROJECTS}"
+        echo ""
+
+        if [ "${EXECUTION_MODE}" = "live" ]; then
+          JOBS_EXECUTED="@data.jobs_executed@"
+          JOBS_SUCCEEDED="@data.jobs_succeeded@"
+          JOBS_FAILED="@data.jobs_failed@"
+          FAILED_PROJECTS="@data.failed_projects@"
+
+          echo "Execution:"
+          echo "  Jobs Executed: ${JOBS_EXECUTED}"
+          echo "  Succeeded: ${JOBS_SUCCEEDED}"
+          echo "  Failed: ${JOBS_FAILED}"
+          echo ""
+
+          if [ "${JOBS_FAILED}" != "0" ] && [ -n "${FAILED_PROJECTS}" ]; then
+            echo "Failed Projects:"
+            IFS=',' read -ra FAILED <<< "${FAILED_PROJECTS}"
+            for PROJECT in "${FAILED[@]}"; do
+              if [ -n "${PROJECT}" ]; then
+                echo "  - ${PROJECT}"
+              fi
+            done
+            echo ""
+          fi
+
+          if [ "${JOBS_FAILED}" != "0" ]; then
+            echo "Status: COMPLETED WITH FAILURES"
+          else
+            echo "Status: ALL JOBS SUCCEEDED"
+          fi
+        else
+          echo "No jobs executed (dry run mode)"
+          echo ""
+          echo "All discovered projects:"
+          PROJECT_LIST="@data.project_list@"
+          IFS=',' read -ra PROJECTS <<< "${PROJECT_LIST}"
+          for PROJECT in "${PROJECTS[@]}"; do
+            echo "  - ${PROJECT}"
+          done
+        fi
+
+        echo ""
+        echo "════════════════════════════════════════"
+      scriptInterpreter: bash
+    keepgoing: false
+    strategy: sequential
+  tags: 'genai,job-reference,maintenance,multi-project,orchestration'
+  user: admin
+  uuid: e296ab0d-0528-4599-bd4f-6a3920657f52
+
